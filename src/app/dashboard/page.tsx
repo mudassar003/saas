@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { InvoiceTable } from '@/components/invoice/invoice-table';
 import { InvoiceFilters } from '@/components/invoice/invoice-filters';
 import { ExportDialog } from '@/components/export/export-dialog';
@@ -35,7 +35,7 @@ export default function DashboardPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-  const [grandTotal, setGrandTotal] = useState('0');
+  const [, setGrandTotal] = useState('0');
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     status: 'all',

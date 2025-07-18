@@ -10,8 +10,8 @@ import { Database, Play, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-rea
 export default function SetupPage() {
   const [isSetup, setIsSetup] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
-  const [syncStatus, setSyncStatus] = useState<any>(null)
+  const [result, setResult] = useState<Record<string, unknown> | null>(null)
+  const [syncStatus, setSyncStatus] = useState<Record<string, unknown> | null>(null)
   const [syncProgress, setSyncProgress] = useState<{
     currentBatch: number;
     totalBatches: number;
@@ -108,7 +108,7 @@ export default function SetupPage() {
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-bold">Database Setup & Sync</h1>
         <p className="text-muted-foreground">
-          Set up your database and sync invoices from MX Merchant. The "Data Sent" column will show "Select" by default for nurse workflow tracking.
+          Set up your database and sync invoices from MX Merchant. The &quot;Data Sent&quot; column will show &quot;Select&quot; by default for nurse workflow tracking.
         </p>
       </div>
 
@@ -149,7 +149,7 @@ export default function SetupPage() {
             Step 2: Sync Invoices
           </CardTitle>
           <CardDescription>
-            Intelligently sync invoices from MX Merchant API. New invoices default to "Pending", existing invoices preserve nurse workflow data.
+            Intelligently sync invoices from MX Merchant API. New invoices default to &quot;Pending&quot;, existing invoices preserve nurse workflow data.
           </CardDescription>
         </CardHeader>
         <CardContent>

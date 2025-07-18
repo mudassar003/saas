@@ -78,7 +78,7 @@ export class MXMerchantClient {
   async getAllInvoices(merchantId?: string): Promise<MXInvoiceListResponse> {
     const limit = 100;
     let offset = 0;
-    let allInvoices: any[] = [];
+    const allInvoices: unknown[] = [];
     let totalCount = 0;
     let grandTotalAmount = '0';
 
@@ -146,7 +146,7 @@ export async function getMXInvoiceDetail(invoiceId: number): Promise<MXInvoiceDe
 }
 
 // Utility functions for transforming MX Merchant data to our internal format
-export function transformMXInvoiceToInvoice(mxInvoice: any, userId: string): any {
+export function transformMXInvoiceToInvoice(mxInvoice: Record<string, unknown>, userId: string): Record<string, unknown> {
   return {
     id: `mx-${mxInvoice.id}`, // Will be replaced with UUID when saving to database
     user_id: userId,

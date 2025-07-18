@@ -81,7 +81,7 @@ export function getDataSentStatusLabel(status: 'pending' | 'yes' | 'no'): string
 }
 
 // Debounce function
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   delay: number
 ): (...args: Parameters<T>) => void {
@@ -110,7 +110,7 @@ export function truncateText(text: string, maxLength: number): string {
 }
 
 // Generate CSV content
-export function generateCSV(data: any[], headers: string[]): string {
+export function generateCSV(data: Record<string, unknown>[], headers: string[]): string {
   const csvHeaders = headers.join(',');
   const csvRows = data.map(row => 
     headers.map(header => {

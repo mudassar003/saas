@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     if (action === 'setup') {
       // Test database connection
       console.log('Testing database connection...')
-      const { data: testData, error: testError } = await supabaseAdmin
+      const { error: testError } = await supabaseAdmin
         .from('invoices')
         .select('id')
         .limit(1)
@@ -29,7 +29,6 @@ export async function POST(request: NextRequest) {
       // Check environment variables
       const consumerKey = process.env.MX_MERCHANT_CONSUMER_KEY
       const consumerSecret = process.env.MX_MERCHANT_CONSUMER_SECRET
-      const environment = process.env.MX_MERCHANT_ENVIRONMENT || 'production'
 
       if (!consumerKey || !consumerSecret) {
         return NextResponse.json({ 
@@ -39,8 +38,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: 'Setup completed - ready to sync invoices',
-        environment: environment
+        message: 'Setup completed - ready to sync invoices'
       })
     }
 
@@ -61,8 +59,8 @@ export async function POST(request: NextRequest) {
       
       let totalProcessed = 0
       let totalFailed = 0
-      let errors: string[] = []
-      let allInvoices: any[] = []
+      const errors: string[] = []
+      const allInvoices: unknown[] = []
       
       try {
         // First, get total count
@@ -285,7 +283,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get sync status from database
     const { data: invoices, error } = await supabaseAdmin

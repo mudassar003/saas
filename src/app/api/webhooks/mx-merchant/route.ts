@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
     // Verify webhook signature (add your webhook secret verification here)
     const headersList = headers()
     const signature = headersList.get('x-mx-signature')
+    console.log('Webhook signature:', signature)
     
     // TODO: Implement signature verification
     // const isValid = verifyWebhookSignature(body, signature, process.env.MX_MERCHANT_WEBHOOK_SECRET)
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleSuccessfulPayment(webhookData: any) {
+async function handleSuccessfulPayment(webhookData: Record<string, unknown>) {
   try {
     // Check if this is a new invoice or payment update
     const invoiceId = webhookData.invoiceId || webhookData.id
@@ -104,7 +105,7 @@ async function handleSuccessfulPayment(webhookData: any) {
   }
 }
 
-async function handleFailedPayment(webhookData: any) {
+async function handleFailedPayment(webhookData: Record<string, unknown>) {
   try {
     const invoiceId = webhookData.invoiceId || webhookData.id
     
@@ -129,7 +130,7 @@ async function handleFailedPayment(webhookData: any) {
   }
 }
 
-async function handleRefundCreated(webhookData: any) {
+async function handleRefundCreated(webhookData: Record<string, unknown>) {
   try {
     const invoiceId = webhookData.invoiceId || webhookData.id
     const refundAmount = parseFloat(webhookData.refundAmount || webhookData.amount || '0')
@@ -156,7 +157,7 @@ async function handleRefundCreated(webhookData: any) {
   }
 }
 
-async function handleChargeback(webhookData: any) {
+async function handleChargeback(webhookData: Record<string, unknown>) {
   try {
     const invoiceId = webhookData.invoiceId || webhookData.id
     
@@ -252,7 +253,7 @@ async function syncNewInvoice(invoiceId: number) {
   }
 }
 
-async function logWebhookEvent(webhookData: any, eventType: string) {
+async function logWebhookEvent(webhookData: Record<string, unknown>, eventType: string) {
   try {
     // Log webhook events for debugging and monitoring
     console.log(`Webhook Event: ${eventType}`, {
@@ -275,11 +276,3 @@ async function logWebhookEvent(webhookData: any, eventType: string) {
 }
 
 // Webhook signature verification function
-function verifyWebhookSignature(payload: any, signature: string | null, secret: string): boolean {
-  if (!signature || !secret) return false
-  
-  // Implement signature verification logic based on MX Merchant's specification
-  // This would typically involve HMAC-SHA256 verification
-  
-  return true // Placeholder - implement actual verification
-}

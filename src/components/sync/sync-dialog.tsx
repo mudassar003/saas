@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { RefreshCw, Database, CheckCircle2, AlertCircle, Info } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 
 interface SyncResult {
   success: boolean
@@ -118,7 +117,7 @@ export function SyncDialog({ onSyncComplete }: SyncDialogProps) {
               <div className="space-y-2">
                 <p><strong>This sync will:</strong></p>
                 <ul className="text-sm space-y-1 ml-4">
-                  <li>• Add new invoices with "Pending" status</li>
+                  <li>• Add new invoices with &quot;Pending&quot; status</li>
                   <li>• Update existing invoices while preserving nurse data</li>
                   <li>• Skip unchanged invoices to save time</li>
                   <li>• Never overwrite Data Sent status</li>

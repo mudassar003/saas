@@ -40,7 +40,7 @@ export class SyncService {
     try {
       let totalProcessed = 0
       let totalFailed = 0
-      let allErrors: string[] = []
+      const allErrors: string[] = []
       let apiCallsCount = 0
       let lastProcessedInvoiceId: number | null = null
 

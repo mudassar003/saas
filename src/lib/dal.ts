@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin, Tables, Inserts, Updates } from './supabase'
+import { supabase, supabaseAdmin, Tables, Inserts } from './supabase'
 import { MXInvoice, MXInvoiceDetail } from '@/types/invoice'
 
 // Data Access Layer for secure database operations

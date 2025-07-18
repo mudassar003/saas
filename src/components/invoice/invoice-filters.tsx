@@ -155,7 +155,7 @@ export function InvoiceFilters({
             <span className="text-xs text-muted-foreground">Active filters:</span>
             {filters.search && (
               <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                Search: "{filters.search}"
+                Search: &quot;{filters.search}&quot;
               </span>
             )}
             {filters.status !== 'all' && (

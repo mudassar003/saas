@@ -19,7 +19,7 @@ interface InvoiceDetailPageProps {
 async function getInvoiceData(invoiceId: number): Promise<{
   invoice: Invoice
   items: InvoiceItem[]
-  apiData?: any
+  apiData?: Record<string, unknown>
 }> {
   // Step 1: Get invoice from database
   const invoice = await getInvoiceById(invoiceId)
@@ -28,7 +28,7 @@ async function getInvoiceData(invoiceId: number): Promise<{
   }
 
   // Step 2: Get items from database
-  let items = await getInvoiceItems(invoice.id)
+  const items = await getInvoiceItems(invoice.id)
 
   // Step 3: If no items, fetch from MX Merchant API
   let apiData = null
@@ -103,7 +103,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                   <div className="text-xl font-bold text-gray-800">
                     <span className="text-red-600">GAMEDAY</span>
                   </div>
-                  <div className="text-sm text-gray-600 font-medium">MEN'S HEALTH</div>
+                  <div className="text-sm text-gray-600 font-medium">MEN&apos;S HEALTH</div>
                 </div>
               </div>
             </div>
@@ -112,7 +112,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
             <div className="text-right text-sm text-gray-600">
               <div className="flex items-center gap-1 justify-end mb-1">
                 <MapPin className="h-4 w-4" />
-                <span>GAMEDAY MEN'S HEALTH - RESTON</span>
+                <span>GAMEDAY MEN&apos;S HEALTH - RESTON</span>
               </div>
               <div>12005 Sunrise Valley Drive</div>
               <div>Reston, VA 20191</div>
@@ -189,7 +189,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                   </tr>
                 </thead>
                 <tbody>
-                  {displayItems.map((item: any, index: number) => (
+                  {displayItems.map((item: Record<string, unknown>, index: number) => (
                     <tr key={index} className="border-t border-gray-100">
                       <td className="px-4 py-3 text-sm">
                         {item.product_name || item.productName || `Item ${index + 1}`}

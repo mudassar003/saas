@@ -78,7 +78,7 @@ export type Database = {
           memo: string | null
           is_tax_exempt: boolean | null
           merchant_id: number | null
-          raw_data: any | null
+          raw_data: Record<string, unknown> | null
           data_sent_status: string
           data_sent_by: string | null
           data_sent_at: string | null

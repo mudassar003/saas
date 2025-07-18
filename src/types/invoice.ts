@@ -32,7 +32,7 @@ export interface Invoice {
   memo?: string;
   is_tax_exempt: boolean;
   merchant_id: number;
-  raw_data: any;
+  raw_data: Record<string, unknown>;
   
   // Nurse workflow fields
   data_sent_status: 'pending' | 'yes' | 'no';
@@ -102,8 +102,8 @@ export interface MXInvoiceDetail extends MXInvoice {
     id: number;
     name: string;
   };
-  payments: any[];
-  taxes: any[];
+  payments: Record<string, unknown>[];
+  taxes: Record<string, unknown>[];
 }
 
 export interface MXPurchase {

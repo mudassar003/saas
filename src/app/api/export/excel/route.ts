@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-const xl = require('excel4node')
+import xl from 'excel4node'
 
 export async function POST(request: NextRequest) {
   try {

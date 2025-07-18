@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, ExternalLink } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { 
   Table, 
   TableBody, 
@@ -17,10 +17,7 @@ import { Invoice, DataSentUpdate } from '@/types/invoice';
 import { 
   formatCurrency, 
   formatDate, 
-  getStatusColor, 
-  getDataSentStatusColor,
-  getDataSentStatusLabel,
-  getInternalInvoiceUrl
+  getStatusColor
 } from '@/lib/utils';
 
 interface InvoiceTableProps {
