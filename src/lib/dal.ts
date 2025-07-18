@@ -164,7 +164,7 @@ export class DAL {
       memo: invoice.memo,
       is_tax_exempt: invoice.isTaxExempt || false,
       merchant_id: invoice.merchantId,
-      raw_data: invoice,
+      raw_data: invoice as Record<string, unknown>,
       data_sent_status: 'pending'
     }))
 
