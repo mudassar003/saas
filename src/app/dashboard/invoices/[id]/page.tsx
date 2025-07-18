@@ -11,9 +11,9 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Invoice, InvoiceItem } from '@/types/invoice'
 
 interface InvoiceDetailPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 async function getInvoiceData(invoiceId: number): Promise<{
@@ -45,7 +45,8 @@ async function getInvoiceData(invoiceId: number): Promise<{
 }
 
 export default async function InvoiceDetailPage({ params }: InvoiceDetailPageProps) {
-  const invoiceId = parseInt(params.id)
+  const { id } = await params
+  const invoiceId = parseInt(id)
   if (isNaN(invoiceId)) {
     notFound()
   }
