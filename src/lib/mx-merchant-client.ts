@@ -78,7 +78,7 @@ export class MXMerchantClient {
   async getAllInvoices(merchantId?: string): Promise<MXInvoiceListResponse> {
     const limit = 100;
     let offset = 0;
-    const allInvoices: unknown[] = [];
+    const allInvoices: MXInvoice[] = [];
     let totalCount = 0;
     let grandTotalAmount = '0';
 
