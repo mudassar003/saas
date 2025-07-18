@@ -193,7 +193,7 @@ export default function SetupPage() {
           )}
           <AlertDescription>
             <div className="space-y-2">
-              <p className="font-medium">{result.message || result.error}</p>
+              <p className="font-medium">{String(result.message || result.error || '')}</p>
               
               {/* Success details */}
               {result.success && (result.totalProcessed || result.summary) && (
