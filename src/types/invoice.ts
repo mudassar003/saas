@@ -16,24 +16,24 @@ export interface Invoice {
   due_date: string | null;
   api_created: string | null;
   status: 'Paid' | 'Unpaid' | 'Partial' | 'Refunded' | 'Cancelled' | 'PastDue' | string | null;
-  subtotal_amount: number;
-  tax_amount: number;
-  discount_amount: number;
-  total_amount: number;
-  balance: number;
-  paid_amount: number;
-  currency: string;
-  receipt_number: string;
-  quantity: number;
-  return_quantity: number;
+  subtotal_amount: number | null;
+  tax_amount: number | null;
+  discount_amount: number | null;
+  total_amount: number | null;
+  balance: number | null;
+  paid_amount: number | null;
+  currency: string | null;
+  receipt_number: string | null;
+  quantity: number | null;
+  return_quantity: number | null;
   return_status: string | null;
-  source_type: string;
-  type: string;
-  terms: string;
+  source_type: string | null;
+  type: string | null;
+  terms: string | null;
   memo?: string | null;
-  is_tax_exempt: boolean;
-  merchant_id: number;
-  raw_data: Record<string, unknown>;
+  is_tax_exempt: boolean | null;
+  merchant_id: number | null;
+  raw_data: Record<string, unknown> | null;
   
   // Nurse workflow fields
   data_sent_status: 'pending' | 'yes' | 'no';
@@ -47,13 +47,13 @@ export interface InvoiceItem {
   invoice_id: string;
   mx_purchase_id: number;
   product_name: string;
-  quantity: number;
+  quantity: number | null;
   unit_price: number;
-  subtotal_amount: number;
-  tax_amount: number;
-  discount_amount: number;
+  subtotal_amount: number | null;
+  tax_amount: number | null;
+  discount_amount: number | null;
   price_discount_amount: number;
-  total_amount: number;
+  total_amount: number | null;
   quantity_returned: number;
   tracking_number?: number;
   api_created: string | null;
@@ -86,8 +86,8 @@ export interface MXInvoice {
   quantity: string;
   merchantId: number;
   sourceType: string;
-  type: string;
-  terms: string;
+  type: string | null;
+  terms: string | null;
   taxAmount?: string;
   discountAmount: string;
   returnQuantity: string;
@@ -110,7 +110,7 @@ export interface MXInvoiceDetail extends MXInvoice {
 export interface MXPurchase {
   id: number;
   productName: string;
-  quantity: number;
+  quantity: number | null;
   price: string;
   subTotalAmount: string;
   taxAmount: string;
@@ -128,7 +128,7 @@ export interface InvoiceTableRow {
   invoice_number: number;
   customer_name: string;
   status: string;
-  total_amount: number;
+  total_amount: number | null;
   invoice_date: string;
   data_sent_status: 'pending' | 'yes' | 'no';
   data_sent_by?: string;
