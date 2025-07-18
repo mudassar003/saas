@@ -19,7 +19,7 @@ interface InvoiceDetailPageProps {
 async function getInvoiceData(invoiceId: number): Promise<{
   invoice: Invoice
   items: InvoiceItem[]
-  apiData?: Record<string, unknown>
+  apiData?: Record<string, unknown> | null
 }> {
   // Step 1: Get invoice from database
   const invoice = await getInvoiceById(invoiceId)
