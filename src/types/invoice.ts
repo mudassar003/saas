@@ -15,7 +15,7 @@ export interface Invoice {
   invoice_date: string | null;
   due_date: string | null;
   api_created: string | null;
-  status: 'Paid' | 'Unpaid' | 'Partial' | 'Refunded' | 'Cancelled' | 'PastDue';
+  status: 'Paid' | 'Unpaid' | 'Partial' | 'Refunded' | 'Cancelled' | 'PastDue' | string | null;
   subtotal_amount: number;
   tax_amount: number;
   discount_amount: number;
