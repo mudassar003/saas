@@ -33,6 +33,11 @@ interface SyncStatus {
   message?: string;
   progress?: number;
   error?: string;
+  totalInvoices?: number;
+  pendingCount?: number;
+  yesCount?: number;
+  noCount?: number;
+  lastSync?: string;
 }
 
 export default function SetupPage() {
@@ -124,7 +129,7 @@ export default function SetupPage() {
       const data = await response.json()
       
       if (data.success) {
-        setSyncStatus(data.data)
+        setSyncStatus(data.data as SyncStatus)
       }
     } catch (error) {
       console.error('Failed to fetch sync status:', error)
@@ -324,22 +329,22 @@ export default function SetupPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
                 <p className="text-sm font-medium text-blue-600">Total Invoices</p>
-                <p className="text-3xl font-bold text-blue-900">{syncStatus.totalInvoices}</p>
+                <p className="text-3xl font-bold text-blue-900">{syncStatus.totalInvoices || 0}</p>
                 <p className="text-xs text-blue-600">Records in database</p>
               </div>
               <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500">
                 <p className="text-sm font-medium text-orange-600">Pending</p>
-                <p className="text-3xl font-bold text-orange-900">{syncStatus.pendingCount}</p>
+                <p className="text-3xl font-bold text-orange-900">{syncStatus.pendingCount || 0}</p>
                 <p className="text-xs text-orange-600">Awaiting nurse action</p>
               </div>
               <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
                 <p className="text-sm font-medium text-green-600">Data Sent</p>
-                <p className="text-3xl font-bold text-green-900">{syncStatus.yesCount}</p>
+                <p className="text-3xl font-bold text-green-900">{syncStatus.yesCount || 0}</p>
                 <p className="text-xs text-green-600">Patient data sent</p>
               </div>
               <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
                 <p className="text-sm font-medium text-red-600">Not Sent</p>
-                <p className="text-3xl font-bold text-red-900">{syncStatus.noCount}</p>
+                <p className="text-3xl font-bold text-red-900">{syncStatus.noCount || 0}</p>
                 <p className="text-xs text-red-600">No patient data</p>
               </div>
             </div>
@@ -364,7 +369,7 @@ export default function SetupPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <p>Your database is now populated with {syncStatus.totalInvoices} invoices!</p>
+              <p>Your database is now populated with {syncStatus.totalInvoices || 0} invoices!</p>
               <div className="space-y-2">
                 <Button 
                   onClick={() => window.location.href = '/dashboard'} 
