@@ -196,7 +196,7 @@ export default function SetupPage() {
               <p className="font-medium">{String(result.message || result.error || '')}</p>
               
               {/* Success details */}
-              {result.success && (Boolean(result.totalProcessed) || Boolean(result.summary)) && (
+              {Boolean(result.success) && (Boolean(result.totalProcessed) || Boolean(result.summary)) && (
                 <div className="space-y-2">
                   {/* Enhanced sync statistics */}
                   {result.summary ? (
