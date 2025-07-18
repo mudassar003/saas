@@ -304,7 +304,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                 Has patient data been sent for this invoice?
               </div>
               <DataSentButtons 
-                invoiceId={invoice.mx_invoice_id}
+                invoiceId={String(invoice.mx_invoice_id || '')}
                 currentStatus={invoice.data_sent_status}
                 className="ml-4"
               />
