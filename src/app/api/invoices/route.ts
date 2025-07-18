@@ -1,30 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { mockInvoices } from '@/lib/mock-data'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const useMockData = searchParams.get('mock') === 'true'
     
-    if (useMockData) {
-      // Return mock data for development
-      const limit = parseInt(searchParams.get('limit') || '10')
-      const offset = parseInt(searchParams.get('offset') || '0')
-      const paginatedInvoices = mockInvoices.slice(offset, offset + limit)
-      
-      return NextResponse.json({
-        success: true,
-        data: {
-          records: paginatedInvoices,
-          recordCount: mockInvoices.length,
-          totals: {
-            grandTotalAmount: mockInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0).toString()
-          }
-        }
-      })
-    }
-
     // Use real database data (without auth for now)
     console.log('Fetching invoices from database...')
 
