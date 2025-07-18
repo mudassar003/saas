@@ -41,7 +41,7 @@ async function getInvoiceData(invoiceId: number): Promise<{
     }
   }
 
-  return { invoice, items, apiData }
+  return { invoice, items, apiData: apiData as Record<string, unknown> | null }
 }
 
 export default async function InvoiceDetailPage({ params }: InvoiceDetailPageProps) {
