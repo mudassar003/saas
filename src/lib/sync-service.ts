@@ -155,15 +155,15 @@ export class SyncService {
         
         const response = await this.mxClient.getInvoiceDetail(invoiceId)
         
-        if (!response.success || !response.data) {
-          const error = `Failed to fetch details for invoice ${invoiceId}: ${response.error}`
+        if (!response) {
+          const error = `Failed to fetch details for invoice ${invoiceId}: No response received`
           results.errors.push(error)
           results.totalFailed++
           console.error(error)
           continue
         }
 
-        const invoiceDetail = response.data
+        const invoiceDetail = response
         
         // Find the invoice in our database
         const { data: dbInvoice, error: dbError } = await DAL.supabase
