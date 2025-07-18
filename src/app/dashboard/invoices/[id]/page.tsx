@@ -303,11 +303,16 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
               <div className="text-sm text-gray-600">
                 Has patient data been sent for this invoice?
               </div>
-              <DataSentButtons 
-                invoiceId={String(invoice.mx_invoice_id || '')}
-                currentStatus={invoice.data_sent_status as 'pending' | 'yes' | 'no'}
-                className="ml-4"
-              />
+              <div className="ml-4">
+                <DataSentButtons 
+                  invoiceId={String(invoice.mx_invoice_id || '')}
+                  currentStatus={invoice.data_sent_status as 'pending' | 'yes' | 'no'}
+                  onUpdateStatus={async (update) => {
+                    // Handle the update - you can implement the actual API call here
+                    console.log('Update status:', update);
+                  }}
+                />
+              </div>
             </div>
             {invoice.data_sent_at && (
               <div className="mt-2 text-xs text-gray-500">
