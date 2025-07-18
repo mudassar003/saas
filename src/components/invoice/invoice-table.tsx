@@ -112,7 +112,7 @@ export function InvoiceTable({
               <TableCell className="py-1">
                 <Badge 
                   variant="outline" 
-                  className={`text-xs px-1 py-0 ${getStatusColor(invoice.status)}`}
+                  className={`text-xs px-1 py-0 ${getStatusColor(invoice.status || '')}`}
                 >
                   {invoice.status}
                 </Badge>
