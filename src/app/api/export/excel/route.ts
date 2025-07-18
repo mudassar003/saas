@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import xl from 'excel4node'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const xl = require('excel4node')
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
         data_sent_at,
         created_at
       `)
-      .order('invoice_date', { ascending: false, nullsLast: true })
+      .order('invoice_date', { ascending: false })
       .order('created_at', { ascending: false })
     
     // Apply filters

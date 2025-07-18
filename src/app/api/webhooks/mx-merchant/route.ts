@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     console.log('MX Merchant webhook received:', body)
 
     // Verify webhook signature (add your webhook secret verification here)
-    const headersList = headers()
+    const headersList = await headers()
     const signature = headersList.get('x-mx-signature')
     console.log('Webhook signature:', signature)
     
@@ -85,7 +85,7 @@ async function handleSuccessfulPayment(webhookData: Record<string, unknown>) {
         .from('invoices')
         .update({
           status: 'Paid',
-          paid_amount: parseFloat(webhookData.amount || webhookData.totalAmount || '0'),
+          paid_amount: parseFloat(String(webhookData.amount || webhookData.totalAmount || '0')),
           balance: 0,
           updated_at: new Date().toISOString()
         })

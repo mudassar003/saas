@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         created_at,
         updated_at
       `)
-      .order('invoice_date', { ascending: false, nullsLast: true })
+      .order('invoice_date', { ascending: false })
       .order('created_at', { ascending: false })
 
     // Apply filters
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Apply same ordering to stats query
-    statsQuery = statsQuery.order('invoice_date', { ascending: false, nullsLast: true })
+    statsQuery = statsQuery.order('invoice_date', { ascending: false })
       .order('created_at', { ascending: false })
 
     const { data: statsData, count: totalCount, error: statsError } = await statsQuery

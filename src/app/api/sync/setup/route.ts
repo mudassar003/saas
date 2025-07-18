@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { MXInvoice } from '@/types/invoice'
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
       let totalProcessed = 0
       let totalFailed = 0
       const errors: string[] = []
-      const allInvoices: unknown[] = []
+      const allInvoices: MXInvoice[] = []
       
       try {
         // First, get total count
@@ -181,15 +182,15 @@ export async function POST(request: NextRequest) {
               memo: invoice.memo,
               is_tax_exempt: invoice.isTaxExempt,
               merchant_id: invoice.merchantId,
-              raw_data: invoice
+              raw_data: invoice,
+              data_sent_status: 'pending' as const,
+              data_sent_by: null,
+              data_sent_at: null,
+              data_sent_notes: null
             }
 
             if (!existingInvoice) {
-              // New invoice - set default nurse workflow status
-              newInvoiceData.data_sent_status = 'pending'
-              newInvoiceData.data_sent_by = null
-              newInvoiceData.data_sent_at = null
-              newInvoiceData.data_sent_notes = null
+              // New invoice - use default nurse workflow status
               newInvoices++
             } else {
               // Check if invoice has changed

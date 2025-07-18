@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         data_sent_at,
         created_at
       `)
-      .order('invoice_date', { ascending: false, nullsLast: true })
+      .order('invoice_date', { ascending: false })
       .order('created_at', { ascending: false })
     
     // Apply filters
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     
     // Prepare data for CSV export
     const csvData = invoices.map(invoice => {
-      const row = {
+      const row: Record<string, string | number> = {
         'ID': invoice.mx_invoice_id,
         'Invoice#': invoice.invoice_number,
         'Customer': invoice.customer_name || '',
