@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
           records: paginatedInvoices,
           recordCount: mockInvoices.length,
           totals: {
-            grandTotalAmount: mockInvoices.reduce((sum, inv) => sum + inv.total_amount, 0).toString()
+            grandTotalAmount: mockInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0).toString()
           }
         }
       })
