@@ -305,7 +305,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
               </div>
               <DataSentButtons 
                 invoiceId={String(invoice.mx_invoice_id || '')}
-                currentStatus={invoice.data_sent_status}
+                currentStatus={invoice.data_sent_status as 'pending' | 'yes' | 'no'}
                 className="ml-4"
               />
             </div>
