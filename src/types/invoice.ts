@@ -36,7 +36,7 @@ export interface Invoice {
   raw_data: Record<string, unknown> | null;
   
   // Nurse workflow fields
-  data_sent_status: 'pending' | 'yes' | 'no';
+  data_sent_status: 'pending' | 'yes' | 'no' | string;
   data_sent_by?: string;
   data_sent_at?: string;
   data_sent_notes?: string;
@@ -130,7 +130,7 @@ export interface InvoiceTableRow {
   status: string;
   total_amount: number | null;
   invoice_date: string;
-  data_sent_status: 'pending' | 'yes' | 'no';
+  data_sent_status: 'pending' | 'yes' | 'no' | string;
   data_sent_by?: string;
   data_sent_at?: string;
 }
