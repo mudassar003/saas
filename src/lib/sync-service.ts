@@ -85,7 +85,7 @@ export class SyncService {
           records_processed: totalProcessed,
           records_failed: totalFailed,
           api_calls_made: apiCallsCount,
-          last_processed_invoice_id: lastProcessedInvoiceId
+          last_processed_invoice_id: lastProcessedInvoiceId ?? undefined
         })
 
         offset += limit
@@ -106,7 +106,7 @@ export class SyncService {
         records_failed: totalFailed,
         error_message: allErrors.length > 0 ? allErrors.join('; ') : null,
         api_calls_made: apiCallsCount,
-        last_processed_invoice_id: lastProcessedInvoiceId
+        last_processed_invoice_id: lastProcessedInvoiceId ?? undefined
       })
 
       return {
