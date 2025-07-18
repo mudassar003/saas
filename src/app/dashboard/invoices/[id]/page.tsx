@@ -9,6 +9,7 @@ import { getInvoiceById, getInvoiceItems } from '@/lib/dal'
 import { getMXInvoiceDetail } from '@/lib/mx-merchant-client'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Invoice, InvoiceItem } from '@/types/invoice'
+import { updateDataSentStatus } from './actions'
 
 interface InvoiceDetailPageProps {
   params: Promise<{
@@ -307,10 +308,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                 <DataSentButtons 
                   invoiceId={String(invoice.mx_invoice_id || '')}
                   currentStatus={invoice.data_sent_status as 'pending' | 'yes' | 'no'}
-                  onUpdateStatus={async (update) => {
-                    // Handle the update - you can implement the actual API call here
-                    console.log('Update status:', update);
-                  }}
+                  onUpdateStatus={updateDataSentStatus}
                 />
               </div>
             </div>
