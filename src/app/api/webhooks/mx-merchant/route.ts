@@ -133,7 +133,7 @@ async function handleFailedPayment(webhookData: Record<string, unknown>) {
 async function handleRefundCreated(webhookData: Record<string, unknown>) {
   try {
     const invoiceId = webhookData.invoiceId || webhookData.id
-    const refundAmount = parseFloat(webhookData.refundAmount || webhookData.amount || '0')
+    const refundAmount = parseFloat(String(webhookData.refundAmount || webhookData.amount || '0'))
     
     if (!invoiceId) return
 
