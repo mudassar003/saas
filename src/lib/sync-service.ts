@@ -55,14 +55,14 @@ export class SyncService {
         const response = await this.mxClient.getInvoices({ limit, offset })
         apiCallsCount++
 
-        if (!response.success || !response.data?.records) {
-          const error = `API call failed at offset ${offset}: ${response.error}`
+        if (!response.records) {
+          const error = `API call failed at offset ${offset}: No records returned`
           allErrors.push(error)
           console.error(error)
           break
         }
 
-        const invoices = response.data.records
+        const invoices = response.records
         
         if (invoices.length === 0) {
           hasMore = false
