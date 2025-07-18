@@ -9,12 +9,13 @@ export interface Invoice {
   // MX Merchant API fields
   mx_invoice_id: number;
   invoice_number: number;
-  customer_name: string;
-  customer_number?: string;
-  invoice_date: string;
-  due_date: string;
+  customer_name: string | null;
+  customer_number?: string | null;
+  customer_email?: string | null;
+  invoice_date: string | null;
+  due_date: string | null;
   api_created: string;
-  status: 'Paid' | 'Unpaid' | 'Partial' | 'Refunded' | 'Cancelled';
+  status: 'Paid' | 'Unpaid' | 'Partial' | 'Refunded' | 'Cancelled' | 'PastDue';
   subtotal_amount: number;
   tax_amount: number;
   discount_amount: number;
@@ -25,11 +26,11 @@ export interface Invoice {
   receipt_number: string;
   quantity: number;
   return_quantity: number;
-  return_status: string;
+  return_status: string | null;
   source_type: string;
   type: string;
   terms: string;
-  memo?: string;
+  memo?: string | null;
   is_tax_exempt: boolean;
   merchant_id: number;
   raw_data: Record<string, unknown>;
