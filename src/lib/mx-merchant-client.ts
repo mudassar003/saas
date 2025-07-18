@@ -1,4 +1,4 @@
-import { MXInvoiceListResponse, MXInvoiceDetail } from '@/types/invoice';
+import { MXInvoiceListResponse, MXInvoiceDetail, MXPurchase, InvoiceItem } from '@/types/invoice';
 
 export class MXMerchantClient {
   private baseUrl: string;
@@ -189,7 +189,7 @@ export function transformMXInvoiceToInvoice(mxInvoice: Record<string, unknown>, 
   };
 }
 
-export function transformMXPurchaseToInvoiceItem(mxPurchase: any, invoiceId: string): any {
+export function transformMXPurchaseToInvoiceItem(mxPurchase: MXPurchase, invoiceId: string): InvoiceItem {
   return {
     id: `mx-purchase-${mxPurchase.id}`, // Will be replaced with UUID when saving to database
     invoice_id: invoiceId,

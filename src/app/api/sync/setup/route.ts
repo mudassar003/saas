@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       // Get MX Merchant credentials from environment
       const consumerKey = process.env.MX_MERCHANT_CONSUMER_KEY
       const consumerSecret = process.env.MX_MERCHANT_CONSUMER_SECRET
-      const environment = process.env.MX_MERCHANT_ENVIRONMENT || 'production'
+      // const environment = process.env.MX_MERCHANT_ENVIRONMENT || 'production'
 
       if (!consumerKey || !consumerSecret) {
         return NextResponse.json({ 
