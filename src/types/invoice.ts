@@ -7,8 +7,8 @@ export interface Invoice {
   updated_at: string;
   
   // MX Merchant API fields
-  mx_invoice_id: number;
-  invoice_number: number;
+  mx_invoice_id: number | null;
+  invoice_number: number | null;
   customer_name: string | null;
   customer_number?: string | null;
   customer_email?: string | null;
@@ -37,27 +37,27 @@ export interface Invoice {
   
   // Nurse workflow fields
   data_sent_status: 'pending' | 'yes' | 'no' | string;
-  data_sent_by?: string;
-  data_sent_at?: string;
-  data_sent_notes?: string;
+  data_sent_by?: string | null;
+  data_sent_at?: string | null;
+  data_sent_notes?: string | null;
 }
 
 export interface InvoiceItem {
   id: string;
   invoice_id: string;
-  mx_purchase_id: number;
-  product_name: string;
+  mx_purchase_id: number | null;
+  product_name: string | null;
   quantity: number | null;
-  unit_price: number;
+  unit_price: number | null;
   subtotal_amount: number | null;
   tax_amount: number | null;
   discount_amount: number | null;
-  price_discount_amount: number;
+  price_discount_amount: number | null;
   total_amount: number | null;
-  quantity_returned: number;
-  tracking_number?: number;
+  quantity_returned: number | null;
+  tracking_number?: number | null;
   api_created: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 // MX Merchant API response types
