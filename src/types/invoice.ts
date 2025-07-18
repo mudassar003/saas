@@ -14,7 +14,7 @@ export interface Invoice {
   customer_email?: string | null;
   invoice_date: string | null;
   due_date: string | null;
-  api_created: string;
+  api_created: string | null;
   status: 'Paid' | 'Unpaid' | 'Partial' | 'Refunded' | 'Cancelled' | 'PastDue';
   subtotal_amount: number;
   tax_amount: number;
@@ -56,7 +56,7 @@ export interface InvoiceItem {
   total_amount: number;
   quantity_returned: number;
   tracking_number?: number;
-  api_created: string;
+  api_created: string | null;
   created_at: string;
 }
 
