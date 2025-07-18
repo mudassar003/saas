@@ -196,37 +196,37 @@ export default function SetupPage() {
               <p className="font-medium">{String(result.message || result.error || '')}</p>
               
               {/* Success details */}
-              {result.success && (result.totalProcessed || result.summary) && (
+              {result.success && (Boolean(result.totalProcessed) || Boolean(result.summary)) && (
                 <div className="space-y-2">
                   {/* Enhanced sync statistics */}
                   {result.summary ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div className="bg-green-50 p-3 rounded">
                         <p className="font-medium text-green-800">🆕 New Invoices</p>
-                        <p className="text-2xl font-bold text-green-900">{result.summary.newInvoices}</p>
+                        <p className="text-2xl font-bold text-green-900">{String(result.summary.newInvoices || 0)}</p>
                       </div>
                       <div className="bg-blue-50 p-3 rounded">
                         <p className="font-medium text-blue-800">🔄 Updated</p>
-                        <p className="text-2xl font-bold text-blue-900">{result.summary.updatedInvoices}</p>
+                        <p className="text-2xl font-bold text-blue-900">{String(result.summary.updatedInvoices || 0)}</p>
                       </div>
                       <div className="bg-gray-50 p-3 rounded">
                         <p className="font-medium text-gray-800">✅ Unchanged</p>
-                        <p className="text-2xl font-bold text-gray-900">{result.summary.unchangedInvoices}</p>
+                        <p className="text-2xl font-bold text-gray-900">{String(result.summary.unchangedInvoices || 0)}</p>
                       </div>
                       <div className="bg-red-50 p-3 rounded">
                         <p className="font-medium text-red-800">❌ Failed</p>
-                        <p className="text-2xl font-bold text-red-900">{result.summary.totalFailed || 0}</p>
+                        <p className="text-2xl font-bold text-red-900">{String(result.summary.totalFailed || 0)}</p>
                       </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="bg-green-50 p-3 rounded">
                         <p className="font-medium text-green-800">✅ Successfully Added</p>
-                        <p className="text-2xl font-bold text-green-900">{result.totalProcessed}</p>
+                        <p className="text-2xl font-bold text-green-900">{String(result.totalProcessed || 0)}</p>
                       </div>
                       <div className="bg-red-50 p-3 rounded">
                         <p className="font-medium text-red-800">❌ Failed</p>
-                        <p className="text-2xl font-bold text-red-900">{result.totalFailed || 0}</p>
+                        <p className="text-2xl font-bold text-red-900">{String(result.totalFailed || 0)}</p>
                       </div>
                     </div>
                   )}
@@ -236,7 +236,7 @@ export default function SetupPage() {
                     <div className="bg-purple-50 p-3 rounded">
                       <p className="font-medium text-purple-800">🔒 Workflow Data Preserved</p>
                       <p className="text-sm text-purple-700">
-                        {result.summary.preservedWorkflowData} invoices kept their nurse workflow status
+                        {String(result.summary.preservedWorkflowData || 0)} invoices kept their nurse workflow status
                       </p>
                     </div>
                   )}
@@ -244,8 +244,8 @@ export default function SetupPage() {
                   <div className="bg-blue-50 p-3 rounded">
                     <p className="font-medium text-blue-800">📊 Sync Summary</p>
                     <p className="text-sm text-blue-700">
-                      Fetched: {result.summary?.totalFetched || result.totalFetched || result.totalProcessed + (result.totalFailed || 0)} invoices
-                      {(result.summary?.totalAvailable || result.totalAvailable) && ` • Available: ${result.summary?.totalAvailable || result.totalAvailable} invoices`}
+                      Fetched: {String(result.summary?.totalFetched || result.totalFetched || Number(result.totalProcessed || 0) + Number(result.totalFailed || 0))} invoices
+                      {(result.summary?.totalAvailable || result.totalAvailable) && ` • Available: ${String(result.summary?.totalAvailable || result.totalAvailable)} invoices`}
                     </p>
                   </div>
                 </div>
