@@ -1,4 +1,4 @@
-import { MXInvoiceListResponse, MXInvoiceDetail, MXPurchase, InvoiceItem } from '@/types/invoice';
+import { MXInvoiceListResponse, MXInvoiceDetail, MXInvoice, MXPurchase, InvoiceItem } from '@/types/invoice';
 
 export class MXMerchantClient {
   private baseUrl: string;
