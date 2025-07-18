@@ -98,7 +98,7 @@ async function handleSuccessfulPayment(webhookData: Record<string, unknown>) {
       }
     } else {
       // New invoice - fetch full details and insert
-      await syncNewInvoice(invoiceId)
+      await syncNewInvoice(Number(invoiceId))
     }
   } catch (error) {
     console.error('Error handling successful payment:', error)
