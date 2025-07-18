@@ -158,8 +158,8 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-gray-500" />
                   <div>
-                    <div><span className="text-gray-600">Invoice Date:</span> {formatDate(invoice.invoice_date)}</div>
-                    <div><span className="text-gray-600">Due Date:</span> {formatDate(invoice.due_date)}</div>
+                    <div><span className="text-gray-600">Invoice Date:</span> {invoice.invoice_date ? formatDate(invoice.invoice_date) : 'N/A'}</div>
+                    <div><span className="text-gray-600">Due Date:</span> {invoice.due_date ? formatDate(invoice.due_date) : 'N/A'}</div>
                   </div>
                 </div>
               </div>

@@ -118,10 +118,10 @@ export function InvoiceTable({
                 </Badge>
               </TableCell>
               <TableCell className="text-right font-medium py-1 text-xs">
-                {formatCurrency(invoice.total_amount, invoice.currency)}
+                {formatCurrency(invoice.total_amount || 0, invoice.currency || 'USD')}
               </TableCell>
               <TableCell className="text-xs text-muted-foreground py-1">
-                {formatDate(invoice.invoice_date)}
+                {invoice.invoice_date ? formatDate(invoice.invoice_date) : 'N/A'}
               </TableCell>
               <TableCell className="py-1">
                 <DataSentButtons
