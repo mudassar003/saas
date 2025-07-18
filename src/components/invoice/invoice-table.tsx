@@ -126,7 +126,7 @@ export function InvoiceTable({
               <TableCell className="py-1">
                 <DataSentButtons
                   invoiceId={invoice.id}
-                  currentStatus={invoice.data_sent_status}
+                  currentStatus={invoice.data_sent_status as 'pending' | 'yes' | 'no'}
                   onUpdateStatus={handleUpdateDataSent}
                   disabled={updatingInvoices.has(invoice.id)}
                 />
