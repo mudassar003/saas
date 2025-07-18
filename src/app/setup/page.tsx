@@ -362,7 +362,7 @@ export default function SetupPage() {
       )}
 
       {/* Next Steps */}
-      {syncStatus && syncStatus.totalInvoices > 0 && (
+      {syncStatus && syncStatus.totalInvoices && syncStatus.totalInvoices > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>🎉 Success!</CardTitle>
