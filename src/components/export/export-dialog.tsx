@@ -114,8 +114,8 @@ export function ExportDialog({ invoices, onExport }: ExportDialogProps) {
                         setExportOptions(prev => ({ 
                           ...prev, 
                           date_range: { 
-                            ...prev.date_range, 
-                            from: e.target.value 
+                            from: e.target.value,
+                            to: prev.date_range?.to || ''
                           } 
                         }))
                       }
@@ -133,7 +133,7 @@ export function ExportDialog({ invoices, onExport }: ExportDialogProps) {
                         setExportOptions(prev => ({ 
                           ...prev, 
                           date_range: { 
-                            ...prev.date_range, 
+                            from: prev.date_range?.from || '',
                             to: e.target.value 
                           } 
                         }))
