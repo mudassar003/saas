@@ -52,7 +52,7 @@ export class SyncService {
       while (hasMore) {
         console.log(`Fetching invoices: offset=${offset}, limit=${limit}`)
         
-        const response = await this.mxClient.getInvoices(limit, offset)
+        const response = await this.mxClient.getInvoices({ limit, offset })
         apiCallsCount++
 
         if (!response.success || !response.data?.records) {
