@@ -22,6 +22,18 @@ export function formatDate(dateString: string): string {
   });
 }
 
+// Format date and time
+export function formatDateTime(dateString: string): string {
+  return new Date(dateString).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
 // Format relative time
 export function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);

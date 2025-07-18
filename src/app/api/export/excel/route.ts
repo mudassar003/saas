@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
         data_sent_status,
         data_sent_by,
         data_sent_at,
+        ordered_by_provider_at,
         created_at
       `)
       .order('invoice_date', { ascending: false })
@@ -281,7 +282,8 @@ export async function POST(request: NextRequest) {
       'Status',
       'Amount',
       'Date',
-      'Data Sent',
+      'Ordered by Provider',
+      'Date/Time Ordered',
       'Internal Link'
     ]
     
@@ -344,7 +346,7 @@ export async function POST(request: NextRequest) {
         ws.cell(row, 6).string('').style(isEvenRow ? cellStyle : cellStyleAlt)
       }
       
-      // Data Sent
+      // Ordered by Provider
       const dataSentStatus = invoice.data_sent_status === 'yes' ? 'YES' : 
                             invoice.data_sent_status === 'no' ? 'NO' : 'Pending'
       let dataSentStyle = isEvenRow ? cellStyle : cellStyleAlt
@@ -357,13 +359,20 @@ export async function POST(request: NextRequest) {
       
       ws.cell(row, 7).string(dataSentStatus).style(dataSentStyle)
       
+      // Date/Time Ordered
+      if (invoice.ordered_by_provider_at) {
+        ws.cell(row, 8).date(new Date(invoice.ordered_by_provider_at)).style(isEvenRow ? dateStyle : dateStyleAlt)
+      } else {
+        ws.cell(row, 8).string('').style(isEvenRow ? cellStyle : cellStyleAlt)
+      }
+      
       // Internal Link
       const internalLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/invoices/${invoice.mx_invoice_id}`
-      ws.cell(row, 8).string(internalLink).style(isEvenRow ? cellStyle : cellStyleAlt)
+      ws.cell(row, 9).string(internalLink).style(isEvenRow ? cellStyle : cellStyleAlt)
       
       // Products (if requested)
       if (includeProducts) {
-        ws.cell(row, 9).string('Products not fetched in this version').style(isEvenRow ? cellStyle : cellStyleAlt)
+        ws.cell(row, 10).string('Products not fetched in this version').style(isEvenRow ? cellStyle : cellStyleAlt)
       }
     })
     
@@ -374,11 +383,12 @@ export async function POST(request: NextRequest) {
     ws.column(4).setWidth(15)  // Status
     ws.column(5).setWidth(15)  // Amount
     ws.column(6).setWidth(15)  // Date
-    ws.column(7).setWidth(15)  // Data Sent
-    ws.column(8).setWidth(60)  // Internal Link
+    ws.column(7).setWidth(18)  // Ordered by Provider
+    ws.column(8).setWidth(20)  // Date/Time Ordered
+    ws.column(9).setWidth(60)  // Internal Link
     
     if (includeProducts) {
-      ws.column(9).setWidth(35)  // Products
+      ws.column(10).setWidth(35)  // Products
     }
     
     // Note: Freeze panes syntax needs to be verified for excel4node

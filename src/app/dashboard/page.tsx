@@ -179,6 +179,9 @@ export default function DashboardPage() {
       const result = await response.json();
       
       if (result.success) {
+        console.log('Dashboard - API response data:', result.data);
+        console.log('Dashboard - ordered_by_provider_at from API:', result.data.ordered_by_provider_at);
+        
         // Update local state with the response data
         setInvoices(prev => prev.map(invoice => 
           invoice.id === update.invoice_id 
@@ -187,7 +190,8 @@ export default function DashboardPage() {
                 data_sent_status: result.data.data_sent_status,
                 data_sent_at: result.data.data_sent_at,
                 data_sent_by: result.data.data_sent_by,
-                data_sent_notes: result.data.data_sent_notes
+                data_sent_notes: result.data.data_sent_notes,
+                ordered_by_provider_at: result.data.ordered_by_provider_at
               }
             : invoice
         ));

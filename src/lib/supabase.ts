@@ -83,6 +83,7 @@ export type Database = {
           data_sent_by: string | null
           data_sent_at: string | null
           data_sent_notes: string | null
+          ordered_by_provider_at: string | null
           created_at: string
           updated_at: string
         }
@@ -120,6 +121,7 @@ export type Database = {
           data_sent_by?: string | null
           data_sent_at?: string | null
           data_sent_notes?: string | null
+          ordered_by_provider_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -157,6 +159,7 @@ export type Database = {
           data_sent_by?: string | null
           data_sent_at?: string | null
           data_sent_notes?: string | null
+          ordered_by_provider_at?: string | null
           created_at?: string
           updated_at?: string
         }

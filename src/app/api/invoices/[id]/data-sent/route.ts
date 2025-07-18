@@ -18,18 +18,24 @@ export async function PATCH(
       );
     }
     
+    const timestamp = new Date().toISOString();
     console.log(`Updating data sent status for invoice ${id} to "${status}"`);
+    console.log(`Setting ordered_by_provider_at to: ${timestamp}`);
     
-    // Update the database record
+    const updatePayload = {
+      data_sent_status: status,
+      data_sent_at: timestamp,
+      data_sent_notes: notes || null,
+      ordered_by_provider_at: timestamp,
+      updated_at: timestamp
+    };
+    
+    console.log('Update payload:', updatePayload);
+    
+    // Update the database record - always update ordered_by_provider_at timestamp
     const { data, error } = await supabaseAdmin
       .from('invoices')
-      .update({
-        data_sent_status: status,
-        data_sent_by: 'admin-user', // Would come from auth context
-        data_sent_at: new Date().toISOString(),
-        data_sent_notes: notes || null,
-        updated_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();
@@ -43,6 +49,8 @@ export async function PATCH(
     }
     
     console.log(`Successfully updated data sent status for invoice ${id}`);
+    console.log('Database response data:', data);
+    console.log('Updated ordered_by_provider_at in DB:', data.ordered_by_provider_at);
     
     return NextResponse.json({
       success: true,
@@ -51,7 +59,8 @@ export async function PATCH(
         data_sent_status: data.data_sent_status,
         data_sent_by: data.data_sent_by,
         data_sent_at: data.data_sent_at,
-        data_sent_notes: data.data_sent_notes
+        data_sent_notes: data.data_sent_notes,
+        ordered_by_provider_at: data.ordered_by_provider_at
       }
     });
     

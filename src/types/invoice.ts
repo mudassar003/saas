@@ -40,6 +40,7 @@ export interface Invoice {
   data_sent_by?: string | null;
   data_sent_at?: string | null;
   data_sent_notes?: string | null;
+  ordered_by_provider_at?: string | null;
 }
 
 export interface InvoiceItem {
@@ -133,6 +134,7 @@ export interface InvoiceTableRow {
   data_sent_status: 'pending' | 'yes' | 'no' | string;
   data_sent_by?: string;
   data_sent_at?: string;
+  ordered_by_provider_at?: string;
 }
 
 export interface DataSentUpdate {

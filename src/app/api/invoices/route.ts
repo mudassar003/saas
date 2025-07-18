@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
         data_sent_status,
         data_sent_by,
         data_sent_at,
+        ordered_by_provider_at,
         created_at,
         updated_at
       `)

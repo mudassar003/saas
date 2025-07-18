@@ -17,6 +17,7 @@ import { Invoice, DataSentUpdate } from '@/types/invoice';
 import { 
   formatCurrency, 
   formatDate, 
+  formatDateTime,
   getStatusColor
 } from '@/lib/utils';
 
@@ -86,7 +87,8 @@ export function InvoiceTable({
             <TableHead className="w-[100px] h-6 py-1 text-xs">Status</TableHead>
             <TableHead className="w-[120px] h-6 py-1 text-xs text-right">Amount</TableHead>
             <TableHead className="w-[120px] h-6 py-1 text-xs">Date</TableHead>
-            <TableHead className="w-[100px] h-6 py-1 text-xs">Data Sent</TableHead>
+            <TableHead className="w-[100px] h-6 py-1 text-xs">Ordered by Provider</TableHead>
+            <TableHead className="w-[120px] h-6 py-1 text-xs">Date/Time Ordered</TableHead>
             <TableHead className="w-[60px] h-6 py-1 text-xs">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -130,6 +132,9 @@ export function InvoiceTable({
                   onUpdateStatus={handleUpdateDataSent}
                   disabled={updatingInvoices.has(invoice.id)}
                 />
+              </TableCell>
+              <TableCell className="text-xs text-muted-foreground py-1">
+                {invoice.ordered_by_provider_at ? formatDateTime(invoice.ordered_by_provider_at) : 'N/A'}
               </TableCell>
               <TableCell className="py-1">
                 <Button

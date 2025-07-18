@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { DataSentButtons } from '@/components/invoice/data-sent-buttons'
 import { getInvoiceById, getInvoiceItems } from '@/lib/dal'
 import { getMXInvoiceDetail } from '@/lib/mx-merchant-client'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
 import type { Invoice, InvoiceItem } from '@/types/invoice'
 import { updateDataSentStatus } from './actions'
 
@@ -299,22 +299,22 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
 
           {/* Nurse Workflow Section */}
           <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-gray-800 mb-3">Nurse Workflow - Patient Data Status</h3>
+            <h3 className="font-semibold text-gray-800 mb-3">Ordered by Provider</h3>
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                Has patient data been sent for this invoice?
+                Has this been ordered by provider?
               </div>
               <div className="ml-4">
                 <DataSentButtons 
-                  invoiceId={String(invoice.mx_invoice_id || '')}
+                  invoiceId={invoice.id}
                   currentStatus={invoice.data_sent_status as 'pending' | 'yes' | 'no'}
                   onUpdateStatus={updateDataSentStatus}
                 />
               </div>
             </div>
-            {invoice.data_sent_at && (
+            {invoice.ordered_by_provider_at && (
               <div className="mt-2 text-xs text-gray-500">
-                Last updated: {formatDate(invoice.data_sent_at)} 
+                <span className="font-semibold">Date/Time Ordered:</span> {formatDateTime(invoice.ordered_by_provider_at)}
                 {invoice.data_sent_by && ` by User ${invoice.data_sent_by}`}
               </div>
             )}
