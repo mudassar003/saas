@@ -1,6 +1,6 @@
 import { MXMerchantClient } from './mx-merchant-client'
 import { DAL } from './dal'
-import { Tables } from './supabase'
+import { Tables, supabaseAdmin } from './supabase'
 
 export class SyncService {
   private mxClient: MXMerchantClient
@@ -166,7 +166,7 @@ export class SyncService {
         const invoiceDetail = response
         
         // Find the invoice in our database
-        const { data: dbInvoice, error: dbError } = await DAL.supabase
+        const { data: dbInvoice, error: dbError } = await supabaseAdmin
           .from('invoices')
           .select('id')
           .eq('mx_invoice_id', invoiceId)
@@ -215,7 +215,7 @@ export class SyncService {
     pendingProductSync: number
   }> {
     // Get last sync log
-    const { data: lastSync } = await DAL.supabase
+    const { data: lastSync } = await supabaseAdmin
       .from('sync_logs')
       .select('*')
       .eq('user_id', userId)
@@ -224,18 +224,18 @@ export class SyncService {
       .single()
 
     // Get total invoices count
-    const { count: totalInvoices } = await DAL.supabase
+    const { count: totalInvoices } = await supabaseAdmin
       .from('invoices')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
 
     // Get invoices with products count
-    const { data: invoicesWithProducts } = await DAL.supabase
+    const { data: invoicesWithProducts } = await supabaseAdmin
       .from('invoices')
       .select('id')
       .eq('user_id', userId)
       .in('id', 
-        DAL.supabase
+        supabaseAdmin
           .from('invoice_items')
           .select('invoice_id')
       )
