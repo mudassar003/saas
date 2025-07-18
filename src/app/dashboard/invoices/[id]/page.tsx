@@ -19,7 +19,7 @@ interface InvoiceDetailPageProps {
 async function getInvoiceData(invoiceId: number): Promise<{
   invoice: Invoice
   items: InvoiceItem[]
-  apiData?: Record<string, unknown> | null
+  apiData?: any
 }> {
   // Step 1: Get invoice from database
   const invoice = await getInvoiceById(invoiceId)
@@ -41,7 +41,7 @@ async function getInvoiceData(invoiceId: number): Promise<{
     }
   }
 
-  return { invoice, items, apiData: apiData as Record<string, unknown> | null }
+  return { invoice, items, apiData }
 }
 
 export default async function InvoiceDetailPage({ params }: InvoiceDetailPageProps) {
@@ -54,7 +54,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
   const { invoice, items, apiData } = await getInvoiceData(invoiceId)
 
   // Use API data if database items are empty
-  const displayItems = items.length > 0 ? items : (apiData?.purchases || [])
+  const displayItems = items.length > 0 ? items : (Array.isArray(apiData?.purchases) ? apiData.purchases : [])
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -142,9 +142,9 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                   </span>
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-800">{invoice.customer_name}</div>
+                  <div className="font-semibold text-gray-800">{invoice.customer_name || 'N/A'}</div>
                   <div className="text-sm text-gray-600">Bill to:</div>
-                  <div className="text-sm">{invoice.customer_name}</div>
+                  <div className="text-sm">{invoice.customer_name || 'N/A'}</div>
                 </div>
               </div>
 
@@ -190,7 +190,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                   </tr>
                 </thead>
                 <tbody>
-                  {displayItems.map((item: Record<string, unknown>, index: number) => (
+                  {displayItems.map((item: any, index: number) => (
                     <tr key={index} className="border-t border-gray-100">
                       <td className="px-4 py-3 text-sm">
                         {item.product_name || item.productName || `Item ${index + 1}`}
@@ -202,13 +202,13 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                         {item.quantity || 1}
                       </td>
                       <td className="px-4 py-3 text-sm text-right">
-                        {formatCurrency(item.unit_price || item.price || 0)}
+                        {formatCurrency(Number(item.unit_price || item.price) || 0)}
                       </td>
                       <td className="px-4 py-3 text-sm text-right">
-                        ({formatCurrency(item.discount_amount || item.discountAmount || 0)})
+                        ({formatCurrency(Number(item.discount_amount || item.discountAmount) || 0)})
                       </td>
                       <td className="px-4 py-3 text-sm text-right font-medium">
-                        {formatCurrency(item.total_amount || item.totalAmount || 0)}
+                        {formatCurrency(Number(item.total_amount || item.totalAmount) || 0)}
                       </td>
                     </tr>
                   ))}
@@ -221,23 +221,23 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                   <div className="w-64 space-y-1">
                     <div className="flex justify-between text-sm">
                       <span>Subtotal:</span>
-                      <span>{formatCurrency(invoice.subtotal_amount || 0)}</span>
+                      <span>{formatCurrency(Number(invoice.subtotal_amount) || 0)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Total:</span>
-                      <span>{formatCurrency(invoice.total_amount || 0)}</span>
+                      <span>{formatCurrency(Number(invoice.total_amount) || 0)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Admin Fee:</span>
-                      <span>{formatCurrency(invoice.tax_amount || 0)}</span>
+                      <span>{formatCurrency(Number(invoice.tax_amount) || 0)}</span>
                     </div>
                     <div className="flex justify-between text-sm font-semibold">
                       <span>Amount Paid:</span>
-                      <span>{formatCurrency(invoice.paid_amount || 0)}</span>
+                      <span>{formatCurrency(Number(invoice.paid_amount) || 0)}</span>
                     </div>
                     <div className="flex justify-between text-sm font-semibold">
                       <span>Balance (USD):</span>
-                      <span>{formatCurrency(invoice.balance || 0)}</span>
+                      <span>{formatCurrency(Number(invoice.balance) || 0)}</span>
                     </div>
                   </div>
                 </div>
@@ -288,7 +288,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                       {invoice.receipt_number?.slice(0, 6) || '000000'}
                     </td>
                     <td className="px-4 py-3 text-sm text-right font-medium">
-                      {formatCurrency(invoice.paid_amount || 0)}
+                      {formatCurrency(Number(invoice.paid_amount) || 0)}
                     </td>
                   </tr>
                 </tbody>
