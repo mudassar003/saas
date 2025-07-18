@@ -62,7 +62,7 @@ export default function SetupPage() {
       const data = await response.json()
       console.log('Setup response data:', data)
       
-      setResult(data)
+      setResult(data as SyncResult)
       
       if (data.success) {
         setIsSetup(true)
@@ -96,7 +96,7 @@ export default function SetupPage() {
       })
       
       const data = await response.json()
-      setResult(data)
+      setResult(data as SyncResult)
       
       if (data.success) {
         // Update final progress
@@ -111,7 +111,7 @@ export default function SetupPage() {
         fetchSyncStatus()
       }
     } catch (error) {
-      setResult({ error: 'Failed to sync', details: error instanceof Error ? error.message : 'Unknown error' })
+      setResult({ success: false, error: 'Failed to sync', details: error instanceof Error ? error.message : 'Unknown error' })
       setSyncProgress(prev => prev ? { ...prev, isActive: false } : null)
     } finally {
       setIsLoading(false)
