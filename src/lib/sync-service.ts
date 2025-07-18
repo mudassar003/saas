@@ -229,16 +229,20 @@ export class SyncService {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
 
+    // Get invoice IDs that have products
+    const { data: invoiceItemsData } = await supabaseAdmin
+      .from('invoice_items')
+      .select('invoice_id')
+      .neq('invoice_id', null)
+    
+    const invoiceIdsWithProducts = invoiceItemsData?.map(item => item.invoice_id) || []
+    
     // Get invoices with products count
     const { data: invoicesWithProducts } = await supabaseAdmin
       .from('invoices')
       .select('id')
       .eq('user_id', userId)
-      .in('id', 
-        supabaseAdmin
-          .from('invoice_items')
-          .select('invoice_id')
-      )
+      .in('id', invoiceIdsWithProducts.length > 0 ? invoiceIdsWithProducts : ['none'])
 
     const pendingProductSync = (totalInvoices || 0) - (invoicesWithProducts?.length || 0)
 
