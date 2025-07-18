@@ -104,7 +104,7 @@ export class SyncService {
         status: totalFailed === 0 ? 'completed' : 'failed',
         records_processed: totalProcessed,
         records_failed: totalFailed,
-        error_message: allErrors.length > 0 ? allErrors.join('; ') : null,
+        error_message: allErrors.length > 0 ? allErrors.join('; ') : undefined,
         api_calls_made: apiCallsCount,
         last_processed_invoice_id: lastProcessedInvoiceId ?? undefined
       })
