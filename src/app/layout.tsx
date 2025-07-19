@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import {
   ClerkProvider,
   SignInButton,
-  SignUpButton,
   SignedIn,
   SignedOut,
   UserButton,
@@ -39,7 +38,6 @@ export default function RootLayout({
           <header>
             <SignedOut>
               <SignInButton />
-              <SignUpButton />
             </SignedOut>
             <SignedIn>
               <UserButton />
