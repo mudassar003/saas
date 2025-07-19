@@ -5,6 +5,7 @@ import { InvoiceTable } from '@/components/invoice/invoice-table';
 import { InvoiceFilters } from '@/components/invoice/invoice-filters';
 import { ExportDialog } from '@/components/export/export-dialog';
 import { SyncDialog } from '@/components/sync/sync-dialog';
+import { AutoSyncMonitor } from '@/components/sync/auto-sync-monitor';
 import { Pagination } from '@/components/ui/pagination';
 import { Invoice, DataSentUpdate, ExportOptions } from '@/types/invoice';
 interface FilterState {
@@ -343,29 +344,35 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <InvoiceFilters
-          onFiltersChange={setFilters}
-          resultsCount={invoices.length}
-          totalCount={totalCount}
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-3">
+          <InvoiceFilters
+            onFiltersChange={setFilters}
+            resultsCount={invoices.length}
+            totalCount={totalCount}
+          />
 
-        <InvoiceTable
-          invoices={filteredInvoices}
-          onUpdateDataSent={handleUpdateDataSent}
-          onViewInvoice={handleViewInvoice}
-          loading={loading}
-        />
+          <InvoiceTable
+            invoices={filteredInvoices}
+            onUpdateDataSent={handleUpdateDataSent}
+            onViewInvoice={handleViewInvoice}
+            loading={loading}
+          />
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          pageSize={pageSize}
-          totalCount={totalCount}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={setPageSize}
-          className="mt-4"
-        />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            className="mt-4"
+          />
+        </div>
+
+        <div className="lg:col-span-1">
+          <AutoSyncMonitor />
+        </div>
       </div>
     </div>
   );
