@@ -135,6 +135,117 @@ export class SyncService {
     }
   }
 
+  // Incremental sync - only fetch invoices updated since last sync
+  async syncIncrementalInvoices(since: string): Promise<{
+    success: boolean
+    totalProcessed: number
+    totalFailed: number
+    errors: string[]
+    syncLogId: string | null
+  }> {
+    const syncLog = await DAL.createSyncLog({
+      user_id: this.userId,
+      sync_type: 'incremental',
+      status: 'started'
+    })
+
+    if (!syncLog) {
+      return {
+        success: false,
+        totalProcessed: 0,
+        totalFailed: 0,
+        errors: ['Failed to create sync log'],
+        syncLogId: null
+      }
+    }
+
+    try {
+      let totalProcessed = 0
+      let totalFailed = 0
+      const allErrors: string[] = []
+      let apiCallsCount = 0
+
+      // Fetch only recent invoices (since last sync)
+      const sinceDate = new Date(since)
+      const invoicesResponse = await this.mxClient.getInvoices({
+        limit: 100,
+        offset: 0,
+        updatedSince: sinceDate.toISOString()
+      })
+      
+      apiCallsCount++
+
+      if (!invoicesResponse.success || !invoicesResponse.data) {
+        throw new Error(invoicesResponse.error || 'Failed to fetch invoices')
+      }
+
+      const { invoices } = invoicesResponse.data
+
+      if (invoices.length === 0) {
+        // No new invoices - successful sync with 0 records
+        await DAL.updateSyncLog(syncLog.id, {
+          status: 'completed',
+          records_processed: 0,
+          records_failed: 0,
+          api_calls_made: apiCallsCount
+        })
+
+        return {
+          success: true,
+          totalProcessed: 0,
+          totalFailed: 0,
+          errors: [],
+          syncLogId: syncLog.id
+        }
+      }
+
+      // Process the invoices in batches
+      const processedInvoices = invoices.map(invoice => ({
+        ...invoice,
+        user_id: this.userId,
+        mx_merchant_config_id: this.config.id
+      }))
+
+      const bulkResult = await DAL.bulkInsertInvoices(processedInvoices)
+      totalProcessed = bulkResult.successCount
+      totalFailed = bulkResult.failCount
+      allErrors.push(...bulkResult.errors)
+
+      // Update sync log
+      await DAL.updateSyncLog(syncLog.id, {
+        status: totalFailed === 0 ? 'completed' : 'failed',
+        records_processed: totalProcessed,
+        records_failed: totalFailed,
+        error_message: allErrors.length > 0 ? allErrors.join('; ') : undefined,
+        api_calls_made: apiCallsCount
+      })
+
+      return {
+        success: totalFailed === 0,
+        totalProcessed,
+        totalFailed,
+        errors: allErrors,
+        syncLogId: syncLog.id
+      }
+
+    } catch (error) {
+      console.error('Incremental sync failed:', error)
+      
+      await DAL.updateSyncLog(syncLog.id, {
+        status: 'failed',
+        error_message: error instanceof Error ? error.message : 'Unknown error'
+      })
+
+      return {
+        success: false,
+        totalProcessed: 0,
+        totalFailed: 0,
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        syncLogId: syncLog.id
+      }
+    }
+  }
+
   // Step 2: Sync product details for specific invoices (lazy loading)
   async syncInvoiceProducts(invoiceIds: number[]): Promise<{
     success: boolean
