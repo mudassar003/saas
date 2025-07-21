@@ -165,12 +165,11 @@ export class SyncService {
       const allErrors: string[] = []
       let apiCallsCount = 0
 
-      // Fetch only recent invoices (since last sync)
+      // Fetch recent invoices (API doesn't support date filtering, so we fetch recent ones)
       const sinceDate = new Date(since)
       const invoicesResponse = await this.mxClient.getInvoices({
         limit: 100,
-        offset: 0,
-        updatedSince: sinceDate.toISOString()
+        offset: 0
       })
       
       apiCallsCount++
@@ -181,7 +180,14 @@ export class SyncService {
 
       const { invoices } = invoicesResponse.data
 
-      if (invoices.length === 0) {
+      // Filter invoices updated since the specified date
+      const filteredInvoices = invoices.filter(invoice => {
+        if (!invoice.updated) return true; // Include if no updated date
+        const invoiceUpdated = new Date(invoice.updated);
+        return invoiceUpdated >= sinceDate;
+      });
+
+      if (filteredInvoices.length === 0) {
         // No new invoices - successful sync with 0 records
         await DAL.updateSyncLog(syncLog.id, {
           status: 'completed',
@@ -199,8 +205,8 @@ export class SyncService {
         }
       }
 
-      // Process the invoices in batches
-      const processedInvoices = invoices.map(invoice => ({
+      // Process the filtered invoices in batches
+      const processedInvoices = filteredInvoices.map(invoice => ({
         ...invoice,
         user_id: this.userId,
         mx_merchant_config_id: this.config.id
