@@ -185,11 +185,11 @@ export class SyncService {
 
       const invoices = response.records
       
-      // Filter invoices updated since the specified date
+      // Filter invoices created since the specified date
       const filteredInvoices = invoices.filter(invoice => {
-        if (!invoice.updated) return true; // Include if no updated date
-        const invoiceUpdated = new Date(invoice.updated);
-        return invoiceUpdated >= sinceDate;
+        if (!invoice.created) return true; // Include if no created date
+        const invoiceCreated = new Date(invoice.created);
+        return invoiceCreated >= sinceDate;
       });
 
       if (filteredInvoices.length === 0) {
