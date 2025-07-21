@@ -164,22 +164,27 @@ export class SyncService {
       let totalFailed = 0
       const allErrors: string[] = []
       let apiCallsCount = 0
+      let lastProcessedInvoiceId: number | null = null
 
-      // Fetch recent invoices (API doesn't support date filtering, so we fetch recent ones)
+      // For incremental sync, fetch recent invoices and filter by date
       const sinceDate = new Date(since)
-      const invoicesResponse = await this.mxClient.getInvoices({
-        limit: 100,
-        offset: 0
-      })
+      const limit = 100
+      let offset = 0
       
+      console.log(`Fetching recent invoices for incremental sync since: ${sinceDate.toISOString()}`)
+      
+      const response = await this.mxClient.getInvoices({ limit, offset })
       apiCallsCount++
 
-      if (!invoicesResponse.success || !invoicesResponse.data) {
-        throw new Error(invoicesResponse.error || 'Failed to fetch invoices')
+      if (!response.records) {
+        const error = `API call failed: No records returned`
+        allErrors.push(error)
+        console.error(error)
+        throw new Error(error)
       }
 
-      const { invoices } = invoicesResponse.data
-
+      const invoices = response.records
+      
       // Filter invoices updated since the specified date
       const filteredInvoices = invoices.filter(invoice => {
         if (!invoice.updated) return true; // Include if no updated date
@@ -205,25 +210,25 @@ export class SyncService {
         }
       }
 
-      // Process the filtered invoices in batches
-      const processedInvoices = filteredInvoices.map(invoice => ({
-        ...invoice,
-        user_id: this.userId,
-        mx_merchant_config_id: this.config.id
-      }))
+      // Insert invoices into database (using same pattern as manual sync)
+      const insertResult = await DAL.bulkInsertInvoices(this.userId, filteredInvoices)
+      totalProcessed += insertResult.success
+      totalFailed += insertResult.failed
+      allErrors.push(...insertResult.errors)
 
-      const bulkResult = await DAL.bulkInsertInvoices(processedInvoices)
-      totalProcessed = bulkResult.successCount
-      totalFailed = bulkResult.failCount
-      allErrors.push(...bulkResult.errors)
+      // Update last processed invoice ID
+      if (filteredInvoices.length > 0) {
+        lastProcessedInvoiceId = filteredInvoices[filteredInvoices.length - 1].id
+      }
 
-      // Update sync log
+      // Final sync log update
       await DAL.updateSyncLog(syncLog.id, {
         status: totalFailed === 0 ? 'completed' : 'failed',
         records_processed: totalProcessed,
         records_failed: totalFailed,
         error_message: allErrors.length > 0 ? allErrors.join('; ') : undefined,
-        api_calls_made: apiCallsCount
+        api_calls_made: apiCallsCount,
+        last_processed_invoice_id: lastProcessedInvoiceId ?? undefined
       })
 
       return {
@@ -235,7 +240,7 @@ export class SyncService {
       }
 
     } catch (error) {
-      console.error('Incremental sync failed:', error)
+      console.error('Sync failed:', error)
       
       await DAL.updateSyncLog(syncLog.id, {
         status: 'failed',
