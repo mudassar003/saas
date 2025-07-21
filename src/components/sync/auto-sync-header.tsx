@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 import { toTexasTime } from '@/lib/timezone';
 
 interface AutoSyncHeaderProps {
@@ -19,6 +18,13 @@ export function AutoSyncHeader({ className }: AutoSyncHeaderProps) {
   const [nextRun, setNextRun] = useState<string | null>(null);
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
+
+  const getHoursUntilNext = (nextRunTime: string): number => {
+    const now = new Date();
+    const nextRun = new Date(nextRunTime);
+    const diffMs = nextRun.getTime() - now.getTime();
+    return Math.ceil(diffMs / (1000 * 60 * 60)); // Convert to hours and round up
+  };
 
   const fetchStatus = async () => {
     try {
@@ -80,7 +86,7 @@ export function AutoSyncHeader({ className }: AutoSyncHeaderProps) {
         <Clock className="h-3 w-3 text-blue-500" />
         <span>Auto-sync: Enabled (Daily at midnight)</span>
         {nextRun && (
-          <span>• Next: {formatDistanceToNow(toTexasTime(nextRun), { addSuffix: true })}</span>
+          <span>• Will run in {getHoursUntilNext(nextRun)} hours</span>
         )}
       </div>
     );
@@ -96,16 +102,10 @@ export function AutoSyncHeader({ className }: AutoSyncHeaderProps) {
         </Badge>
       </div>
       
-      <div className="flex items-center gap-1 text-muted-foreground">
-        <span>{lastSync.records_processed} synced</span>
-        <span>•</span>
-        <span>{formatDistanceToNow(toTexasTime(lastSync.created_at), { addSuffix: true })}</span>
-      </div>
-      
       {nextRun && (
         <div className="flex items-center gap-1 text-muted-foreground">
           <span>•</span>
-          <span>Next: {formatDistanceToNow(toTexasTime(nextRun), { addSuffix: true })}</span>
+          <span>Will run in {getHoursUntilNext(nextRun)} hours</span>
         </div>
       )}
     </div>
