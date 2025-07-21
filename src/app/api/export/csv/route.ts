@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getTexasDateForFilename } from '@/lib/timezone'
 import Papa from 'papaparse'
 
 export async function POST(request: NextRequest) {
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse(csvContent, {
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="invoices_${new Date().toISOString().split('T')[0]}.csv"`
+        'Content-Disposition': `attachment; filename="invoices_${getTexasDateForFilename()}.csv"`
       }
     })
     

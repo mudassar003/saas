@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getTexasISOString } from '@/lib/timezone';
 
 export async function PATCH(
   request: NextRequest,
@@ -18,7 +19,7 @@ export async function PATCH(
       );
     }
     
-    const timestamp = new Date().toISOString();
+    const timestamp = getTexasISOString();
     console.log(`Updating data sent status for invoice ${id} to "${status}"`);
     console.log(`Setting ordered_by_provider_at to: ${timestamp}`);
     

@@ -8,6 +8,7 @@ import { DataSentButtons } from '@/components/invoice/data-sent-buttons'
 import { getInvoiceById, getInvoiceItems } from '@/lib/dal'
 import { getMXInvoiceDetail } from '@/lib/mx-merchant-client'
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
+import { formatTexasDateTime, getTexasNow } from '@/lib/timezone'
 import type { Invoice, InvoiceItem } from '@/types/invoice'
 import { updateDataSentStatus } from './actions'
 
@@ -69,7 +70,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
             </Button>
           </Link>
           <div className="text-sm text-gray-600">
-            {new Date().toLocaleDateString('en-US', { 
+            {formatTexasDateTime(getTexasNow(), { 
               month: 'numeric', 
               day: 'numeric', 
               year: '2-digit',

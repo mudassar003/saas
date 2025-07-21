@@ -3,6 +3,7 @@
 import { DataSentUpdate } from '@/types/invoice';
 import { supabaseAdmin } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
+import { getTexasISOString } from '@/lib/timezone';
 
 export async function updateDataSentStatus(update: DataSentUpdate) {
   try {
@@ -13,7 +14,7 @@ export async function updateDataSentStatus(update: DataSentUpdate) {
       return { success: false, error: 'Invalid status. Must be "yes" or "no"' };
     }
     
-    const timestamp = new Date().toISOString();
+    const timestamp = getTexasISOString();
     console.log(`Server action - Setting ordered_by_provider_at to: ${timestamp}`);
     
     const updatePayload = {

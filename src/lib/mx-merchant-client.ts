@@ -1,4 +1,5 @@
 import { MXInvoiceListResponse, MXInvoiceDetail, MXInvoice, MXPurchase, InvoiceItem } from '@/types/invoice';
+import { getTexasISOString, getTexasDateForFilename } from '@/lib/timezone';
 
 export class MXMerchantClient {
   private baseUrl: string;
@@ -150,17 +151,17 @@ export function transformMXInvoiceToInvoice(mxInvoice: Record<string, unknown>, 
   return {
     id: `mx-${mxInvoice.id}`, // Will be replaced with UUID when saving to database
     user_id: userId,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: getTexasISOString(),
+    updated_at: getTexasISOString(),
     
     // MX Merchant fields
     mx_invoice_id: mxInvoice.id,
     invoice_number: mxInvoice.invoiceNumber,
     customer_name: mxInvoice.customerName || '',
     customer_number: mxInvoice.customerNumber || '',
-    invoice_date: mxInvoice.invoiceDate && typeof mxInvoice.invoiceDate === 'string' ? new Date(mxInvoice.invoiceDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-    due_date: mxInvoice.dueDate && typeof mxInvoice.dueDate === 'string' ? new Date(mxInvoice.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-    api_created: mxInvoice.created && typeof mxInvoice.created === 'string' ? new Date(mxInvoice.created).toISOString() : new Date().toISOString(),
+    invoice_date: mxInvoice.invoiceDate && typeof mxInvoice.invoiceDate === 'string' ? getTexasDateForFilename(new Date(mxInvoice.invoiceDate)) : getTexasDateForFilename(),
+    due_date: mxInvoice.dueDate && typeof mxInvoice.dueDate === 'string' ? getTexasDateForFilename(new Date(mxInvoice.dueDate)) : getTexasDateForFilename(),
+    api_created: mxInvoice.created && typeof mxInvoice.created === 'string' ? getTexasISOString(new Date(mxInvoice.created)) : getTexasISOString(),
     status: mxInvoice.status || 'Unknown',
     subtotal_amount: parseFloat(typeof mxInvoice.subTotalAmount === 'string' ? mxInvoice.subTotalAmount : '0'),
     tax_amount: parseFloat(typeof mxInvoice.taxAmount === 'string' ? mxInvoice.taxAmount : '0'),
@@ -204,7 +205,7 @@ export function transformMXPurchaseToInvoiceItem(mxPurchase: MXPurchase, invoice
     total_amount: parseFloat(mxPurchase.totalAmount || '0'),
     quantity_returned: mxPurchase.quantityReturned || 0,
     tracking_number: mxPurchase.trackingNumber || 0,
-    api_created: mxPurchase.created || new Date().toISOString(),
-    created_at: new Date().toISOString(),
+    api_created: mxPurchase.created || getTexasISOString(),
+    created_at: getTexasISOString(),
   };
 }

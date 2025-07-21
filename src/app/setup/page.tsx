@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Database, Play, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
+import { formatTexasDateTime } from '@/lib/timezone'
 
 interface SyncResult {
   success: boolean;
@@ -353,7 +354,7 @@ export default function SetupPage() {
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                 <p className="text-sm font-medium">Last Database Update:</p>
                 <p className="text-sm text-gray-600">
-                  {new Date(syncStatus.lastSync).toLocaleString()}
+                  {formatTexasDateTime(syncStatus.lastSync)}
                 </p>
               </div>
             )}

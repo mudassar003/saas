@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { formatTexasDateTime } from '@/lib/timezone'
 
 interface SyncStatus {
   lastSync: {
@@ -202,7 +203,7 @@ export function SyncDashboard({ onSyncComplete }: SyncDashboardProps) {
                 </div>
               </div>
               <div className="text-xs text-gray-500">
-                {new Date(syncStatus.lastSync.started_at).toLocaleString()}
+                {formatTexasDateTime(syncStatus.lastSync.started_at)}
               </div>
             </div>
             

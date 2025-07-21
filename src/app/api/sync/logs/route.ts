@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getTexasNextMidnight } from '@/lib/timezone';
 
 export async function GET(request: NextRequest) {
   try {
@@ -58,17 +59,18 @@ export async function GET(request: NextRequest) {
       .limit(1)
       .single();
 
+    // Calculate next midnight run in Texas timezone
+    const nextMidnight = getTexasNextMidnight();
+
     return NextResponse.json({
       success: true,
       syncLogs,
       latestAutoSync,
       autoSyncStatus: {
-        enabled: process.env.AUTO_SYNC_ENABLED === 'true',
-        intervalMinutes: parseInt(process.env.AUTO_SYNC_INTERVAL_MINUTES || '15'),
+        enabled: true,
+        intervalMinutes: 1440, // 24 hours
         lastRun: latestAutoSync?.created_at || null,
-        nextExpectedRun: latestAutoSync?.created_at 
-          ? new Date(new Date(latestAutoSync.created_at).getTime() + 15 * 60 * 1000).toISOString()
-          : null
+        nextExpectedRun: nextMidnight.toISOString()
       }
     });
 

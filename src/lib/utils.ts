@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { formatTexasDate, formatTexasDateTime, getTexasRelativeTime } from '@/lib/timezone'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -15,7 +16,7 @@ export function formatCurrency(amount: number, currency: string = 'USD'): string
 
 // Format date
 export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
+  return formatTexasDate(dateString, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -24,7 +25,7 @@ export function formatDate(dateString: string): string {
 
 // Format date and time
 export function formatDateTime(dateString: string): string {
-  return new Date(dateString).toLocaleString('en-US', {
+  return formatTexasDateTime(dateString, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -36,9 +37,8 @@ export function formatDateTime(dateString: string): string {
 
 // Format relative time
 export function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const diffInMs = getTexasRelativeTime(dateString);
+  const diffInSeconds = Math.floor(diffInMs / 1000);
   
   if (diffInSeconds < 60) return 'Just now';
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;

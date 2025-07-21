@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { formatTexasDate, getTexasDateForFilename, getTexasNow } from '@/lib/timezone'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const xl = require('excel4node')
 
@@ -304,7 +305,7 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    const currentDate = new Date().toLocaleDateString('en-US', {
+    const currentDate = formatTexasDate(getTexasNow(), {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -407,7 +408,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="invoices_${new Date().toISOString().split('T')[0]}.xlsx"`
+        'Content-Disposition': `attachment; filename="invoices_${getTexasDateForFilename()}.xlsx"`
       }
     })
     

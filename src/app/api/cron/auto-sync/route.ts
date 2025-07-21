@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { SyncService } from '@/lib/sync-service';
+import { getTexas24HoursAgo, getTexasISOString } from '@/lib/timezone';
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,8 +41,8 @@ export async function GET(request: NextRequest) {
           .limit(1)
           .single();
 
-        // Only sync invoices created/updated since last sync (last 24 hours max)
-        const since = lastSync?.updated_at || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        // Only sync invoices created/updated since last sync (last 24 hours max in Texas time)
+        const since = lastSync?.updated_at || getTexasISOString(getTexas24HoursAgo());
         
         const syncService = new SyncService(config.user_id, config);
         const result = await syncService.syncIncrementalInvoices(since);

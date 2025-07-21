@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { toTexasTime } from '@/lib/timezone';
 
 interface SyncLog {
   id: string;
@@ -116,7 +117,7 @@ export function AutoSyncMonitor() {
                 <span className="text-sm font-medium">Last Run:</span>
                 <span className="text-sm">
                   {autoSyncStatus.lastRun 
-                    ? formatDistanceToNow(new Date(autoSyncStatus.lastRun), { addSuffix: true })
+                    ? formatDistanceToNow(toTexasTime(autoSyncStatus.lastRun), { addSuffix: true })
                     : 'Never'
                   }
                 </span>
@@ -125,7 +126,7 @@ export function AutoSyncMonitor() {
                 <span className="text-sm font-medium">Next Expected:</span>
                 <span className="text-sm">
                   {autoSyncStatus.nextExpectedRun 
-                    ? formatDistanceToNow(new Date(autoSyncStatus.nextExpectedRun), { addSuffix: true })
+                    ? formatDistanceToNow(toTexasTime(autoSyncStatus.nextExpectedRun), { addSuffix: true })
                     : 'Unknown'
                   }
                 </span>
@@ -179,7 +180,7 @@ export function AutoSyncMonitor() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                        {formatDistanceToNow(toTexasTime(log.created_at), { addSuffix: true })}
                         {log.api_calls_made && ` • ${log.api_calls_made} API calls`}
                       </p>
                       {log.error_message && (

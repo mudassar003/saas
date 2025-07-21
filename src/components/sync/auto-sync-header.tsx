@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { toTexasTime } from '@/lib/timezone';
 
 interface AutoSyncHeaderProps {
   className?: string;
@@ -16,18 +17,25 @@ export function AutoSyncHeader({ className }: AutoSyncHeaderProps) {
     records_processed: number;
   } | null>(null);
   const [nextRun, setNextRun] = useState<string | null>(null);
+  const [isEnabled, setIsEnabled] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchStatus = async () => {
     try {
       const response = await fetch('/api/sync/logs?limit=1&type=incremental');
       const data = await response.json();
       
-      if (data.success && data.latestAutoSync) {
-        setLastSync(data.latestAutoSync);
-        setNextRun(data.autoSyncStatus?.nextExpectedRun || null);
+      if (data.success) {
+        setIsEnabled(data.autoSyncStatus?.enabled || false);
+        if (data.latestAutoSync) {
+          setLastSync(data.latestAutoSync);
+          setNextRun(data.autoSyncStatus?.nextExpectedRun || null);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch sync status:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,11 +56,32 @@ export function AutoSyncHeader({ className }: AutoSyncHeaderProps) {
     }
   };
 
+  if (loading) {
+    return (
+      <div className={`flex items-center gap-2 text-xs text-muted-foreground ${className}`}>
+        <RefreshCw className="h-3 w-3 animate-spin" />
+        <span>Auto-sync: Loading...</span>
+      </div>
+    );
+  }
+
+  if (!isEnabled) {
+    return (
+      <div className={`flex items-center gap-2 text-xs text-muted-foreground ${className}`}>
+        <XCircle className="h-3 w-3 text-gray-400" />
+        <span>Auto-sync: Disabled</span>
+      </div>
+    );
+  }
+
   if (!lastSync) {
     return (
       <div className={`flex items-center gap-2 text-xs text-muted-foreground ${className}`}>
-        <Clock className="h-3 w-3" />
-        <span>Auto-sync: Waiting...</span>
+        <Clock className="h-3 w-3 text-blue-500" />
+        <span>Auto-sync: Enabled (Daily at midnight)</span>
+        {nextRun && (
+          <span>• Next: {formatDistanceToNow(toTexasTime(nextRun), { addSuffix: true })}</span>
+        )}
       </div>
     );
   }
@@ -70,13 +99,13 @@ export function AutoSyncHeader({ className }: AutoSyncHeaderProps) {
       <div className="flex items-center gap-1 text-muted-foreground">
         <span>{lastSync.records_processed} synced</span>
         <span>•</span>
-        <span>{formatDistanceToNow(new Date(lastSync.created_at), { addSuffix: true })}</span>
+        <span>{formatDistanceToNow(toTexasTime(lastSync.created_at), { addSuffix: true })}</span>
       </div>
       
       {nextRun && (
         <div className="flex items-center gap-1 text-muted-foreground">
           <span>•</span>
-          <span>Next: {formatDistanceToNow(new Date(nextRun), { addSuffix: true })}</span>
+          <span>Next: {formatDistanceToNow(toTexasTime(nextRun), { addSuffix: true })}</span>
         </div>
       )}
     </div>

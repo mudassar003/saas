@@ -1,5 +1,6 @@
 import { supabase, supabaseAdmin, Tables, Inserts } from './supabase'
 import { MXInvoice, MXInvoiceDetail } from '@/types/invoice'
+import { getTexasISOString, getTexasDateForFilename } from '@/lib/timezone'
 
 // Data Access Layer for secure database operations
 export class DAL {
@@ -110,7 +111,7 @@ export class DAL {
       .from('sync_logs')
       .update({
         ...updates,
-        completed_at: updates.completed_at || (updates.status === 'completed' || updates.status === 'failed' ? new Date().toISOString() : undefined)
+        completed_at: updates.completed_at || (updates.status === 'completed' || updates.status === 'failed' ? getTexasISOString() : undefined)
       })
       .eq('id', syncLogId)
       .select()
@@ -143,9 +144,9 @@ export class DAL {
       invoice_number: invoice.invoiceNumber,
       customer_name: invoice.customerName,
       customer_number: invoice.customerNumber,
-      invoice_date: invoice.invoiceDate ? new Date(invoice.invoiceDate).toISOString().split('T')[0] : null,
-      due_date: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : null,
-      api_created: invoice.created ? new Date(invoice.created).toISOString() : null,
+      invoice_date: invoice.invoiceDate ? getTexasDateForFilename(new Date(invoice.invoiceDate)) : null,
+      due_date: invoice.dueDate ? getTexasDateForFilename(new Date(invoice.dueDate)) : null,
+      api_created: invoice.created ? getTexasISOString(new Date(invoice.created)) : null,
       status: invoice.status,
       subtotal_amount: parseFloat(invoice.subTotalAmount || '0'),
       tax_amount: parseFloat(invoice.taxAmount || '0'),
@@ -263,7 +264,7 @@ export class DAL {
       .update({
         data_sent_status: status,
         data_sent_by: userId,
-        data_sent_at: new Date().toISOString(),
+        data_sent_at: getTexasISOString(),
         data_sent_notes: notes || null
       })
       .eq('id', invoiceId)
@@ -342,7 +343,7 @@ export class DAL {
       total_amount: parseFloat(item.totalAmount || '0'),
       quantity_returned: item.quantityReturned || 0,
       tracking_number: item.trackingNumber || null,
-      api_created: item.created ? new Date(item.created).toISOString() : null
+      api_created: item.created ? getTexasISOString(new Date(item.created)) : null
     }))
 
     const { data, error } = await supabaseAdmin
