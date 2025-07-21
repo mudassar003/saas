@@ -145,7 +145,7 @@ export class SyncService {
   }> {
     const syncLog = await DAL.createSyncLog({
       user_id: this.userId,
-      sync_type: 'incremental',
+      sync_type: 'scheduled',
       status: 'started'
     })
 

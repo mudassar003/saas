@@ -22,7 +22,7 @@ export function AutoSyncHeader({ className }: AutoSyncHeaderProps) {
 
   const fetchStatus = async () => {
     try {
-      const response = await fetch('/api/sync/logs?limit=1&type=incremental');
+      const response = await fetch('/api/sync/logs?limit=1&type=scheduled');
       const data = await response.json();
       
       if (data.success) {

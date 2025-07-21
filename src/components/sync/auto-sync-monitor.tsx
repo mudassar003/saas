@@ -34,7 +34,7 @@ export function AutoSyncMonitor() {
 
   const fetchSyncStatus = async () => {
     try {
-      const response = await fetch('/api/sync/logs?limit=20&type=incremental');
+      const response = await fetch('/api/sync/logs?limit=20&type=scheduled');
       const data = await response.json();
       
       if (data.success) {

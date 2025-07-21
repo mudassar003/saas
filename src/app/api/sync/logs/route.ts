@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       .from('sync_logs')
       .select('*')
       .eq('user_id', userId)
-      .eq('sync_type', 'incremental')
+      .eq('sync_type', 'scheduled')
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
