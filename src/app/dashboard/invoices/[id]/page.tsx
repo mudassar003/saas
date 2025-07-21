@@ -59,7 +59,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
   const displayItems = items.length > 0 ? items : (Array.isArray(apiData?.purchases) ? apiData.purchases : [])
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-background p-4">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -69,7 +69,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
               Back to Dashboard
             </Button>
           </Link>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             {formatTexasDateTime(getTexasNow(), { 
               month: 'numeric', 
               day: 'numeric', 
@@ -90,7 +90,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
       </div>
 
       {/* Main Receipt Card */}
-      <Card className="max-w-4xl mx-auto bg-white shadow-lg">
+      <Card className="max-w-4xl mx-auto bg-card shadow-lg">
         <CardContent className="p-8">
           {/* Invoice Header */}
           <div className="flex items-start justify-between mb-8">
@@ -103,16 +103,16 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                   <span className="text-white font-bold text-xl">G</span>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-gray-800">
+                  <div className="text-xl font-bold text-foreground">
                     <span className="text-red-600">GAMEDAY</span>
                   </div>
-                  <div className="text-sm text-gray-600 font-medium">MEN&apos;S HEALTH</div>
+                  <div className="text-sm text-muted-foreground font-medium">MEN&apos;S HEALTH</div>
                 </div>
               </div>
             </div>
 
             {/* Company Info */}
-            <div className="text-right text-sm text-gray-600">
+            <div className="text-right text-sm text-muted-foreground">
               <div className="flex items-center gap-1 justify-end mb-1">
                 <MapPin className="h-4 w-4" />
                 <span>GAMEDAY MEN&apos;S HEALTH - RESTON</span>
@@ -128,14 +128,14 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
 
           {/* Website */}
           <div className="text-center mb-6">
-            <div className="flex items-center justify-center gap-1 text-sm text-gray-600">
+            <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
               <Globe className="h-4 w-4" />
               <span>https://gamedaymenshealth.com/reston/</span>
             </div>
           </div>
 
           {/* Customer Section */}
-          <div className="bg-gray-100 p-4 rounded-lg mb-6">
+          <div className="bg-muted p-4 rounded-lg mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
@@ -144,24 +144,24 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                   </span>
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-800">{invoice.customer_name || 'N/A'}</div>
-                  <div className="text-sm text-gray-600">Bill to:</div>
+                  <div className="font-semibold text-foreground">{invoice.customer_name || 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">Bill to:</div>
                   <div className="text-sm">{invoice.customer_name || 'N/A'}</div>
                 </div>
               </div>
 
               <div className="text-right">
                 <div className="mb-2">
-                  <div className="text-sm text-gray-600">Access Code</div>
-                  <div className="font-mono text-sm bg-white px-2 py-1 rounded border">
+                  <div className="text-sm text-muted-foreground">Access Code</div>
+                  <div className="font-mono text-sm bg-background px-2 py-1 rounded border">
                     *{invoice.receipt_number}*
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-gray-500" />
                   <div>
-                    <div><span className="text-gray-600">Invoice Date:</span> {invoice.invoice_date ? formatDate(invoice.invoice_date) : 'N/A'}</div>
-                    <div><span className="text-gray-600">Due Date:</span> {invoice.due_date ? formatDate(invoice.due_date) : 'N/A'}</div>
+                    <div><span className="text-muted-foreground">Invoice Date:</span> {invoice.invoice_date ? formatDate(invoice.invoice_date) : 'N/A'}</div>
+                    <div><span className="text-muted-foreground">Due Date:</span> {invoice.due_date ? formatDate(invoice.due_date) : 'N/A'}</div>
                   </div>
                 </div>
               </div>
@@ -170,8 +170,8 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
 
           {/* Items Section */}
           <div className="mb-6">
-            <div className="bg-gray-200 p-3 rounded-t-lg">
-              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+            <div className="bg-muted p-3 rounded-t-lg">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <div className="w-6 h-6 bg-gray-400 rounded flex items-center justify-center">
                   <span className="text-white text-xs">≡</span>
                 </div>
@@ -181,14 +181,14 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
             
             <div className="border border-gray-200 rounded-b-lg overflow-hidden">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-muted/50">
                   <tr className="text-sm">
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Item</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Description</th>
-                    <th className="px-4 py-3 text-center font-medium text-gray-600">Quantity</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">Unit Price</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">Unit Discount</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">Item Total</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Item</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Description</th>
+                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">Quantity</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Unit Price</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Unit Discount</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Item Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -197,7 +197,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                       <td className="px-4 py-3 text-sm">
                         {item.product_name || item.productName || `Item ${index + 1}`}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
                         {item.product_name || item.productName || 'Healthcare Product'}
                       </td>
                       <td className="px-4 py-3 text-sm text-center">
@@ -218,7 +218,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
               </table>
 
               {/* Totals */}
-              <div className="bg-gray-50 px-4 py-3 border-t">
+              <div className="bg-muted/50 px-4 py-3 border-t">
                 <div className="flex justify-end">
                   <div className="w-64 space-y-1">
                     <div className="flex justify-between text-sm">
@@ -249,8 +249,8 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
 
           {/* Payments Section */}
           <div className="mb-6">
-            <div className="bg-gray-200 p-3 rounded-t-lg">
-              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+            <div className="bg-muted p-3 rounded-t-lg">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
                 PAYMENTS
               </h3>
@@ -258,13 +258,13 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
             
             <div className="border border-gray-200 rounded-b-lg overflow-hidden">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-muted/50">
                   <tr className="text-sm">
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Type</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Tender</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Authorization Code</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">Amount</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Type</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tender</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Authorization Code</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -275,13 +275,13 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                         <div className="w-8 h-5 bg-blue-600 rounded text-white text-xs flex items-center justify-center font-bold">
                           VISA
                         </div>
-                        <span className="text-xs text-gray-600">••••••••{invoice.receipt_number?.slice(-4) || '0000'}</span>
+                        <span className="text-xs text-muted-foreground">••••••••{invoice.receipt_number?.slice(-4) || '0000'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <Badge 
                         variant={invoice.status === 'Paid' ? 'default' : 'secondary'}
-                        className={invoice.status === 'Paid' ? 'bg-green-100 text-green-800' : ''}
+                        className={invoice.status === 'Paid' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : ''}
                       >
                         {invoice.status === 'Paid' ? 'Approved' : invoice.status}
                       </Badge>
@@ -299,10 +299,10 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
           </div>
 
           {/* Nurse Workflow Section */}
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-gray-800 mb-3">Ordered by Provider</h3>
+          <div className="bg-muted p-4 rounded-lg">
+            <h3 className="font-semibold text-foreground mb-3">Ordered by Provider</h3>
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-foreground">
                 Has this been ordered by provider?
               </div>
               <div className="ml-4">
@@ -314,7 +314,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
               </div>
             </div>
             {invoice.ordered_by_provider_at && (
-              <div className="mt-2 text-xs text-gray-500">
+              <div className="mt-2 text-xs text-muted-foreground">
                 <span className="font-semibold">Date/Time Ordered:</span> {formatDateTime(invoice.ordered_by_provider_at)}
                 {invoice.data_sent_by && ` by User ${invoice.data_sent_by}`}
               </div>
@@ -325,7 +325,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
 
       {/* Navigation Footer */}
       <div className="mt-6 flex justify-center">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Button variant="outline" size="sm">←</Button>
           <span>Page 1 / 1</span>
           <Button variant="outline" size="sm">→</Button>
