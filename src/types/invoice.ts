@@ -154,3 +154,101 @@ export interface ExportOptions {
   status_filter?: string[];
   data_sent_filter?: ('pending' | 'yes' | 'no')[];
 }
+
+// Transaction/Payment types for MX Merchant Payment API
+export interface Transaction {
+  // Internal database fields
+  id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  
+  // MX Merchant Payment API fields
+  mx_payment_id: number;
+  amount: number;
+  transaction_date: string;
+  status: 'Approved' | 'Declined' | string;
+  
+  // Invoice Linking
+  mx_invoice_number?: number | null;
+  invoice_id?: string | null;
+  client_reference?: string | null;
+  
+  // Customer Info
+  customer_name?: string | null;
+  customer_code?: string | null;
+  
+  // Payment Details
+  auth_code?: string | null;
+  auth_message?: string | null;
+  response_code?: number | null;
+  reference_number?: string | null;
+  
+  // Card Details
+  card_type?: string | null;
+  card_last4?: string | null;
+  card_token?: string | null;
+  
+  // Financial Details
+  currency: string;
+  tax_amount?: number | null;
+  surcharge_amount?: number | null;
+  surcharge_label?: string | null;
+  refunded_amount: number;
+  settled_amount: number;
+  
+  // Transaction Metadata
+  tender_type?: string | null;
+  transaction_type?: string | null;
+  source?: string | null;
+  batch?: string | null;
+  merchant_id?: number | null;
+  
+  // System Fields
+  raw_data: Record<string, unknown> | null;
+}
+
+// MX Merchant Payment API response types
+export interface MXPaymentListResponse {
+  recordCount: number;
+  records: MXPayment[];
+}
+
+export interface MXPayment {
+  id: number;
+  amount: string;
+  created: string;
+  status: 'Approved' | 'Declined' | string;
+  invoice?: string | null; // Links to invoice number
+  clientReference?: string | null;
+  customerName?: string | null;
+  customerCode?: string | null;
+  merchantId: number;
+  authCode?: string | null;
+  authMessage?: string | null;
+  responseCode?: number | null;
+  reference?: string | null;
+  cardAccount?: {
+    cardType: string;
+    last4: string;
+    token: string;
+  } | null;
+  currency?: string;
+  tax?: string | null;
+  surchargeAmount?: string | null;
+  surchargeLabel?: string | null;
+  tenderType?: string | null;
+  type?: string | null;
+  source?: string | null;
+  batch?: string | null;
+  refundedAmount?: string | null;
+  settledAmount?: string | null;
+}
+
+export interface MXPaymentDetail extends MXPayment {
+  // Additional fields that might be in detail view
+  fullCardNumber?: string;
+  billingAddress?: Record<string, unknown>;
+  shippingAddress?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}

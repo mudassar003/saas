@@ -1,5 +1,5 @@
 import { supabase, supabaseAdmin, Tables, Inserts } from './supabase'
-import { MXInvoice, MXInvoiceDetail } from '@/types/invoice'
+import { MXInvoice, MXInvoiceDetail, MXPayment, Transaction } from '@/types/invoice'
 import { getTexasISOString, getTexasDateForFilename } from '@/lib/timezone'
 
 // Data Access Layer for secure database operations
@@ -14,6 +14,22 @@ export class DAL {
 
     if (error) {
       console.error('Error fetching user:', error)
+      return null
+    }
+
+    return data
+  }
+
+  // Get user by email
+  static async getUserByEmail(email: string): Promise<Tables<'users'> | null> {
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single()
+
+    if (error) {
+      console.error('Error fetching user by email:', error)
       return null
     }
 
@@ -66,13 +82,16 @@ export class DAL {
   // Create sync log entry
   static async createSyncLog(syncData: {
     user_id: string
-    sync_type: 'initial' | 'webhook' | 'manual' | 'scheduled'
+    sync_type: 'initial' | 'webhook' | 'manual' | 'scheduled' | 'transactions' | 'combined'
     status: 'started' | 'completed' | 'failed' | 'cancelled'
     records_processed?: number
     records_failed?: number
     error_message?: string
     api_calls_made?: number
     last_processed_invoice_id?: number
+    last_processed_payment_id?: number
+    transactions_processed?: number
+    transactions_failed?: number
   }): Promise<Tables<'sync_logs'> | null> {
     const { data, error } = await supabaseAdmin
       .from('sync_logs')
@@ -84,7 +103,10 @@ export class DAL {
         records_failed: syncData.records_failed || 0,
         error_message: syncData.error_message || null,
         api_calls_made: syncData.api_calls_made || 0,
-        last_processed_invoice_id: syncData.last_processed_invoice_id || null
+        last_processed_invoice_id: syncData.last_processed_invoice_id || null,
+        last_processed_payment_id: syncData.last_processed_payment_id || null,
+        transactions_processed: syncData.transactions_processed || 0,
+        transactions_failed: syncData.transactions_failed || 0
       })
       .select()
       .single()
@@ -106,6 +128,9 @@ export class DAL {
     completed_at?: string
     api_calls_made?: number
     last_processed_invoice_id?: number
+    last_processed_payment_id?: number
+    transactions_processed?: number
+    transactions_failed?: number
   }): Promise<Tables<'sync_logs'> | null> {
     const { data, error } = await supabaseAdmin
       .from('sync_logs')
@@ -416,4 +441,245 @@ export async function getInvoiceItems(invoiceId: string): Promise<Tables<'invoic
   }
 
   return data || []
+}
+
+// Transaction-related DAL methods
+export class TransactionDAL {
+  // Bulk insert transactions from MX Merchant Payment API
+  static async bulkInsertTransactions(userId: string, payments: MXPayment[]): Promise<{
+    success: number
+    failed: number
+    errors: string[]
+  }> {
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[]
+    }
+
+    if (!payments || payments.length === 0) {
+      return results
+    }
+
+    // Transform MX Merchant payments to database format
+    const transactionInserts: Inserts<'transactions'>[] = payments.map(payment => ({
+      mx_payment_id: payment.id,
+      user_id: userId,
+      amount: parseFloat(payment.amount || '0'),
+      transaction_date: payment.created ? getTexasISOString(new Date(payment.created)) : getTexasISOString(),
+      status: payment.status || 'Unknown',
+      
+      // Invoice Linking
+      mx_invoice_number: payment.invoice ? parseInt(payment.invoice) : null,
+      invoice_id: null, // Will be populated by trigger
+      client_reference: payment.clientReference || null,
+      
+      // Customer Info
+      customer_name: payment.customerName || null,
+      customer_code: payment.customerCode || null,
+      
+      // Payment Details
+      auth_code: payment.authCode || null,
+      auth_message: payment.authMessage || null,
+      response_code: payment.responseCode || null,
+      reference_number: payment.reference || null,
+      
+      // Card Details
+      card_type: payment.cardAccount?.cardType || null,
+      card_last4: payment.cardAccount?.last4 || null,
+      card_token: payment.cardAccount?.token || null,
+      
+      // Financial Details
+      currency: payment.currency || 'USD',
+      tax_amount: payment.tax ? parseFloat(payment.tax) : null,
+      surcharge_amount: payment.surchargeAmount ? parseFloat(payment.surchargeAmount) : null,
+      surcharge_label: payment.surchargeLabel || null,
+      refunded_amount: payment.refundedAmount ? parseFloat(payment.refundedAmount) : 0,
+      settled_amount: payment.settledAmount ? parseFloat(payment.settledAmount) : 0,
+      
+      // Transaction Metadata
+      tender_type: payment.tenderType || null,
+      transaction_type: payment.type || null,
+      source: payment.source || null,
+      batch: payment.batch || null,
+      merchant_id: payment.merchantId || null,
+      
+      // System Fields
+      raw_data: payment as unknown as Record<string, unknown>
+    }))
+
+    // Insert transactions in batches of 100
+    const batchSize = 100
+    for (let i = 0; i < transactionInserts.length; i += batchSize) {
+      const batch = transactionInserts.slice(i, i + batchSize)
+      
+      const { data, error } = await supabaseAdmin
+        .from('transactions')
+        .upsert(batch, { 
+          onConflict: 'mx_payment_id',
+          ignoreDuplicates: false 
+        })
+        .select('id')
+
+      if (error) {
+        console.error(`Error inserting transaction batch ${i / batchSize + 1}:`, error)
+        results.failed += batch.length
+        results.errors.push(`Batch ${i / batchSize + 1}: ${error.message}`)
+      } else {
+        results.success += data?.length || 0
+      }
+    }
+
+    return results
+  }
+
+  // Get transactions for user with pagination
+  static async getTransactions(userId: string, options: {
+    limit?: number
+    offset?: number
+    search?: string
+    status?: string
+    dateRange?: { start?: string; end?: string }
+    includeInvoiceData?: boolean
+  } = {}): Promise<{
+    transactions: (Tables<'transactions'> & { invoice?: Tables<'invoices'> | null })[]
+    totalCount: number
+  }> {
+    let query = supabase
+      .from('transactions')
+      .select(
+        options.includeInvoiceData 
+          ? '*, invoice:invoices(*)'
+          : '*',
+        { count: 'exact' }
+      )
+      .eq('user_id', userId)
+
+    // Apply filters
+    if (options.search) {
+      query = query.or(`customer_name.ilike.%${options.search}%,mx_payment_id.eq.${options.search},reference_number.eq.${options.search}`)
+    }
+
+    if (options.status && options.status !== 'all') {
+      query = query.eq('status', options.status)
+    }
+
+    if (options.dateRange?.start) {
+      query = query.gte('transaction_date', options.dateRange.start)
+    }
+
+    if (options.dateRange?.end) {
+      query = query.lte('transaction_date', options.dateRange.end)
+    }
+
+    // Apply pagination
+    if (options.limit) {
+      query = query.limit(options.limit)
+    }
+
+    if (options.offset) {
+      query = query.range(options.offset, options.offset + (options.limit || 10) - 1)
+    }
+
+    // Order by most recent first
+    query = query.order('transaction_date', { ascending: false })
+
+    const { data, error, count } = await query
+
+    if (error) {
+      console.error('Error fetching transactions:', error)
+      return { transactions: [], totalCount: 0 }
+    }
+
+    return {
+      transactions: data || [],
+      totalCount: count || 0
+    }
+  }
+
+  // Get combined transaction and invoice data for dashboard
+  static async getCombinedTransactionData(userId: string, options: {
+    limit?: number
+    offset?: number
+    search?: string
+    status?: string
+    dateRange?: { start?: string; end?: string }
+    showType?: 'all' | 'with_invoices' | 'standalone'
+  } = {}): Promise<{
+    records: Array<{
+      type: 'transaction'
+      transaction: Tables<'transactions'>
+      invoice?: Tables<'invoices'> | null
+      date: string
+      amount: number
+      status: string
+      customer_name: string | null
+      reference?: string | null
+    }>
+    totalCount: number
+  }> {
+    let query = supabase
+      .from('transactions')
+      .select('*, invoice:invoices(*)', { count: 'exact' })
+      .eq('user_id', userId)
+
+    // Apply filters based on showType
+    if (options.showType === 'with_invoices') {
+      query = query.not('invoice_id', 'is', null)
+    } else if (options.showType === 'standalone') {
+      query = query.is('invoice_id', null)
+    }
+
+    // Apply search and other filters
+    if (options.search) {
+      query = query.or(`customer_name.ilike.%${options.search}%,mx_payment_id.eq.${options.search}`)
+    }
+
+    if (options.status && options.status !== 'all') {
+      query = query.eq('status', options.status)
+    }
+
+    if (options.dateRange?.start) {
+      query = query.gte('transaction_date', options.dateRange.start)
+    }
+
+    if (options.dateRange?.end) {
+      query = query.lte('transaction_date', options.dateRange.end)
+    }
+
+    // Apply pagination and ordering
+    if (options.limit) {
+      query = query.limit(options.limit)
+    }
+
+    if (options.offset) {
+      query = query.range(options.offset, options.offset + (options.limit || 50) - 1)
+    }
+
+    query = query.order('transaction_date', { ascending: false })
+
+    const { data: transactions, error, count } = await query
+
+    if (error) {
+      console.error('Error fetching combined transaction data:', error)
+      return { records: [], totalCount: 0 }
+    }
+
+    // Transform to unified format
+    const records = transactions?.map(transaction => ({
+      type: 'transaction' as const,
+      transaction,
+      invoice: transaction.invoice || null,
+      date: transaction.transaction_date,
+      amount: transaction.amount,
+      status: transaction.status,
+      customer_name: transaction.customer_name,
+      reference: transaction.reference_number
+    })) || []
+
+    return {
+      records,
+      totalCount: count || 0
+    }
+  }
 }

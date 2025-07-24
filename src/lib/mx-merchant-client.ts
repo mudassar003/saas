@@ -1,4 +1,14 @@
-import { MXInvoiceListResponse, MXInvoiceDetail, MXInvoice, MXPurchase, InvoiceItem } from '@/types/invoice';
+import { 
+  MXInvoiceListResponse, 
+  MXInvoiceDetail, 
+  MXInvoice, 
+  MXPurchase, 
+  InvoiceItem,
+  MXPaymentListResponse,
+  MXPaymentDetail,
+  MXPayment,
+  Transaction
+} from '@/types/invoice';
 import { getTexasISOString, getTexasDateForFilename } from '@/lib/timezone';
 
 export class MXMerchantClient {
@@ -121,6 +131,93 @@ export class MXMerchantClient {
   }
 
   /**
+   * Get list of payments/transactions with pagination
+   */
+  async getPayments(params: {
+    limit?: number;
+    offset?: number;
+    merchantId?: string;
+  } = {}): Promise<MXPaymentListResponse> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.offset) queryParams.append('offset', params.offset.toString());
+    if (params.merchantId) queryParams.append('merchantId', params.merchantId);
+
+    const endpoint = `/checkout/v3/payment${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    
+    return this.makeRequest<MXPaymentListResponse>(endpoint);
+  }
+
+  /**
+   * Get detailed payment/transaction information
+   */
+  async getPaymentDetail(paymentId: number): Promise<MXPaymentDetail> {
+    const endpoint = `/checkout/v3/payment/${paymentId}`;
+    return this.makeRequest<MXPaymentDetail>(endpoint);
+  }
+
+  /**
+   * Get all payments/transactions with pagination handling
+   */
+  async getAllPayments(merchantId?: string): Promise<MXPaymentListResponse> {
+    const limit = 100;
+    let offset = 0;
+    const allPayments: MXPayment[] = [];
+    let totalCount = 0;
+
+    while (true) {
+      const response = await this.getPayments({ limit, offset, merchantId });
+      
+      allPayments.push(...response.records);
+      totalCount = response.recordCount;
+
+      // If we got fewer records than requested, we've reached the end
+      if (response.records.length < limit) {
+        break;
+      }
+
+      offset += limit;
+
+      // Safety check to avoid infinite loops
+      if (offset > totalCount) {
+        break;
+      }
+    }
+
+    return {
+      recordCount: totalCount,
+      records: allPayments
+    };
+  }
+
+  /**
+   * Get payments/transactions with detailed information
+   */
+  async getPaymentsWithDetails(paymentIds: number[]): Promise<MXPaymentDetail[]> {
+    const detailPromises = paymentIds.map(id => this.getPaymentDetail(id));
+    return Promise.all(detailPromises);
+  }
+
+  /**
+   * Get all transactions and invoices (combined data)
+   */
+  async getAllTransactionsAndInvoices(merchantId?: string): Promise<{
+    transactions: MXPayment[];
+    invoices: MXInvoice[];
+  }> {
+    const [paymentsResponse, invoicesResponse] = await Promise.all([
+      this.getAllPayments(merchantId),
+      this.getAllInvoices(merchantId)
+    ]);
+
+    return {
+      transactions: paymentsResponse.records,
+      invoices: invoicesResponse.records
+    };
+  }
+
+  /**
    * Test API connection
    */
   async testConnection(): Promise<boolean> {
@@ -207,5 +304,57 @@ export function transformMXPurchaseToInvoiceItem(mxPurchase: MXPurchase, invoice
     tracking_number: mxPurchase.trackingNumber || 0,
     api_created: mxPurchase.created || getTexasISOString(),
     created_at: getTexasISOString(),
+  };
+}
+
+export function transformMXPaymentToTransaction(mxPayment: MXPayment, userId: string): Omit<Transaction, 'id'> {
+  return {
+    user_id: userId,
+    created_at: getTexasISOString(),
+    updated_at: getTexasISOString(),
+    
+    // MX Merchant Payment fields
+    mx_payment_id: mxPayment.id,
+    amount: parseFloat(mxPayment.amount || '0'),
+    transaction_date: mxPayment.created ? getTexasISOString(new Date(mxPayment.created)) : getTexasISOString(),
+    status: mxPayment.status || 'Unknown',
+    
+    // Invoice Linking
+    mx_invoice_number: mxPayment.invoice ? parseInt(mxPayment.invoice) : null,
+    invoice_id: null, // Will be populated during sync when linking to existing invoices
+    client_reference: mxPayment.clientReference || null,
+    
+    // Customer Info
+    customer_name: mxPayment.customerName || null,
+    customer_code: mxPayment.customerCode || null,
+    
+    // Payment Details
+    auth_code: mxPayment.authCode || null,
+    auth_message: mxPayment.authMessage || null,
+    response_code: mxPayment.responseCode || null,
+    reference_number: mxPayment.reference || null,
+    
+    // Card Details
+    card_type: mxPayment.cardAccount?.cardType || null,
+    card_last4: mxPayment.cardAccount?.last4 || null,
+    card_token: mxPayment.cardAccount?.token || null,
+    
+    // Financial Details
+    currency: mxPayment.currency || 'USD',
+    tax_amount: mxPayment.tax ? parseFloat(mxPayment.tax) : null,
+    surcharge_amount: mxPayment.surchargeAmount ? parseFloat(mxPayment.surchargeAmount) : null,
+    surcharge_label: mxPayment.surchargeLabel || null,
+    refunded_amount: mxPayment.refundedAmount ? parseFloat(mxPayment.refundedAmount) : 0,
+    settled_amount: mxPayment.settledAmount ? parseFloat(mxPayment.settledAmount) : 0,
+    
+    // Transaction Metadata
+    tender_type: mxPayment.tenderType || null,
+    transaction_type: mxPayment.type || null,
+    source: mxPayment.source || null,
+    batch: mxPayment.batch || null,
+    merchant_id: mxPayment.merchantId || null,
+    
+    // System Fields
+    raw_data: mxPayment as Record<string, unknown>,
   };
 }

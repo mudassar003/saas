@@ -52,4 +52,5 @@ scripts/
 image.png
 npm/
 supabase_complete_setup.sql
-CLAUDE.md
+temp_query.sql
+transactions_table_migration.sql

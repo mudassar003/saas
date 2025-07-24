@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import {
   ClerkProvider,
   SignInButton,
@@ -39,12 +40,28 @@ export default function RootLayout({
         >
           <ThemeProvider>
             <header className="flex items-center justify-between p-4 border-b">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-6">
                 <SignedOut>
                   <SignInButton />
                 </SignedOut>
                 <SignedIn>
-                  <UserButton />
+                  <div className="flex items-center gap-6">
+                    <UserButton />
+                    <nav className="flex items-center gap-4">
+                      <Link 
+                        href="/dashboard" 
+                        className="text-sm font-medium hover:text-primary transition-colors"
+                      >
+                        Invoices
+                      </Link>
+                      <Link 
+                        href="/transactions" 
+                        className="text-sm font-medium hover:text-primary transition-colors"
+                      >
+                        Transactions
+                      </Link>
+                    </nav>
+                  </div>
                 </SignedIn>
               </div>
               <ThemeToggle />

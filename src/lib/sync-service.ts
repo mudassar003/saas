@@ -1,5 +1,5 @@
 import { MXMerchantClient } from './mx-merchant-client'
-import { DAL } from './dal'
+import { DAL, TransactionDAL } from './dal'
 import { Tables, supabaseAdmin } from './supabase'
 
 export class SyncService {
@@ -327,6 +327,233 @@ export class SyncService {
     results.success = results.totalFailed === 0
 
     return results
+  }
+
+  // Sync all transactions from MX Merchant Payment API
+  async syncAllTransactions(syncType: 'transactions' | 'manual' = 'transactions'): Promise<{
+    success: boolean
+    totalProcessed: number
+    totalFailed: number
+    errors: string[]
+    syncLogId: string | null
+  }> {
+    const syncLog = await DAL.createSyncLog({
+      user_id: this.userId,
+      sync_type: syncType,
+      status: 'started'
+    })
+
+    if (!syncLog) {
+      return {
+        success: false,
+        totalProcessed: 0,
+        totalFailed: 0,
+        errors: ['Failed to create sync log'],
+        syncLogId: null
+      }
+    }
+
+    try {
+      let totalProcessed = 0
+      let totalFailed = 0
+      const allErrors: string[] = []
+      let apiCallsCount = 0
+      let lastProcessedPaymentId: number | null = null
+
+      // Fetch all transactions with pagination
+      const limit = 100
+      let offset = 0
+      let hasMore = true
+
+      while (hasMore) {
+        console.log(`Fetching transactions: offset=${offset}, limit=${limit}`)
+        
+        const response = await this.mxClient.getPayments({ limit, offset })
+        apiCallsCount++
+
+        if (!response.records) {
+          const error = `API call failed at offset ${offset}: No records returned`
+          allErrors.push(error)
+          console.error(error)
+          break
+        }
+
+        const transactions = response.records
+        
+        if (transactions.length === 0) {
+          hasMore = false
+          break
+        }
+
+        // Insert transactions into database
+        const insertResult = await TransactionDAL.bulkInsertTransactions(this.userId, transactions)
+        totalProcessed += insertResult.success
+        totalFailed += insertResult.failed
+        allErrors.push(...insertResult.errors)
+
+        // Update last processed payment ID
+        if (transactions.length > 0) {
+          lastProcessedPaymentId = transactions[transactions.length - 1].id
+        }
+
+        // Update sync log progress
+        await DAL.updateSyncLog(syncLog.id, {
+          transactions_processed: totalProcessed,
+          transactions_failed: totalFailed,
+          api_calls_made: apiCallsCount,
+          last_processed_payment_id: lastProcessedPaymentId ?? undefined
+        })
+
+        offset += limit
+        
+        // Check if we got fewer records than requested (indicates end of data)
+        if (transactions.length < limit) {
+          hasMore = false
+        }
+
+        // Add small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+
+      // Final sync log update
+      await DAL.updateSyncLog(syncLog.id, {
+        status: totalFailed === 0 ? 'completed' : 'failed',
+        transactions_processed: totalProcessed,
+        transactions_failed: totalFailed,
+        error_message: allErrors.length > 0 ? allErrors.join('; ') : undefined,
+        api_calls_made: apiCallsCount,
+        last_processed_payment_id: lastProcessedPaymentId ?? undefined
+      })
+
+      return {
+        success: totalFailed === 0,
+        totalProcessed,
+        totalFailed,
+        errors: allErrors,
+        syncLogId: syncLog.id
+      }
+
+    } catch (error) {
+      console.error('Transaction sync failed:', error)
+      
+      await DAL.updateSyncLog(syncLog.id, {
+        status: 'failed',
+        error_message: error instanceof Error ? error.message : 'Unknown error'
+      })
+
+      return {
+        success: false,
+        totalProcessed: 0,
+        totalFailed: 0,
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        syncLogId: syncLog.id
+      }
+    }
+  }
+
+  // Sync both transactions and invoices (combined approach)
+  async syncAllTransactionsAndInvoices(syncType: 'combined' | 'manual' = 'combined'): Promise<{
+    success: boolean
+    totalInvoicesProcessed: number
+    totalTransactionsProcessed: number
+    totalFailed: number
+    errors: string[]
+    syncLogId: string | null
+  }> {
+    const syncLog = await DAL.createSyncLog({
+      user_id: this.userId,
+      sync_type: syncType,
+      status: 'started'
+    })
+
+    if (!syncLog) {
+      return {
+        success: false,
+        totalInvoicesProcessed: 0,
+        totalTransactionsProcessed: 0,
+        totalFailed: 0,
+        errors: ['Failed to create sync log'],
+        syncLogId: null
+      }
+    }
+
+    try {
+      let totalInvoicesProcessed = 0
+      let totalTransactionsProcessed = 0
+      let totalFailed = 0
+      const allErrors: string[] = []
+      let apiCallsCount = 0
+
+      console.log('Starting combined sync: fetching all transactions and invoices...')
+
+      // Fetch both transactions and invoices in parallel
+      const [transactionsResponse, invoicesResponse] = await Promise.all([
+        this.mxClient.getAllPayments(),
+        this.mxClient.getAllInvoices()
+      ])
+      apiCallsCount += 2
+
+      // Process invoices first (to establish invoice records for linking)
+      if (invoicesResponse.records && invoicesResponse.records.length > 0) {
+        console.log(`Processing ${invoicesResponse.records.length} invoices...`)
+        const invoiceResult = await DAL.bulkInsertInvoices(this.userId, invoicesResponse.records)
+        totalInvoicesProcessed = invoiceResult.success
+        totalFailed += invoiceResult.failed
+        allErrors.push(...invoiceResult.errors)
+      }
+
+      // Process transactions (will auto-link to invoices via trigger)
+      if (transactionsResponse.records && transactionsResponse.records.length > 0) {
+        console.log(`Processing ${transactionsResponse.records.length} transactions...`)
+        const transactionResult = await TransactionDAL.bulkInsertTransactions(this.userId, transactionsResponse.records)
+        totalTransactionsProcessed = transactionResult.success
+        totalFailed += transactionResult.failed
+        allErrors.push(...transactionResult.errors)
+      }
+
+      // Final sync log update
+      await DAL.updateSyncLog(syncLog.id, {
+        status: totalFailed === 0 ? 'completed' : 'failed',
+        records_processed: totalInvoicesProcessed,
+        transactions_processed: totalTransactionsProcessed,
+        records_failed: totalFailed,
+        transactions_failed: totalFailed,
+        error_message: allErrors.length > 0 ? allErrors.join('; ') : undefined,
+        api_calls_made: apiCallsCount,
+        last_processed_payment_id: transactionsResponse.records?.length > 0 
+          ? transactionsResponse.records[transactionsResponse.records.length - 1].id 
+          : undefined,
+        last_processed_invoice_id: invoicesResponse.records?.length > 0 
+          ? invoicesResponse.records[invoicesResponse.records.length - 1].id 
+          : undefined
+      })
+
+      return {
+        success: totalFailed === 0,
+        totalInvoicesProcessed,
+        totalTransactionsProcessed,
+        totalFailed,
+        errors: allErrors,
+        syncLogId: syncLog.id
+      }
+
+    } catch (error) {
+      console.error('Combined sync failed:', error)
+      
+      await DAL.updateSyncLog(syncLog.id, {
+        status: 'failed',
+        error_message: error instanceof Error ? error.message : 'Unknown error'
+      })
+
+      return {
+        success: false,
+        totalInvoicesProcessed: 0,
+        totalTransactionsProcessed: 0,
+        totalFailed: 0,
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        syncLogId: syncLog.id
+      }
+    }
   }
 
   // Get sync status for user
