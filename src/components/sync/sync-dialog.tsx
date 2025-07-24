@@ -48,7 +48,7 @@ export function SyncDialog({ onSyncComplete }: SyncDialogProps) {
         })
       }, 500)
 
-      const response = await fetch('/api/sync/setup?action=sync', {
+      const response = await fetch('/api/sync/transactions?action=combined', {
         method: 'POST'
       })
 
@@ -95,17 +95,17 @@ export function SyncDialog({ onSyncComplete }: SyncDialogProps) {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Database className="h-4 w-4 mr-2" />
-          Sync Invoices
+          Sync Latest Data
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
-            Intelligent Invoice Sync
+            Simple Data Sync
           </DialogTitle>
           <DialogDescription>
-            Sync all invoices from MX Merchant while preserving nurse workflow data.
+            Fetch 100 most recent transactions and invoices from MX Merchant and add new records to database.
           </DialogDescription>
         </DialogHeader>
 
@@ -115,12 +115,12 @@ export function SyncDialog({ onSyncComplete }: SyncDialogProps) {
             <Info className="h-4 w-4" />
             <AlertDescription>
               <div className="space-y-2">
-                <p><strong>This sync will:</strong></p>
+                <p><strong>This simple sync will:</strong></p>
                 <ul className="text-sm space-y-1 ml-4">
-                  <li>• Add new invoices with &quot;Pending&quot; status</li>
-                  <li>• Update existing invoices while preserving nurse data</li>
-                  <li>• Skip unchanged invoices to save time</li>
-                  <li>• Never overwrite Data Sent status</li>
+                  <li>• Fetch 100 most recent transactions and invoices</li>
+                  <li>• Insert only new records not in database</li>
+                  <li>• Skip existing records for fast performance</li>
+                  <li>• No updates or comparisons - insert only</li>
                 </ul>
               </div>
             </AlertDescription>
@@ -130,12 +130,12 @@ export function SyncDialog({ onSyncComplete }: SyncDialogProps) {
           {isLoading && (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span>Syncing invoices...</span>
+                <span>Syncing latest data...</span>
                 <span>{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="h-2" />
               <p className="text-xs text-muted-foreground">
-                Fetching invoices from MX Merchant and comparing with database...
+                Fetching latest data from MX Merchant and inserting new records...
               </p>
             </div>
           )}

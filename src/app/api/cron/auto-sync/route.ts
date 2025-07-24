@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { SyncService } from '@/lib/sync-service';
+import { MXMerchantClient } from '@/lib/mx-merchant-client';
+import { DAL, TransactionDAL } from '@/lib/dal';
 import { getTexas24HoursAgo, getTexasISOString } from '@/lib/timezone';
 
 export async function GET(request: NextRequest) {
@@ -31,31 +32,113 @@ export async function GET(request: NextRequest) {
 
     for (const config of configs) {
       try {
-        // Get last successful sync timestamp
-        const { data: lastSync } = await supabaseAdmin
-          .from('sync_logs')
-          .select('updated_at')
-          .eq('user_id', config.user_id)
-          .eq('status', 'completed')
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        // Only sync invoices created/updated since last sync (last 24 hours max in Texas time)
-        const since = lastSync?.updated_at || getTexasISOString(getTexas24HoursAgo());
+        // Create MX Client
+        const mxClient = new MXMerchantClient(config.consumer_key, config.consumer_secret, config.environment as 'sandbox' | 'production');
         
-        const syncService = new SyncService(config.user_id, config);
-        const result = await syncService.syncIncrementalInvoices(since);
+        // Get recent data (last 24 hours)
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        console.log(`Cron sync: Fetching recent invoices...`);
+        // Step 1: Sync invoices first
+        const invoicesResponse = await mxClient.getInvoices({
+          limit: 500,
+          created: yesterday.toISOString().split('T')[0]
+        });
+        const recentInvoices = invoicesResponse.records || [];
+        
+        // Filter out existing invoices
+        const existingInvoices = await supabaseAdmin
+          .from('invoices')
+          .select('mx_invoice_id')
+          .in('mx_invoice_id', recentInvoices.map(i => i.id));
+        
+        const existingInvoiceIds = new Set(existingInvoices.data?.map(i => i.mx_invoice_id) || []);
+        const newInvoices = recentInvoices.filter(i => !existingInvoiceIds.has(i.id));
+        
+        console.log(`Cron sync: Inserting ${newInvoices.length} new invoices...`);
+        const invoiceResults = await DAL.bulkInsertInvoices(newInvoices);
+        
+        console.log(`Cron sync: Fetching recent transactions...`);
+        // Step 2: Sync transactions second
+        const paymentsResponse = await mxClient.getPayments({
+          limit: 500,
+          created: yesterday.toISOString().split('T')[0]
+        });
+        const recentPayments = paymentsResponse.records || [];
+        
+        // Filter out existing transactions
+        const existingPayments = await supabaseAdmin
+          .from('transactions')
+          .select('mx_payment_id')
+          .in('mx_payment_id', recentPayments.map(p => p.id));
+        
+        const existingPaymentIds = new Set(existingPayments.data?.map(p => p.mx_payment_id) || []);
+        const newPayments = recentPayments.filter(p => !existingPaymentIds.has(p.id));
+        
+        console.log(`Cron sync: Inserting ${newPayments.length} new transactions...`);
+        const transactionResults = await TransactionDAL.bulkInsertTransactions(newPayments);
+        
+        // Step 3: Link transactions to invoices
+        console.log('Cron sync: Linking transactions to invoices...');
+        let linkedCount = 0;
+        try {
+          const { data: unlinkableTransactions } = await supabaseAdmin
+            .from('transactions')
+            .select('id, mx_invoice_number')
+            .not('mx_invoice_number', 'is', null)
+            .is('invoice_id', null)
+            .limit(500);
+          
+          if (unlinkableTransactions && unlinkableTransactions.length > 0) {
+            const invoiceNumbers = [...new Set(unlinkableTransactions.map(t => t.mx_invoice_number))];
+            
+            const { data: matchingInvoices } = await supabaseAdmin
+              .from('invoices')
+              .select('id, invoice_number')
+              .in('invoice_number', invoiceNumbers);
+            
+            if (matchingInvoices && matchingInvoices.length > 0) {
+              const invoiceMap = new Map(
+                matchingInvoices.map(inv => [inv.invoice_number, inv.id])
+              );
+              
+              for (const transaction of unlinkableTransactions) {
+                const invoiceId = invoiceMap.get(transaction.mx_invoice_number);
+                if (invoiceId) {
+                  await supabaseAdmin
+                    .from('transactions')
+                    .update({ invoice_id: invoiceId })
+                    .eq('id', transaction.id);
+                  linkedCount++;
+                }
+              }
+            }
+          }
+        } catch (linkError) {
+          console.error('Cron sync linking error:', linkError);
+        }
+        
+        const result = {
+          success: true,
+          invoicesProcessed: invoiceResults.success,
+          transactionsProcessed: transactionResults.success,
+          linked: linkedCount,
+          failed: invoiceResults.failed + transactionResults.failed,
+          errors: [...invoiceResults.errors, ...transactionResults.errors]
+        };
         
         results.push({
-          userId: config.user_id,
+          configId: config.id,
           result
         });
+        
+        console.log(`Cron sync complete: ${invoiceResults.success} invoices, ${transactionResults.success} transactions, ${linkedCount} linked`);
 
       } catch (configError) {
-        console.error(`Sync failed for user ${config.user_id}:`, configError);
+        console.error(`Cron sync failed for config ${config.id}:`, configError);
         results.push({
-          userId: config.user_id,
+          configId: config.id,
           error: configError instanceof Error ? configError.message : 'Unknown error'
         });
       }
@@ -63,7 +146,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Incremental auto-sync completed',
+      message: 'Auto-sync completed for invoices and transactions',
       results
     });
 

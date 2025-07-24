@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { DataSentButtons } from '@/components/invoice/data-sent-buttons';
+import { DataSentUpdate } from '@/types/invoice';
 import { 
   formatCurrency, 
   formatDate, 
@@ -46,15 +48,33 @@ interface Transaction {
 
 interface TransactionTableProps {
   transactions: Transaction[];
-  onViewInvoice?: (invoiceId: string) => void;
+  onUpdateDataSent?: (update: DataSentUpdate) => void;
   loading?: boolean;
 }
 
 export function TransactionTable({ 
   transactions, 
-  onViewInvoice,
+  onUpdateDataSent,
   loading = false 
 }: TransactionTableProps) {
+  const [updatingInvoices, setUpdatingInvoices] = useState<Set<string>>(new Set());
+
+  const handleUpdateDataSent = async (update: DataSentUpdate) => {
+    if (!onUpdateDataSent) return;
+    
+    setUpdatingInvoices(prev => new Set(prev).add(update.invoice_id));
+    try {
+      await onUpdateDataSent(update);
+    } catch (error) {
+      console.error('Failed to update data sent status:', error);
+    } finally {
+      setUpdatingInvoices(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(update.invoice_id);
+        return newSet;
+      });
+    }
+  };
 
   const handleViewTransaction = (transactionId: string) => {
     window.location.href = `/transactions/${transactionId}`;
@@ -75,19 +95,6 @@ export function TransactionTable({
     }
   };
 
-  const getTransactionTypeColor = (type?: string) => {
-    switch (type?.toLowerCase()) {
-      case 'sale':
-        return 'bg-green-100 text-green-700';
-      case 'return':
-      case 'refund':
-        return 'bg-red-100 text-red-700';
-      case 'auth':
-        return 'bg-blue-100 text-blue-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
 
   if (loading) {
     return (
@@ -113,14 +120,14 @@ export function TransactionTable({
         <TableHeader>
           <TableRow>
             <TableHead>Transaction ID</TableHead>
-            <TableHead>Date</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Amount</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Invoice</TableHead>
-            <TableHead>Payment Method</TableHead>
             <TableHead>Source</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Ordered by Provider</TableHead>
+            <TableHead>Date/Time Ordered</TableHead>
+            <TableHead>View Invoice</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -132,26 +139,8 @@ export function TransactionTable({
               </TableCell>
               
               <TableCell>
-                <div className="space-y-1">
-                  <div className="text-sm">
-                    {formatDate(transaction.transaction_date)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatDateTime(transaction.transaction_date).split(' ')[1]}
-                  </div>
-                </div>
-              </TableCell>
-              
-              <TableCell>
-                <div className="space-y-1">
-                  <div className="font-medium">
-                    {transaction.customer_name || transaction.invoice?.customer_name || 'N/A'}
-                  </div>
-                  {transaction.reference_number && (
-                    <div className="text-xs text-muted-foreground font-mono">
-                      Ref: {transaction.reference_number}
-                    </div>
-                  )}
+                <div className="font-medium">
+                  {transaction.customer_name || transaction.invoices?.customer_name || 'N/A'}
                 </div>
               </TableCell>
               
@@ -159,11 +148,6 @@ export function TransactionTable({
                 <div className="font-medium">
                   {formatCurrency(transaction.amount)}
                 </div>
-                {transaction.invoice && (
-                  <div className="text-xs text-muted-foreground">
-                    Invoice: {formatCurrency(transaction.invoice.total_amount)}
-                  </div>
-                )}
               </TableCell>
               
               <TableCell>
@@ -173,84 +157,60 @@ export function TransactionTable({
               </TableCell>
               
               <TableCell>
-                {transaction.transaction_type && (
-                  <Badge variant="outline" className={getTransactionTypeColor(transaction.transaction_type)}>
-                    {transaction.transaction_type}
-                  </Badge>
-                )}
-              </TableCell>
-              
-              <TableCell>
-                {transaction.invoice ? (
-                  <div className="space-y-1">
-                    <div className="font-medium text-blue-600">
-                      #{transaction.invoice.invoice_number}
-                    </div>
-                    {transaction.invoice.data_sent_status && (
-                      <Badge 
-                        variant="outline" 
-                        className={
-                          transaction.invoice.data_sent_status === 'yes' 
-                            ? 'bg-green-50 text-green-700' 
-                            : 'bg-orange-50 text-orange-700'
-                        }
-                      >
-                        {transaction.invoice.data_sent_status === 'yes' ? 'Sent' : 'Pending'}
-                      </Badge>
-                    )}
-                  </div>
-                ) : (
-                  <Badge variant="outline" className="bg-gray-50 text-gray-600">
-                    Standalone
-                  </Badge>
-                )}
-              </TableCell>
-              
-              <TableCell>
-                <div className="space-y-1">
-                  {transaction.card_type && (
-                    <div className="text-sm">
-                      {transaction.card_type} ****{transaction.card_last4}
-                    </div>
-                  )}
-                  {transaction.auth_code && (
-                    <div className="text-xs text-muted-foreground font-mono">
-                      Auth: {transaction.auth_code}
-                    </div>
-                  )}
-                </div>
-              </TableCell>
-              
-              <TableCell>
                 <Badge variant="outline" className="text-xs">
                   {transaction.source || 'N/A'}
                 </Badge>
               </TableCell>
               
               <TableCell>
-                <div className="flex space-x-2">
-                  {transaction.invoice && onViewInvoice && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onViewInvoice(transaction.invoice!.id)}
-                      className="h-8 w-8 p-0"
-                      title="View Invoice Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  )}
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleViewTransaction(transaction.id)}
-                    className="h-8 w-8 p-0"
-                    title="View Transaction Details"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
+                <div className="text-sm">
+                  {formatDate(transaction.transaction_date)}
                 </div>
+              </TableCell>
+              
+              <TableCell>
+                {transaction.invoices && onUpdateDataSent ? (
+                  <DataSentButtons
+                    invoiceId={transaction.invoices.id}
+                    currentStatus={transaction.invoices.data_sent_status as 'pending' | 'yes' | 'no'}
+                    onUpdateStatus={handleUpdateDataSent}
+                    disabled={updatingInvoices.has(transaction.invoices.id)}
+                  />
+                ) : (
+                  <span className="text-xs text-muted-foreground">N/A</span>
+                )}
+              </TableCell>
+              
+              <TableCell>
+                <div className="text-xs text-muted-foreground">
+                  {transaction.invoices?.ordered_by_provider_at ? formatDateTime(transaction.invoices.ordered_by_provider_at) : 'N/A'}
+                </div>
+              </TableCell>
+              
+              <TableCell>
+                {transaction.invoices?.mx_invoice_id && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.location.href = `/dashboard/invoices/${transaction.invoices.mx_invoice_id}`}
+                    className="h-8 w-8 p-0"
+                    title="View Invoice Details"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                )}
+              </TableCell>
+              
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleViewTransaction(transaction.id)}
+                  className="h-8 w-8 p-0"
+                  title="View Transaction Details"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
               </TableCell>
             </TableRow>
           ))}

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const dateStart = searchParams.get('dateStart') || undefined
     const dateEnd = searchParams.get('dateEnd') || undefined
 
-    // Build transaction-centric query with invoice data joined
+    // Use proper foreign key JOIN for optimal performance
     let query = supabaseAdmin
       .from('transactions')
       .select(`
@@ -34,8 +34,9 @@ export async function GET(request: NextRequest) {
         transaction_type,
         source,
         created_at,
-        invoice:invoices!left(
+        invoices (
           id,
+          mx_invoice_id,
           invoice_number,
           customer_name,
           total_amount,
@@ -82,6 +83,8 @@ export async function GET(request: NextRequest) {
         error: error.message 
       }, { status: 500 })
     }
+
+    // Data already includes joined invoice information
 
     // Calculate statistics
     const statsQuery = supabaseAdmin

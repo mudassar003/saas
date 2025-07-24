@@ -3,6 +3,7 @@ import { SyncService } from '@/lib/sync-service'
 import { DAL, TransactionDAL } from '@/lib/dal'
 import { supabaseAdmin } from '@/lib/supabase'
 import { MXMerchantClient } from '@/lib/mx-merchant-client'
+import { auth } from '@clerk/nextjs/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,8 +12,7 @@ export async function POST(request: NextRequest) {
     
     console.log('Transaction sync API called with action:', action)
 
-    // Completely bypass user authentication - use proper UUID for setup
-    const hardcodedUserId = '00000000-0000-0000-0000-000000000001'
+    // App is protected by Clerk middleware - no need for user checks
     
     // Get MX Merchant config directly without user lookup
     const { data: config, error: configError } = await supabaseAdmin
@@ -28,26 +28,42 @@ export async function POST(request: NextRequest) {
     }
 
     // Create sync service instance with hardcoded user ID
-    const syncService = new SyncService(hardcodedUserId, config)
+    const syncService = new SyncService(config)
 
     let result
     
     switch (action) {
       case 'transactions':
-        // Sync only transactions - BYPASS SYNC SERVICE for setup
-        console.log('Starting transaction-only sync...')
+        // Sync only recent transactions - simple incremental sync
+        console.log('Starting simple transaction incremental sync...')
         try {
           // Create MX Client directly
           const mxClient = new MXMerchantClient(config.consumer_key, config.consumer_secret, config.environment as 'sandbox' | 'production')
           
-          // Fetch ALL transactions and save to database
-          console.log('Fetching ALL transactions from MX Merchant...')
-          const paymentsResponse = await mxClient.getAllPayments()
-          const allPayments = paymentsResponse.records || []
+          // Fetch recent transactions only (last 3 days for performance)
+          console.log('Fetching recent transactions from MX Merchant...')
+          const threeDaysAgo = new Date()
+          threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
           
-          // Save transactions to database with hardcoded user ID
-          console.log(`Saving ${allPayments.length} transactions to database...`)
-          const transactionResults = await TransactionDAL.bulkInsertTransactions(hardcodedUserId, allPayments)
+          const paymentsResponse = await mxClient.getPayments({
+            limit: 1000,
+            created: threeDaysAgo.toISOString().split('T')[0]
+          })
+          const recentPayments = paymentsResponse.records || []
+          
+          // Filter out transactions that already exist in database
+          console.log(`Checking ${recentPayments.length} transactions for duplicates...`)
+          const existingPayments = await supabaseAdmin
+            .from('transactions')
+            .select('mx_payment_id')
+            .in('mx_payment_id', recentPayments.map(p => p.id))
+          
+          const existingIds = new Set(existingPayments.data?.map(p => p.mx_payment_id) || [])
+          const newPayments = recentPayments.filter(p => !existingIds.has(p.id))
+          
+          // Save only new transactions to database
+          console.log(`Inserting ${newPayments.length} new transactions to database...`)
+          const transactionResults = await TransactionDAL.bulkInsertTransactions( newPayments)
           
           result = {
             success: true,
@@ -85,29 +101,103 @@ export async function POST(request: NextRequest) {
         })
 
       case 'combined':
-        // Sync both transactions and invoices - ACTUAL SYNC for setup
-        console.log('Starting combined transaction and invoice sync...')
+        // Simple incremental sync for both transactions and invoices
+        console.log('Starting simple combined incremental sync...')
         try {
           // Create MX Client directly
           const mxClient = new MXMerchantClient(config.consumer_key, config.consumer_secret, config.environment as 'sandbox' | 'production')
           
-          // Fetch ALL transactions and save to database
-          console.log('Fetching ALL transactions from MX Merchant...')
-          const paymentsResponse = await mxClient.getAllPayments()
-          const allPayments = paymentsResponse.records || []
+          // Sync most recent transactions (100 records)
+          console.log('Fetching 100 most recent transactions from MX Merchant...')
           
-          // Save transactions to database with hardcoded user ID
-          console.log(`Saving ${allPayments.length} transactions to database...`)
-          const transactionResults = await TransactionDAL.bulkInsertTransactions(hardcodedUserId, allPayments)
+          const paymentsResponse = await mxClient.getPayments({
+            limit: 100
+          })
+          const recentPayments = paymentsResponse.records || []
           
-          // Skip invoices since you already have 1463 invoices
-          console.log('Skipping invoice sync - invoices already exist in database')
-          const invoiceResults = { success: 0, failed: 0, errors: [] }
+          // Filter out existing transactions
+          const existingPayments = await supabaseAdmin
+            .from('transactions')
+            .select('mx_payment_id')
+            .in('mx_payment_id', recentPayments.map(p => p.id))
+          
+          const existingPaymentIds = new Set(existingPayments.data?.map(p => p.mx_payment_id) || [])
+          const newPayments = recentPayments.filter(p => !existingPaymentIds.has(p.id))
+          
+          console.log(`Inserting ${newPayments.length} new transactions...`)
+          const transactionResults = await TransactionDAL.bulkInsertTransactions( newPayments)
+          
+          // Sync most recent invoices (100 records)
+          console.log('Fetching 100 most recent invoices from MX Merchant...')
+          const invoicesResponse = await mxClient.getInvoices({
+            limit: 100
+          })
+          const recentInvoices = invoicesResponse.records || []
+          
+          // Filter out existing invoices
+          const existingInvoices = await supabaseAdmin
+            .from('invoices')
+            .select('mx_invoice_id')
+            .in('mx_invoice_id', recentInvoices.map(i => i.id))
+          
+          const existingInvoiceIds = new Set(existingInvoices.data?.map(i => i.mx_invoice_id) || [])
+          const newInvoices = recentInvoices.filter(i => !existingInvoiceIds.has(i.id))
+          
+          console.log(`Inserting ${newInvoices.length} new invoices...`)
+          const invoiceResults = await DAL.bulkInsertInvoices( newInvoices)
+          
+          // API-based foreign key linking (replaces problematic database trigger)
+          console.log('Linking transactions to invoices...')
+          let linkedCount = 0
+          try {
+            // Find transactions that need linking (have mx_invoice_number but no invoice_id)
+            const { data: unlinkableTransactions } = await supabaseAdmin
+              .from('transactions')
+              .select('id, mx_invoice_number')
+              .not('mx_invoice_number', 'is', null)
+              .is('invoice_id', null)
+              .limit(500) // Limit to prevent performance issues
+            
+            if (unlinkableTransactions && unlinkableTransactions.length > 0) {
+              // Get unique invoice numbers to query
+              const invoiceNumbers = [...new Set(unlinkableTransactions.map(t => t.mx_invoice_number))]
+              
+              // Find matching invoices
+              const { data: matchingInvoices } = await supabaseAdmin
+                .from('invoices')
+                .select('id, invoice_number')
+                .in('invoice_number', invoiceNumbers)
+                
+              if (matchingInvoices && matchingInvoices.length > 0) {
+                // Create invoice number to ID mapping
+                const invoiceMap = new Map(
+                  matchingInvoices.map(inv => [inv.invoice_number, inv.id])
+                )
+                
+                // Update transactions with matching invoice_ids
+                for (const transaction of unlinkableTransactions) {
+                  const invoiceId = invoiceMap.get(transaction.mx_invoice_number)
+                  if (invoiceId) {
+                    await supabaseAdmin
+                      .from('transactions')
+                      .update({ invoice_id: invoiceId })
+                      .eq('id', transaction.id)
+                    linkedCount++
+                  }
+                }
+              }
+            }
+            console.log(`Linked ${linkedCount} transactions to invoices`)
+          } catch (linkError) {
+            console.error('Error linking transactions to invoices:', linkError)
+            // Continue with sync even if linking fails
+          }
           
           result = {
             success: true,
             totalInvoicesProcessed: invoiceResults.success,
             totalTransactionsProcessed: transactionResults.success,
+            totalLinked: linkedCount,
             totalFailed: transactionResults.failed + invoiceResults.failed,
             errors: [...transactionResults.errors, ...invoiceResults.errors].slice(0, 10),
             syncLogId: 'bypass-setup'
@@ -121,6 +211,7 @@ export async function POST(request: NextRequest) {
             success: false,
             totalInvoicesProcessed: 0,
             totalTransactionsProcessed: 0,
+            totalLinked: 0,
             totalFailed: 1,
             errors: [`Sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
             syncLogId: null
@@ -130,11 +221,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: result.success,
           message: result.success 
-            ? `Combined sync completed successfully. Invoices: ${result.totalInvoicesProcessed}, Transactions: ${result.totalTransactionsProcessed}, Failed: ${result.totalFailed}`
-            : `Combined sync failed. Invoices: ${result.totalInvoicesProcessed}, Transactions: ${result.totalTransactionsProcessed}, Failed: ${result.totalFailed}`,
+            ? `Combined sync completed successfully. Invoices: ${result.totalInvoicesProcessed}, Transactions: ${result.totalTransactionsProcessed}, Linked: ${result.totalLinked}, Failed: ${result.totalFailed}`
+            : `Combined sync failed. Invoices: ${result.totalInvoicesProcessed}, Transactions: ${result.totalTransactionsProcessed}, Linked: ${result.totalLinked}, Failed: ${result.totalFailed}`,
           summary: {
             totalInvoicesProcessed: result.totalInvoicesProcessed,
             totalTransactionsProcessed: result.totalTransactionsProcessed,
+            totalLinked: result.totalLinked,
             totalFailed: result.totalFailed,
             syncType: 'combined'
           },
@@ -194,20 +286,19 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Completely bypass user authentication - use proper UUID for setup
-    const hardcodedUserId = '00000000-0000-0000-0000-000000000001'
-
-    // Get sync status - bypass user filtering for setup
-    // Get invoice count directly without user filter
+    // App is protected by Clerk middleware - no auth check needed
+    
+    // Get sync status
+    // Get invoice count
     const { count: totalInvoices } = await supabaseAdmin
       .from('invoices')
       .select('id', { count: 'exact', head: true })
-
-    // Get transaction counts from database - bypass user filter
+      
+    // Get transaction counts from database for user
     const { data: transactions, error: transactionError, count: transactionCount } = await supabaseAdmin
       .from('transactions')
       .select('id, status, mx_invoice_number', { count: 'exact' })
-
+      
     if (transactionError) {
       console.error('Error fetching transaction status:', transactionError)
     }

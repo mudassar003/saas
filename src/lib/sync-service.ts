@@ -7,8 +7,8 @@ export class SyncService {
   private userId: string
   private config: Tables<'mx_merchant_configs'>
 
-  constructor(userId: string, config: Tables<'mx_merchant_configs'>) {
-    this.userId = userId
+  constructor(config: Tables<'mx_merchant_configs'>) {
+    // No user ID needed - app protected by Clerk
     this.config = config
     this.mxClient = new MXMerchantClient(config.consumer_key, config.consumer_secret, config.environment as 'sandbox' | 'production')
   }

@@ -151,7 +151,7 @@ export class DAL {
   }
 
   // Bulk insert invoices from MX Merchant API
-  static async bulkInsertInvoices(userId: string, invoices: MXInvoice[]): Promise<{
+  static async bulkInsertInvoices(invoices: MXInvoice[]): Promise<{
     success: number
     failed: number
     errors: string[]
@@ -165,7 +165,6 @@ export class DAL {
     // Transform MX Merchant invoices to database format
     const invoiceInserts: Inserts<'invoices'>[] = invoices.map(invoice => ({
       mx_invoice_id: invoice.id,
-      user_id: userId,
       invoice_number: invoice.invoiceNumber,
       customer_name: invoice.customerName,
       customer_number: invoice.customerNumber,
@@ -446,7 +445,7 @@ export async function getInvoiceItems(invoiceId: string): Promise<Tables<'invoic
 // Transaction-related DAL methods
 export class TransactionDAL {
   // Bulk insert transactions from MX Merchant Payment API
-  static async bulkInsertTransactions(userId: string, payments: MXPayment[]): Promise<{
+  static async bulkInsertTransactions(payments: MXPayment[]): Promise<{
     success: number
     failed: number
     errors: string[]
@@ -464,7 +463,6 @@ export class TransactionDAL {
     // Transform MX Merchant payments to database format
     const transactionInserts: Inserts<'transactions'>[] = payments.map(payment => ({
       mx_payment_id: payment.id,
-      user_id: userId,
       amount: parseFloat(payment.amount || '0'),
       transaction_date: payment.created ? getTexasISOString(new Date(payment.created)) : getTexasISOString(),
       status: payment.status || 'Unknown',

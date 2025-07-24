@@ -6,6 +6,7 @@ import { TransactionFilters } from '@/components/transaction/transaction-filters
 import { AutoSyncHeader } from '@/components/sync/auto-sync-header';
 import { SyncDialog } from '@/components/sync/sync-dialog';
 import { Pagination } from '@/components/ui/pagination';
+import { DataSentUpdate } from '@/types/invoice';
 
 interface FilterState {
   search: string;
@@ -157,9 +158,28 @@ export default function TransactionsPage() {
     setCurrentPage(1);
   }, [filters]);
 
-  const handleViewInvoice = (invoiceId: string) => {
-    // Navigate to invoice detail page
-    window.location.href = `/dashboard/invoices/${invoiceId}`;
+
+  const handleUpdateDataSent = async (update: DataSentUpdate) => {
+    try {
+      const response = await fetch('/api/invoices/data-sent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(update),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update data sent status');
+      }
+
+      // Refresh the transaction data to show updated status
+      const currentFilters = filters;
+      setFilters({ ...currentFilters });
+    } catch (error) {
+      console.error('Error updating data sent status:', error);
+      throw error;
+    }
   };
 
   const handleSyncComplete = () => {
@@ -221,7 +241,7 @@ export default function TransactionsPage() {
 
         <TransactionTable
           transactions={transactions}
-          onViewInvoice={handleViewInvoice}
+          onUpdateDataSent={handleUpdateDataSent}
           loading={loading}
         />
 
