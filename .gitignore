@@ -60,7 +60,7 @@ temp_query.sql
 transactions_table_migration.sql
 
 # documentation (keep CLAUDE.md as it contains project instructions)
-README.md
+CLAUDE.md
 
 # development and test files
 test-*
