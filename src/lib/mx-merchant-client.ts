@@ -358,6 +358,6 @@ export function transformMXPaymentToTransaction(mxPayment: MXPayment): Omit<Tran
     merchant_id: mxPayment.merchantId || null,
     
     // System Fields
-    raw_data: mxPayment as Record<string, unknown>,
+    raw_data: mxPayment as unknown as Record<string, unknown>,
   };
 }
