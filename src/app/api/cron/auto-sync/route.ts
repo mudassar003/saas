@@ -39,15 +39,10 @@ export async function GET(request: NextRequest) {
         // Create MX Client
         const mxClient = new MXMerchantClient(config.consumer_key, config.consumer_secret, config.environment as 'sandbox' | 'production');
         
-        // Get recent data (last 24 hours)
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        
-        console.log(`Cron sync: Fetching recent invoices...`);
-        // Step 1: Sync invoices first
+        console.log(`Cron sync: Fetching latest 100 invoices...`);
+        // Step 1: Sync latest invoices (no date filter)
         const invoicesResponse = await mxClient.getInvoices({
-          limit: 500,
-          created: yesterday.toISOString().split('T')[0]
+          limit: 100
         });
         const recentInvoices = invoicesResponse.records || [];
         
@@ -63,11 +58,10 @@ export async function GET(request: NextRequest) {
         console.log(`Cron sync: Inserting ${newInvoices.length} new invoices...`);
         const invoiceResults = await DAL.bulkInsertInvoices(newInvoices);
         
-        console.log(`Cron sync: Fetching recent transactions...`);
-        // Step 2: Sync transactions second
+        console.log(`Cron sync: Fetching latest 100 transactions...`);
+        // Step 2: Sync latest transactions (no date filter)
         const paymentsResponse = await mxClient.getPayments({
-          limit: 500,
-          created: yesterday.toISOString().split('T')[0]
+          limit: 100
         });
         const recentPayments = paymentsResponse.records || [];
         
