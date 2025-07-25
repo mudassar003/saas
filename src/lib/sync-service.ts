@@ -44,7 +44,7 @@ export class SyncService {
 
       // Fetch all invoices with pagination
       const limit = 100
-      const offset = 0
+      let offset = 0
       let hasMore = true
 
       while (hasMore) {
@@ -357,7 +357,7 @@ export class SyncService {
 
       // Fetch all transactions with pagination
       const limit = 100
-      const offset = 0
+      let offset = 0
       let hasMore = true
 
       while (hasMore) {
