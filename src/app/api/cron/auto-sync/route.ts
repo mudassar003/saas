@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { MXMerchantClient } from '@/lib/mx-merchant-client';
 import { DAL, TransactionDAL } from '@/lib/dal';
-import { getTexas24HoursAgo, getTexasISOString } from '@/lib/timezone';
+// Timezone imports removed - unused
 
 export async function GET(request: NextRequest) {
   try {

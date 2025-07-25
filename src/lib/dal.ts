@@ -1,5 +1,5 @@
 import { supabase, supabaseAdmin, Tables, Inserts } from './supabase'
-import { MXInvoice, MXInvoiceDetail, MXPayment, Transaction } from '@/types/invoice'
+import { MXInvoice, MXInvoiceDetail, MXPayment } from '@/types/invoice'
 import { getTexasISOString, getTexasDateForFilename } from '@/lib/timezone'
 
 // Data Access Layer for secure database operations
@@ -62,12 +62,11 @@ export class DAL {
     return data
   }
 
-  // Get MX Merchant config for user
-  static async getMXMerchantConfig(userId: string): Promise<Tables<'mx_merchant_configs'> | null> {
+  // Get MX Merchant config - app protected by Clerk
+  static async getMXMerchantConfig(): Promise<Tables<'mx_merchant_configs'> | null> {
     const { data, error } = await supabaseAdmin
       .from('mx_merchant_configs')
       .select('*')
-      .eq('user_id', userId)
       .eq('is_active', true)
       .single()
 
@@ -79,9 +78,8 @@ export class DAL {
     return data
   }
 
-  // Create sync log entry
+  // Create sync log entry - app protected by Clerk
   static async createSyncLog(syncData: {
-    user_id: string
     sync_type: 'initial' | 'webhook' | 'manual' | 'scheduled' | 'transactions' | 'combined'
     status: 'started' | 'completed' | 'failed' | 'cancelled'
     records_processed?: number
@@ -96,7 +94,7 @@ export class DAL {
     const { data, error } = await supabaseAdmin
       .from('sync_logs')
       .insert({
-        user_id: syncData.user_id,
+        user_id: 'system', // App protected by Clerk - using system user
         sync_type: syncData.sync_type,
         status: syncData.status,
         records_processed: syncData.records_processed || 0,
@@ -218,8 +216,8 @@ export class DAL {
     return results
   }
 
-  // Get invoices for user with pagination
-  static async getInvoices(userId: string, options: {
+  // Get invoices with pagination - app protected by Clerk
+  static async getInvoices(options: {
     limit?: number
     offset?: number
     search?: string
@@ -230,10 +228,9 @@ export class DAL {
     invoices: Tables<'invoices'>[]
     totalCount: number
   }> {
-    let query = supabase
+    let query = supabaseAdmin
       .from('invoices')
       .select('*, invoice_items(count)', { count: 'exact' })
-      .eq('user_id', userId)
 
     // Apply filters
     if (options.search) {
@@ -281,18 +278,17 @@ export class DAL {
     }
   }
 
-  // Update invoice data sent status
-  static async updateInvoiceDataSentStatus(invoiceId: string, userId: string, status: 'yes' | 'no', notes?: string): Promise<Tables<'invoices'> | null> {
-    const { data, error } = await supabase
+  // Update invoice data sent status - app protected by Clerk
+  static async updateInvoiceDataSentStatus(invoiceId: string, status: 'yes' | 'no', notes?: string): Promise<Tables<'invoices'> | null> {
+    const { data, error } = await supabaseAdmin
       .from('invoices')
       .update({
         data_sent_status: status,
-        data_sent_by: userId,
         data_sent_at: getTexasISOString(),
-        data_sent_notes: notes || null
+        data_sent_notes: notes || null,
+        ordered_by_provider_at: status === 'yes' ? getTexasISOString() : null
       })
       .eq('id', invoiceId)
-      .eq('user_id', userId) // Ensure user can only update their own invoices
       .select()
       .single()
 
@@ -304,16 +300,15 @@ export class DAL {
     return data
   }
 
-  // Get invoice by ID with product details
-  static async getInvoiceById(invoiceId: string, userId: string): Promise<{
+  // Get invoice by ID with product details - app protected by Clerk
+  static async getInvoiceById(invoiceId: string): Promise<{
     invoice: Tables<'invoices'> | null
     items: Tables<'invoice_items'>[]
   }> {
-    const { data: invoice, error: invoiceError } = await supabase
+    const { data: invoice, error: invoiceError } = await supabaseAdmin
       .from('invoices')
       .select('*')
       .eq('id', invoiceId)
-      .eq('user_id', userId)
       .single()
 
     if (invoiceError) {
@@ -321,7 +316,7 @@ export class DAL {
       return { invoice: null, items: [] }
     }
 
-    const { data: items, error: itemsError } = await supabase
+    const { data: items, error: itemsError } = await supabaseAdmin
       .from('invoice_items')
       .select('*')
       .eq('invoice_id', invoiceId)
@@ -389,17 +384,15 @@ export class DAL {
     return results
   }
 
-  // Get invoices without product details (for lazy loading)
-  static async getInvoicesWithoutProducts(userId: string): Promise<number[]> {
-    const { data, error } = await supabase
+  // Get invoices without product details (for lazy loading) - app protected by Clerk
+  static async getInvoicesWithoutProducts(): Promise<number[]> {
+    const { data, error } = await supabaseAdmin
       .from('invoices')
       .select('mx_invoice_id')
-      .eq('user_id', userId)
       .not('mx_invoice_id', 'in', `(
         SELECT DISTINCT i.mx_invoice_id 
         FROM invoices i 
-        INNER JOIN invoice_items ii ON i.id = ii.invoice_id 
-        WHERE i.user_id = '${userId}'
+        INNER JOIN invoice_items ii ON i.id = ii.invoice_id
       )`)
 
     if (error) {
@@ -531,8 +524,8 @@ export class TransactionDAL {
     return results
   }
 
-  // Get transactions for user with pagination
-  static async getTransactions(userId: string, options: {
+  // Get transactions with pagination - app protected by Clerk
+  static async getTransactions(options: {
     limit?: number
     offset?: number
     search?: string
@@ -540,18 +533,12 @@ export class TransactionDAL {
     dateRange?: { start?: string; end?: string }
     includeInvoiceData?: boolean
   } = {}): Promise<{
-    transactions: (Tables<'transactions'> & { invoice?: Tables<'invoices'> | null })[]
+    transactions: Tables<'transactions'>[]
     totalCount: number
   }> {
-    let query = supabase
+    let query = supabaseAdmin
       .from('transactions')
-      .select(
-        options.includeInvoiceData 
-          ? '*, invoice:invoices(*)'
-          : '*',
-        { count: 'exact' }
-      )
-      .eq('user_id', userId)
+      .select('*', { count: 'exact' })
 
     // Apply filters
     if (options.search) {
@@ -595,8 +582,8 @@ export class TransactionDAL {
     }
   }
 
-  // Get combined transaction and invoice data for dashboard
-  static async getCombinedTransactionData(userId: string, options: {
+  // Get combined transaction and invoice data for dashboard - app protected by Clerk
+  static async getCombinedTransactionData(options: {
     limit?: number
     offset?: number
     search?: string
@@ -616,10 +603,9 @@ export class TransactionDAL {
     }>
     totalCount: number
   }> {
-    let query = supabase
+    let query = supabaseAdmin
       .from('transactions')
-      .select('*, invoice:invoices(*)', { count: 'exact' })
-      .eq('user_id', userId)
+      .select('*', { count: 'exact' })
 
     // Apply filters based on showType
     if (options.showType === 'with_invoices') {
@@ -663,11 +649,11 @@ export class TransactionDAL {
       return { records: [], totalCount: 0 }
     }
 
-    // Transform to unified format
+    // Transform to unified format (without invoice join for now)
     const records = transactions?.map(transaction => ({
       type: 'transaction' as const,
       transaction,
-      invoice: transaction.invoice || null,
+      invoice: null, // Remove complex join for now
       date: transaction.transaction_date,
       amount: transaction.amount,
       status: transaction.status,

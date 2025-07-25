@@ -3,7 +3,7 @@ import { SyncService } from '@/lib/sync-service'
 import { DAL, TransactionDAL } from '@/lib/dal'
 import { supabaseAdmin } from '@/lib/supabase'
 import { MXMerchantClient } from '@/lib/mx-merchant-client'
-import { auth } from '@clerk/nextjs/server'
+// Auth import removed - not used in this file
 
 export async function POST(request: NextRequest) {
   try {
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
           const newInvoices = recentInvoices.filter(i => !existingInvoiceIds.has(i.id))
           
           console.log(`Inserting ${newInvoices.length} new invoices...`)
-          const invoiceResults = await DAL.bulkInsertInvoices( newInvoices)
+          const invoiceResults = await DAL.bulkInsertInvoices(newInvoices)
           
           // API-based foreign key linking (replaces problematic database trigger)
           console.log('Linking transactions to invoices...')
@@ -284,7 +284,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // App is protected by Clerk middleware - no auth check needed
     

@@ -4,7 +4,6 @@ import { Tables, supabaseAdmin } from './supabase'
 
 export class SyncService {
   private mxClient: MXMerchantClient
-  private userId: string
   private config: Tables<'mx_merchant_configs'>
 
   constructor(config: Tables<'mx_merchant_configs'>) {
@@ -22,7 +21,6 @@ export class SyncService {
     syncLogId: string | null
   }> {
     const syncLog = await DAL.createSyncLog({
-      user_id: this.userId,
       sync_type: syncType,
       status: 'started'
     })
@@ -46,7 +44,7 @@ export class SyncService {
 
       // Fetch all invoices with pagination
       const limit = 100
-      let offset = 0
+      const offset = 0
       let hasMore = true
 
       while (hasMore) {
@@ -70,7 +68,7 @@ export class SyncService {
         }
 
         // Insert invoices into database
-        const insertResult = await DAL.bulkInsertInvoices(this.userId, invoices)
+        const insertResult = await DAL.bulkInsertInvoices(invoices)
         totalProcessed += insertResult.success
         totalFailed += insertResult.failed
         allErrors.push(...insertResult.errors)
@@ -144,7 +142,6 @@ export class SyncService {
     syncLogId: string | null
   }> {
     const syncLog = await DAL.createSyncLog({
-      user_id: this.userId,
       sync_type: 'scheduled',
       status: 'started'
     })
@@ -169,7 +166,7 @@ export class SyncService {
       // For incremental sync, fetch recent invoices and filter by date
       const sinceDate = new Date(since)
       const limit = 100
-      let offset = 0
+      const offset = 0
       
       console.log(`Fetching recent invoices for incremental sync since: ${sinceDate.toISOString()}`)
       
@@ -211,7 +208,7 @@ export class SyncService {
       }
 
       // Insert invoices into database (using same pattern as manual sync)
-      const insertResult = await DAL.bulkInsertInvoices(this.userId, filteredInvoices)
+      const insertResult = await DAL.bulkInsertInvoices(filteredInvoices)
       totalProcessed += insertResult.success
       totalFailed += insertResult.failed
       allErrors.push(...insertResult.errors)
@@ -292,7 +289,6 @@ export class SyncService {
           .from('invoices')
           .select('id')
           .eq('mx_invoice_id', invoiceId)
-          .eq('user_id', this.userId)
           .single()
 
         if (dbError || !dbInvoice) {
@@ -338,7 +334,6 @@ export class SyncService {
     syncLogId: string | null
   }> {
     const syncLog = await DAL.createSyncLog({
-      user_id: this.userId,
       sync_type: syncType,
       status: 'started'
     })
@@ -362,7 +357,7 @@ export class SyncService {
 
       // Fetch all transactions with pagination
       const limit = 100
-      let offset = 0
+      const offset = 0
       let hasMore = true
 
       while (hasMore) {
@@ -386,7 +381,7 @@ export class SyncService {
         }
 
         // Insert transactions into database
-        const insertResult = await TransactionDAL.bulkInsertTransactions(this.userId, transactions)
+        const insertResult = await TransactionDAL.bulkInsertTransactions(transactions)
         totalProcessed += insertResult.success
         totalFailed += insertResult.failed
         allErrors.push(...insertResult.errors)
@@ -461,7 +456,6 @@ export class SyncService {
     syncLogId: string | null
   }> {
     const syncLog = await DAL.createSyncLog({
-      user_id: this.userId,
       sync_type: syncType,
       status: 'started'
     })
@@ -496,7 +490,7 @@ export class SyncService {
       // Process invoices first (to establish invoice records for linking)
       if (invoicesResponse.records && invoicesResponse.records.length > 0) {
         console.log(`Processing ${invoicesResponse.records.length} invoices...`)
-        const invoiceResult = await DAL.bulkInsertInvoices(this.userId, invoicesResponse.records)
+        const invoiceResult = await DAL.bulkInsertInvoices(invoicesResponse.records)
         totalInvoicesProcessed = invoiceResult.success
         totalFailed += invoiceResult.failed
         allErrors.push(...invoiceResult.errors)
@@ -505,7 +499,7 @@ export class SyncService {
       // Process transactions (will auto-link to invoices via trigger)
       if (transactionsResponse.records && transactionsResponse.records.length > 0) {
         console.log(`Processing ${transactionsResponse.records.length} transactions...`)
-        const transactionResult = await TransactionDAL.bulkInsertTransactions(this.userId, transactionsResponse.records)
+        const transactionResult = await TransactionDAL.bulkInsertTransactions(transactionsResponse.records)
         totalTransactionsProcessed = transactionResult.success
         totalFailed += transactionResult.failed
         allErrors.push(...transactionResult.errors)
@@ -556,8 +550,8 @@ export class SyncService {
     }
   }
 
-  // Get sync status for user
-  static async getSyncStatus(userId: string): Promise<{
+  // Get sync status - app protected by Clerk
+  static async getSyncStatus(): Promise<{
     lastSync: Tables<'sync_logs'> | null
     totalInvoices: number
     invoicesWithProducts: number
@@ -567,7 +561,6 @@ export class SyncService {
     const { data: lastSync } = await supabaseAdmin
       .from('sync_logs')
       .select('*')
-      .eq('user_id', userId)
       .order('started_at', { ascending: false })
       .limit(1)
       .single()
@@ -576,7 +569,6 @@ export class SyncService {
     const { count: totalInvoices } = await supabaseAdmin
       .from('invoices')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
 
     // Get invoice IDs that have products
     const { data: invoiceItemsData } = await supabaseAdmin
@@ -590,7 +582,6 @@ export class SyncService {
     const { data: invoicesWithProducts } = await supabaseAdmin
       .from('invoices')
       .select('id')
-      .eq('user_id', userId)
       .in('id', invoiceIdsWithProducts.length > 0 ? invoiceIdsWithProducts : ['none'])
 
     const pendingProductSync = (totalInvoices || 0) - (invoicesWithProducts?.length || 0)
@@ -603,15 +594,15 @@ export class SyncService {
     }
   }
 
-  // Create sync service instance for user
-  static async createForUser(userId: string): Promise<SyncService | null> {
-    const config = await DAL.getMXMerchantConfig(userId)
+  // Create sync service instance - app protected by Clerk
+  static async createForSystem(): Promise<SyncService | null> {
+    const config = await DAL.getMXMerchantConfig()
     
     if (!config) {
-      console.error('No MX Merchant configuration found for user:', userId)
+      console.error('No MX Merchant configuration found')
       return null
     }
 
-    return new SyncService(userId, config)
+    return new SyncService(config)
   }
 }

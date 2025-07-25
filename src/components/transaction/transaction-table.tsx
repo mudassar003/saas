@@ -35,8 +35,11 @@ interface Transaction {
   transaction_type?: string;
   source?: string;
   created_at: string;
+  ordered_by_provider?: boolean;
+  ordered_by_provider_at?: string;
   invoice?: {
     id: string;
+    mx_invoice_id: number;
     invoice_number: number;
     customer_name?: string;
     total_amount: number;
@@ -57,20 +60,21 @@ export function TransactionTable({
   onUpdateDataSent,
   loading = false 
 }: TransactionTableProps) {
-  const [updatingInvoices, setUpdatingInvoices] = useState<Set<string>>(new Set());
+  const [updatingRecords, setUpdatingRecords] = useState<Set<string>>(new Set());
 
   const handleUpdateDataSent = async (update: DataSentUpdate) => {
     if (!onUpdateDataSent) return;
     
-    setUpdatingInvoices(prev => new Set(prev).add(update.invoice_id));
+    const recordId = update.invoice_id || update.transaction_id || '';
+    setUpdatingRecords(prev => new Set(prev).add(recordId));
     try {
       await onUpdateDataSent(update);
     } catch (error) {
       console.error('Failed to update data sent status:', error);
     } finally {
-      setUpdatingInvoices(prev => {
+      setUpdatingRecords(prev => {
         const newSet = new Set(prev);
-        newSet.delete(update.invoice_id);
+        newSet.delete(recordId);
         return newSet;
       });
     }
@@ -140,7 +144,7 @@ export function TransactionTable({
               
               <TableCell>
                 <div className="font-medium">
-                  {transaction.customer_name || transaction.invoices?.customer_name || 'N/A'}
+                  {transaction.customer_name || transaction.invoice?.customer_name || 'N/A'}
                 </div>
               </TableCell>
               
@@ -169,13 +173,22 @@ export function TransactionTable({
               </TableCell>
               
               <TableCell>
-                {transaction.invoices && onUpdateDataSent ? (
-                  <DataSentButtons
-                    invoiceId={transaction.invoices.id}
-                    currentStatus={transaction.invoices.data_sent_status as 'pending' | 'yes' | 'no'}
-                    onUpdateStatus={handleUpdateDataSent}
-                    disabled={updatingInvoices.has(transaction.invoices.id)}
-                  />
+                {onUpdateDataSent ? (
+                  transaction.invoice ? (
+                    <DataSentButtons
+                      invoiceId={transaction.invoice.id}
+                      currentStatus={transaction.invoice.data_sent_status as 'pending' | 'yes' | 'no'}
+                      onUpdateStatus={handleUpdateDataSent}
+                      disabled={updatingRecords.has(transaction.invoice.id)}
+                    />
+                  ) : (
+                    <DataSentButtons
+                      transactionId={transaction.id}
+                      currentStatus={transaction.ordered_by_provider ? 'yes' : 'pending'}
+                      onUpdateStatus={handleUpdateDataSent}
+                      disabled={updatingRecords.has(transaction.id)}
+                    />
+                  )
                 ) : (
                   <span className="text-xs text-muted-foreground">N/A</span>
                 )}
@@ -183,16 +196,21 @@ export function TransactionTable({
               
               <TableCell>
                 <div className="text-xs text-muted-foreground">
-                  {transaction.invoices?.ordered_by_provider_at ? formatDateTime(transaction.invoices.ordered_by_provider_at) : 'N/A'}
+                  {transaction.invoice?.ordered_by_provider_at 
+                    ? formatDateTime(transaction.invoice.ordered_by_provider_at)
+                    : transaction.ordered_by_provider_at 
+                    ? formatDateTime(transaction.ordered_by_provider_at)
+                    : 'N/A'
+                  }
                 </div>
               </TableCell>
               
               <TableCell>
-                {transaction.invoices?.mx_invoice_id && (
+                {transaction.invoice?.mx_invoice_id && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.location.href = `/dashboard/invoices/${transaction.invoices.mx_invoice_id}`}
+                    onClick={() => window.location.href = `/dashboard/invoices/${transaction.invoice!.mx_invoice_id}`}
                     className="h-8 w-8 p-0"
                     title="View Invoice Details"
                   >

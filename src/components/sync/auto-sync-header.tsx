@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
-import { toTexasTime } from '@/lib/timezone';
+// Unused import removed
 
 interface AutoSyncHeaderProps {
   className?: string;

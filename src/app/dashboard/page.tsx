@@ -7,7 +7,7 @@ import { ExportDialog } from '@/components/export/export-dialog';
 import { SyncDialog } from '@/components/sync/sync-dialog';
 import { AutoSyncHeader } from '@/components/sync/auto-sync-header';
 import { Pagination } from '@/components/ui/pagination';
-import { getTexasDateForFilename } from '@/lib/timezone';
+// Unused import removed
 import { Invoice, DataSentUpdate, ExportOptions } from '@/types/invoice';
 interface FilterState {
   search: string;

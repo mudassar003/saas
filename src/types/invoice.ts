@@ -2,7 +2,6 @@
 export interface Invoice {
   // Internal database fields
   id: string;
-  user_id: string;
   created_at: string;
   updated_at: string;
   
@@ -37,7 +36,6 @@ export interface Invoice {
   
   // Nurse workflow fields
   data_sent_status: 'pending' | 'yes' | 'no' | string;
-  data_sent_by?: string | null;
   data_sent_at?: string | null;
   data_sent_notes?: string | null;
   ordered_by_provider_at?: string | null;
@@ -138,7 +136,8 @@ export interface InvoiceTableRow {
 }
 
 export interface DataSentUpdate {
-  invoice_id: string;
+  invoice_id?: string;
+  transaction_id?: string;
   status: 'yes' | 'no';
   notes?: string;
 }
@@ -159,7 +158,6 @@ export interface ExportOptions {
 export interface Transaction {
   // Internal database fields
   id: string;
-  user_id: string;
   created_at: string;
   updated_at: string;
   

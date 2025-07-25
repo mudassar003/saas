@@ -9,7 +9,7 @@ import { getInvoiceById, getInvoiceItems } from '@/lib/dal'
 import { getMXInvoiceDetail } from '@/lib/mx-merchant-client'
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
 import { formatTexasDateTime, getTexasNow } from '@/lib/timezone'
-import type { Invoice, InvoiceItem } from '@/types/invoice'
+import type { Invoice, InvoiceItem, MXInvoiceDetail, MXPurchase } from '@/types/invoice'
 import { updateDataSentStatus } from './actions'
 
 interface InvoiceDetailPageProps {
@@ -21,7 +21,7 @@ interface InvoiceDetailPageProps {
 async function getInvoiceData(invoiceId: number): Promise<{
   invoice: Invoice
   items: InvoiceItem[]
-  apiData?: any
+  apiData?: MXInvoiceDetail
 }> {
   // Step 1: Get invoice from database
   const invoice = await getInvoiceById(invoiceId)
@@ -43,7 +43,7 @@ async function getInvoiceData(invoiceId: number): Promise<{
     }
   }
 
-  return { invoice, items, apiData }
+  return { invoice, items, apiData: apiData ?? undefined }
 }
 
 export default async function InvoiceDetailPage({ params }: InvoiceDetailPageProps) {
@@ -192,25 +192,25 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                   </tr>
                 </thead>
                 <tbody>
-                  {displayItems.map((item: any, index: number) => (
+                  {displayItems.map((item: InvoiceItem | MXPurchase, index: number) => (
                     <tr key={index} className="border-t border-gray-100">
                       <td className="px-4 py-3 text-sm">
-                        {item.product_name || item.productName || `Item ${index + 1}`}
+                        {('product_name' in item ? item.product_name : item.productName) || `Item ${index + 1}`}
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {item.product_name || item.productName || 'Healthcare Product'}
+                        {('product_name' in item ? item.product_name : item.productName) || 'Healthcare Product'}
                       </td>
                       <td className="px-4 py-3 text-sm text-center">
                         {item.quantity || 1}
                       </td>
                       <td className="px-4 py-3 text-sm text-right">
-                        {formatCurrency(Number(item.unit_price || item.price) || 0)}
+                        {formatCurrency(Number(('unit_price' in item ? item.unit_price : item.price)) || 0)}
                       </td>
                       <td className="px-4 py-3 text-sm text-right">
-                        ({formatCurrency(Number(item.discount_amount || item.discountAmount) || 0)})
+                        ({formatCurrency(Number(('discount_amount' in item ? item.discount_amount : item.discountAmount)) || 0)})
                       </td>
                       <td className="px-4 py-3 text-sm text-right font-medium">
-                        {formatCurrency(Number(item.total_amount || item.totalAmount) || 0)}
+                        {formatCurrency(Number(('total_amount' in item ? item.total_amount : item.totalAmount)) || 0)}
                       </td>
                     </tr>
                   ))}
@@ -316,7 +316,6 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
             {invoice.ordered_by_provider_at && (
               <div className="mt-2 text-xs text-muted-foreground">
                 <span className="font-semibold">Date/Time Ordered:</span> {formatDateTime(invoice.ordered_by_provider_at)}
-                {invoice.data_sent_by && ` by User ${invoice.data_sent_by}`}
               </div>
             )}
           </div>

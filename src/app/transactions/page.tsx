@@ -8,6 +8,34 @@ import { SyncDialog } from '@/components/sync/sync-dialog';
 import { Pagination } from '@/components/ui/pagination';
 import { DataSentUpdate } from '@/types/invoice';
 
+interface Transaction {
+  id: string;
+  mx_payment_id: number;
+  amount: number;
+  transaction_date: string;
+  status: string;
+  mx_invoice_number?: number;
+  customer_name?: string;
+  auth_code?: string;
+  reference_number?: string;
+  card_type?: string;
+  card_last4?: string;
+  transaction_type?: string;
+  source?: string;
+  created_at: string;
+  ordered_by_provider?: boolean;
+  ordered_by_provider_at?: string;
+  invoices?: {
+    id: string;
+    invoice_number: number;
+    customer_name?: string;
+    total_amount: number;
+    invoice_date?: string;
+    data_sent_status?: string;
+    ordered_by_provider_at?: string;
+  } | null;
+}
+
 interface FilterState {
   search: string;
   status: string;
@@ -18,7 +46,7 @@ interface FilterState {
 interface ApiResponse {
   success: boolean;
   data: {
-    records: any[];
+    records: Transaction[];
     recordCount: number;
     totals: {
       grandTotalAmount: string;
@@ -35,7 +63,7 @@ interface ApiResponse {
 }
 
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [filters, setFilters] = useState<FilterState>({
@@ -161,7 +189,7 @@ export default function TransactionsPage() {
 
   const handleUpdateDataSent = async (update: DataSentUpdate) => {
     try {
-      const response = await fetch('/api/invoices/data-sent', {
+      const response = await fetch('/api/data-sent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

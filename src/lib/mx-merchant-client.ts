@@ -63,12 +63,14 @@ export class MXMerchantClient {
     limit?: number;
     offset?: number;
     merchantId?: string;
+    created?: string;
   } = {}): Promise<MXInvoiceListResponse> {
     const queryParams = new URLSearchParams();
     
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.offset) queryParams.append('offset', params.offset.toString());
     if (params.merchantId) queryParams.append('merchantId', params.merchantId);
+    if (params.created) queryParams.append('created', params.created);
 
     const endpoint = `/checkout/v3/invoice${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     
@@ -137,12 +139,14 @@ export class MXMerchantClient {
     limit?: number;
     offset?: number;
     merchantId?: string;
+    created?: string;
   } = {}): Promise<MXPaymentListResponse> {
     const queryParams = new URLSearchParams();
     
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.offset) queryParams.append('offset', params.offset.toString());
     if (params.merchantId) queryParams.append('merchantId', params.merchantId);
+    if (params.created) queryParams.append('created', params.created);
 
     const endpoint = `/checkout/v3/payment${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     
@@ -307,9 +311,8 @@ export function transformMXPurchaseToInvoiceItem(mxPurchase: MXPurchase, invoice
   };
 }
 
-export function transformMXPaymentToTransaction(mxPayment: MXPayment, userId: string): Omit<Transaction, 'id'> {
+export function transformMXPaymentToTransaction(mxPayment: MXPayment): Omit<Transaction, 'id'> {
   return {
-    user_id: userId,
     created_at: getTexasISOString(),
     updated_at: getTexasISOString(),
     

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const dateStart = searchParams.get('dateStart') || undefined
     const dateEnd = searchParams.get('dateEnd') || undefined
 
-    // Use proper foreign key JOIN for optimal performance
+    // Fetch transactions first
     let query = supabaseAdmin
       .from('transactions')
       .select(`
@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
         transaction_date,
         status,
         mx_invoice_number,
+        invoice_id,
         customer_name,
         auth_code,
         reference_number,
@@ -34,16 +35,8 @@ export async function GET(request: NextRequest) {
         transaction_type,
         source,
         created_at,
-        invoices (
-          id,
-          mx_invoice_id,
-          invoice_number,
-          customer_name,
-          total_amount,
-          invoice_date,
-          data_sent_status,
-          ordered_by_provider_at
-        )
+        ordered_by_provider,
+        ordered_by_provider_at
       `, { count: 'exact' })
       .order('transaction_date', { ascending: false })
 
@@ -84,7 +77,39 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Data already includes joined invoice information
+    // Fetch related invoice data for transactions that have invoice_id
+    const transactionsWithInvoices = []
+    
+    if (transactions) {
+      for (const transaction of transactions) {
+        let invoiceData = null
+        
+        // If transaction has invoice_id, fetch the invoice details
+        if (transaction.invoice_id) {
+          const { data: invoice } = await supabaseAdmin
+            .from('invoices')
+            .select(`
+              id,
+              mx_invoice_id,
+              invoice_number,
+              customer_name,
+              total_amount,
+              invoice_date,
+              data_sent_status,
+              ordered_by_provider_at
+            `)
+            .eq('id', transaction.invoice_id)
+            .single()
+          
+          invoiceData = invoice
+        }
+        
+        transactionsWithInvoices.push({
+          ...transaction,
+          invoice: invoiceData
+        })
+      }
+    }
 
     // Calculate statistics
     const statsQuery = supabaseAdmin
@@ -108,7 +133,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        records: transactions || [],
+        records: transactionsWithInvoices,
         recordCount: count || 0,
         totals: {
           grandTotalAmount: totalAmount.toFixed(2)

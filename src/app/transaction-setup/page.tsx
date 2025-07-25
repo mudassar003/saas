@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { CreditCard, Play, CheckCircle2, AlertCircle, RefreshCw, Database, Link } from 'lucide-react'
-import { formatTexasDateTime } from '@/lib/timezone'
+// Unused import removed
 
 interface TransactionSyncResult {
   success: boolean;
@@ -62,12 +62,12 @@ export default function TransactionSetupPage() {
     isActive: boolean;
   } | null>(null)
 
-  const addLog = (message: string) => {
+  const addLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString()
     setLogs(prev => [...prev, `[${timestamp}] ${message}`])
-  }
+  }, [])
 
-  const fetchSyncStatus = async () => {
+  const fetchSyncStatus = useCallback(async () => {
     try {
       addLog('Fetching current sync status...')
       const response = await fetch('/api/sync/transactions')
@@ -82,7 +82,7 @@ export default function TransactionSetupPage() {
     } catch (error) {
       addLog(`❌ Error fetching sync status: ${error}`)
     }
-  }
+  }, [addLog])
 
   const handleCheckStatus = async () => {
     setIsLoading(true)
@@ -192,7 +192,7 @@ export default function TransactionSetupPage() {
   // Auto-fetch status on component mount
   useEffect(() => {
     fetchSyncStatus()
-  }, [])
+  }, [fetchSyncStatus])
 
   return (
     <div className="container mx-auto py-8 space-y-6">
@@ -387,7 +387,7 @@ export default function TransactionSetupPage() {
         <CardContent>
           <div className="bg-black text-green-400 p-4 rounded font-mono text-sm h-64 overflow-y-auto">
             {logs.length === 0 ? (
-              <p className="text-gray-500">No logs yet. Click "Check Database Status" to start.</p>
+              <p className="text-gray-500">No logs yet. Click &quot;Check Database Status&quot; to start.</p>
             ) : (
               logs.map((log, index) => (
                 <div key={index} className="mb-1">

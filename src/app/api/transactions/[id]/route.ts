@@ -3,15 +3,15 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const transactionId = params.id
+    const { id: transactionId } = await params
     
     console.log('Fetching transaction details for ID:', transactionId)
 
     // Fetch transaction with all linked invoices
-    let query = supabaseAdmin
+    const query = supabaseAdmin
       .from('transactions')
       .select(`*`)
       .eq('id', transactionId)
@@ -35,7 +35,16 @@ export async function GET(
     }
 
     // If transaction has invoice number, fetch all invoices with that number
-    let invoices = []
+    let invoices: Array<{
+      id: string;
+      invoice_number: number;
+      customer_name?: string;
+      total_amount: number;
+      invoice_date?: string;
+      data_sent_status?: string;
+      ordered_by_provider_at?: string;
+      created_at: string;
+    }> = []
     if (transaction.mx_invoice_number) {
       const { data: invoiceData, error: invoiceError } = await supabaseAdmin
         .from('invoices')

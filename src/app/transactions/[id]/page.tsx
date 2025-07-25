@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
   CreditCard, 
-  Calendar, 
+ 
   User, 
   DollarSign, 
   Hash, 
@@ -53,7 +53,7 @@ interface TransactionDetail {
   merchant_id?: number;
   created_at: string;
   updated_at: string;
-  raw_data?: any;
+  raw_data?: Record<string, unknown>;
   invoices?: Array<{
     id: string;
     invoice_number: number;
@@ -75,13 +75,7 @@ export default function TransactionDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (transactionId) {
-      fetchTransactionDetails();
-    }
-  }, [transactionId]);
-
-  const fetchTransactionDetails = async () => {
+  const fetchTransactionDetails = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -105,7 +99,13 @@ export default function TransactionDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [transactionId]);
+
+  useEffect(() => {
+    if (transactionId) {
+      fetchTransactionDetails();
+    }
+  }, [transactionId, fetchTransactionDetails]);
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {

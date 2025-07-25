@@ -37,7 +37,9 @@ export function InvoiceTable({
   const [updatingInvoices, setUpdatingInvoices] = useState<Set<string>>(new Set());
 
   const handleUpdateDataSent = async (update: DataSentUpdate) => {
-    setUpdatingInvoices(prev => new Set(prev).add(update.invoice_id));
+    if (!update.invoice_id) return; // Only handle invoice updates in this component
+    
+    setUpdatingInvoices(prev => new Set(prev).add(update.invoice_id!));
     try {
       await onUpdateDataSent(update);
     } catch (error) {
@@ -45,7 +47,7 @@ export function InvoiceTable({
     } finally {
       setUpdatingInvoices(prev => {
         const newSet = new Set(prev);
-        newSet.delete(update.invoice_id);
+        newSet.delete(update.invoice_id!);
         return newSet;
       });
     }

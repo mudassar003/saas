@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
         total_amount,
         invoice_date,
         data_sent_status,
-        data_sent_by,
         data_sent_at,
+        data_sent_notes,
         ordered_by_provider_at,
         created_at,
         updated_at

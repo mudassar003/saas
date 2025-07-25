@@ -11,7 +11,8 @@ import {
 import { DataSentUpdate } from '@/types/invoice';
 
 interface DataSentButtonsProps {
-  invoiceId: string;
+  invoiceId?: string;
+  transactionId?: string;
   currentStatus: 'pending' | 'yes' | 'no';
   onUpdateStatus: (update: DataSentUpdate) => void;
   disabled?: boolean;
@@ -19,6 +20,7 @@ interface DataSentButtonsProps {
 
 export function DataSentButtons({ 
   invoiceId, 
+  transactionId,
   currentStatus, 
   onUpdateStatus, 
   disabled = false 
@@ -32,6 +34,7 @@ export function DataSentButtons({
     try {
       await onUpdateStatus({
         invoice_id: invoiceId,
+        transaction_id: transactionId,
         status: status,
         notes: undefined
       });
