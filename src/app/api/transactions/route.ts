@@ -38,9 +38,10 @@ export async function GET(request: NextRequest) {
     
     console.log('Fetching transactions from database...')
 
-    // Parse query parameters
+    // Parse query parameters - optimized for initial load
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
+    const isInitialLoad = offset === 0 && limit <= 50
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || 'all'
     const showType = searchParams.get('showType') || 'all' // all, with_invoices, standalone
@@ -108,6 +109,9 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
 
+    // Smart optimization: Only fetch full stats on initial load, skip on pagination
+    const shouldFetchStats = isInitialLoad || search || status !== 'all' || showType !== 'all' || dateStart || dateEnd
+    
     // Optimize: Batch fetch all related invoice data in one query
     const transactionsWithInvoices: TransactionWithInvoice[] = []
     
@@ -151,24 +155,36 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Calculate statistics
-    const statsQuery = supabaseAdmin
-      .from('transactions')
-      .select('mx_invoice_number, status, amount', { count: 'exact' })
-
-    const { data: allTransactions, count: totalCount } = await statsQuery
-
-    const statistics = {
-      total: totalCount || 0,
-      withInvoices: allTransactions?.filter(t => t.mx_invoice_number !== null).length || 0,
-      standalone: allTransactions?.filter(t => t.mx_invoice_number === null).length || 0,
-      approved: allTransactions?.filter(t => t.status === 'Approved').length || 0,
-      settled: allTransactions?.filter(t => t.status === 'Settled').length || 0,
-      declined: allTransactions?.filter(t => t.status === 'Declined').length || 0
+    // Smart stats: Only calculate on initial load or when filtering
+    let statistics = {
+      total: count || 0,
+      withInvoices: 0,
+      standalone: 0,
+      approved: 0,
+      settled: 0,
+      declined: 0
     }
+    
+    let totalAmount = 0
+    
+    if (shouldFetchStats) {
+      const statsQuery = supabaseAdmin
+        .from('transactions')
+        .select('mx_invoice_number, status, amount', { count: 'exact' })
 
-    // Calculate totals
-    const totalAmount = allTransactions?.reduce((sum, t) => sum + parseFloat(t.amount || '0'), 0) || 0
+      const { data: allTransactions, count: totalCount } = await statsQuery
+      
+      statistics = {
+        total: totalCount || 0,
+        withInvoices: allTransactions?.filter(t => t.mx_invoice_number !== null).length || 0,
+        standalone: allTransactions?.filter(t => t.mx_invoice_number === null).length || 0,
+        approved: allTransactions?.filter(t => t.status === 'Approved').length || 0,
+        settled: allTransactions?.filter(t => t.status === 'Settled').length || 0,
+        declined: allTransactions?.filter(t => t.status === 'Declined').length || 0
+      }
+      
+      totalAmount = allTransactions?.reduce((sum, t) => sum + parseFloat(t.amount || '0'), 0) || 0
+    }
 
     return NextResponse.json({
       success: true,
