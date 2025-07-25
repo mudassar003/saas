@@ -222,9 +222,6 @@ export default function TransactionsPage() {
         <div className="flex items-center gap-8">
           <div>
             <h1 className="text-xl font-bold tracking-tight">Transaction Management</h1>
-            <p className="text-sm text-muted-foreground">
-              Complete view of all MX Merchant transactions including standalone payments
-            </p>
           </div>
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
