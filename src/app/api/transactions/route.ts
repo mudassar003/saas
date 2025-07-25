@@ -72,9 +72,18 @@ export async function GET(request: NextRequest) {
       `, { count: 'exact' })
       .order('transaction_date', { ascending: false })
 
-    // Apply filters
+    // Apply smart search filters
     if (search) {
-      query = query.or(`customer_name.ilike.%${search}%,mx_payment_id.eq.${search},reference_number.ilike.%${search}%`)
+      const searchTerm = search.trim()
+      const isNumeric = /^\d+$/.test(searchTerm)
+      
+      if (isNumeric) {
+        // If search is numeric, search payment ID and reference number
+        query = query.or(`customer_name.ilike.%${searchTerm}%,mx_payment_id.eq.${searchTerm},reference_number.ilike.%${searchTerm}%`)
+      } else {
+        // If search is text, only search customer name and reference number
+        query = query.or(`customer_name.ilike.%${searchTerm}%,reference_number.ilike.%${searchTerm}%`)
+      }
     }
     
     if (status !== 'all') {

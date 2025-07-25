@@ -38,9 +38,18 @@ export async function GET(request: NextRequest) {
       .order('invoice_date', { ascending: false })
       .order('created_at', { ascending: false })
 
-    // Apply filters
+    // Apply smart search filters
     if (search) {
-      query = query.or(`customer_name.ilike.%${search}%,invoice_number.eq.${search}`)
+      const searchTerm = search.trim()
+      const isNumeric = /^\d+$/.test(searchTerm)
+      
+      if (isNumeric) {
+        // If search is numeric, search invoice numbers and MX invoice ID
+        query = query.or(`customer_name.ilike.%${searchTerm}%,invoice_number.eq.${searchTerm},mx_invoice_id.eq.${searchTerm}`)
+      } else {
+        // If search is text, only search customer name
+        query = query.ilike('customer_name', `%${searchTerm}%`)
+      }
     }
     
     if (status !== 'all') {
