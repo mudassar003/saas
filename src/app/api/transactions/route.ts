@@ -1,5 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, Tables } from '@/lib/supabase'
+
+// Optimized transaction with invoice data type - only the fields we actually fetch
+interface TransactionWithInvoice {
+  id: string
+  mx_payment_id: number
+  amount: number
+  transaction_date: string
+  status: string
+  mx_invoice_number: number | null
+  invoice_id: string | null
+  customer_name: string | null
+  auth_code: string | null
+  reference_number: string | null
+  card_type: string | null
+  card_last4: string | null
+  transaction_type: string | null
+  source: string | null
+  created_at: string
+  ordered_by_provider: boolean | null
+  ordered_by_provider_at: string | null
+  invoice: {
+    id: string
+    mx_invoice_id: number
+    invoice_number: number
+    customer_name: string | null
+    total_amount: number | null
+    invoice_date: string | null
+    data_sent_status: string
+    ordered_by_provider_at: string | null
+  } | null
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -77,38 +108,47 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Fetch related invoice data for transactions that have invoice_id
-    const transactionsWithInvoices = []
+    // Optimize: Batch fetch all related invoice data in one query
+    const transactionsWithInvoices: TransactionWithInvoice[] = []
     
-    if (transactions) {
-      for (const transaction of transactions) {
-        let invoiceData = null
+    if (transactions && transactions.length > 0) {
+      // Get all unique invoice IDs from transactions
+      const invoiceIds = transactions
+        .map(t => t.invoice_id)
+        .filter((id): id is string => id !== null && id !== undefined)
+      
+      // Batch fetch all needed invoices in one query (much faster!)
+      const invoicesMap = new Map()
+      if (invoiceIds.length > 0) {
+        const { data: invoices } = await supabaseAdmin
+          .from('invoices')
+          .select(`
+            id,
+            mx_invoice_id,
+            invoice_number,
+            customer_name,
+            total_amount,
+            invoice_date,
+            data_sent_status,
+            ordered_by_provider_at
+          `)
+          .in('id', invoiceIds)
         
-        // If transaction has invoice_id, fetch the invoice details
-        if (transaction.invoice_id) {
-          const { data: invoice } = await supabaseAdmin
-            .from('invoices')
-            .select(`
-              id,
-              mx_invoice_id,
-              invoice_number,
-              customer_name,
-              total_amount,
-              invoice_date,
-              data_sent_status,
-              ordered_by_provider_at
-            `)
-            .eq('id', transaction.invoice_id)
-            .single()
-          
-          invoiceData = invoice
+        // Create a lookup map for O(1) access
+        if (invoices) {
+          invoices.forEach(invoice => {
+            invoicesMap.set(invoice.id, invoice)
+          })
         }
-        
+      }
+      
+      // Attach invoice data to transactions using the map
+      transactions.forEach(transaction => {
         transactionsWithInvoices.push({
           ...transaction,
-          invoice: invoiceData
+          invoice: transaction.invoice_id ? invoicesMap.get(transaction.invoice_id) || null : null
         })
-      }
+      })
     }
 
     // Calculate statistics
