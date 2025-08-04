@@ -56,12 +56,6 @@ export default function DashboardPage() {
     pending: 0
   });
 
-  // Redirect to transactions page as new default
-  if (typeof window !== 'undefined') {
-    window.location.href = '/transactions';
-    return null;
-  }
-
   // Convert date range filter to actual dates
   const getDateRange = (dateRange: string) => {
     const now = new Date();
@@ -160,6 +154,12 @@ export default function DashboardPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [filters]);
+
+  // Redirect to transactions page as new default
+  if (typeof window !== 'undefined') {
+    window.location.href = '/transactions';
+    return null;
+  }
 
   // Since we're filtering on the server, just use the invoices directly
   const filteredInvoices = invoices;
