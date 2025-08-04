@@ -4,10 +4,9 @@ A comprehensive invoice management system for healthcare providers, built with N
 
 ## 🚀 Features
 
-- **Real-time Invoice Dashboard** - Excel-like interface with ultra-compact design
+- **Real-time Invoice Dashboard** - Compact interface for efficient invoice management
 - **Nurse Workflow Tracking** - Yes/No status tracking for patient data management
 - **Intelligent Sync** - Smart synchronization that preserves nurse workflow data
-- **Professional Exports** - GameDay-branded Excel and CSV exports
 - **Advanced Filtering** - Search, status, date range, and workflow filtering
 - **Individual Invoice Pages** - Detailed invoice view with product information
 - **Responsive Design** - Optimized for desktop and mobile healthcare admin use
@@ -18,7 +17,6 @@ A comprehensive invoice management system for healthcare providers, built with N
 - **UI Components**: shadcn/ui
 - **Database**: Supabase (PostgreSQL)
 - **API Integration**: MX Merchant REST API
-- **Export**: excel4node (Excel), papaparse (CSV)
 - **Deployment**: Vercel
 
 ## 📋 Prerequisites
@@ -104,12 +102,10 @@ src/
 │   ├── setup/                  # Database setup and initial sync
 │   └── api/                    # API routes
 │       ├── invoices/           # Invoice CRUD operations
-│       ├── export/             # Excel and CSV export
 │       ├── sync/               # Intelligent sync functionality
 │       └── webhooks/           # MX Merchant webhooks
 ├── components/
 │   ├── invoice/                # Invoice table and filters
-│   ├── export/                 # Export dialog
 │   ├── sync/                   # Sync dialog
 │   └── ui/                     # shadcn/ui components
 ├── lib/
@@ -136,11 +132,6 @@ src/
 - **Error Handling**: Comprehensive error tracking and recovery
 
 ### Professional Exports
-- **Excel Export**: GameDay-branded with professional styling
-- **CSV Export**: Customizable field selection
-- **Product Control**: Optional product inclusion for detailed reports
-- **Date Range**: Flexible date filtering for exports
-
 ### Individual Invoice Pages
 - **Detailed View**: Complete invoice information with products
 - **GameDay Styling**: Professional healthcare-focused design

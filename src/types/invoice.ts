@@ -142,18 +142,6 @@ export interface DataSentUpdate {
   notes?: string;
 }
 
-export interface ExportOptions {
-  format: 'excel' | 'csv';
-  include_products: boolean;
-  export_scope: 'filtered' | 'all';
-  date_range?: {
-    from: string;
-    to: string;
-  };
-  status_filter?: string[];
-  data_sent_filter?: ('pending' | 'yes' | 'no')[];
-}
-
 // Transaction/Payment types for MX Merchant Payment API
 export interface Transaction {
   // Internal database fields

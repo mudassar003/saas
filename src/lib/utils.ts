@@ -120,32 +120,3 @@ export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
 }
-
-// Generate CSV content
-export function generateCSV(data: Record<string, unknown>[], headers: string[]): string {
-  const csvHeaders = headers.join(',');
-  const csvRows = data.map(row => 
-    headers.map(header => {
-      const value = row[header] || '';
-      // Escape commas and quotes in CSV
-      return typeof value === 'string' && (value.includes(',') || value.includes('"')) 
-        ? `"${value.replace(/"/g, '""')}"` 
-        : value;
-    }).join(',')
-  );
-  
-  return [csvHeaders, ...csvRows].join('\n');
-}
-
-// Download file
-export function downloadFile(content: string, filename: string, contentType: string = 'text/plain'): void {
-  const blob = new Blob([content], { type: contentType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}

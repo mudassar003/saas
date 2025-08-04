@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react';
 import { InvoiceTable } from '@/components/invoice/invoice-table';
 import { InvoiceFilters } from '@/components/invoice/invoice-filters';
-import { ExportDialog } from '@/components/export/export-dialog';
 import { SyncDialog } from '@/components/sync/sync-dialog';
 import { Pagination } from '@/components/ui/pagination';
 // Unused import removed
-import { Invoice, DataSentUpdate, ExportOptions } from '@/types/invoice';
+import { Invoice, DataSentUpdate } from '@/types/invoice';
 interface FilterState {
   search: string;
   status: string;
@@ -219,89 +218,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleExport = async (options: ExportOptions) => {
-    try {
-      console.log('Export options:', options);
-      
-      // Determine the API endpoint
-      const endpoint = options.format === 'excel' ? '/api/export/excel' : '/api/export/csv';
-      
-      // Prepare export filters based on export scope
-      let exportFilters = {};
-      
-      if (options.export_scope === 'filtered') {
-        // Use current dashboard filters
-        const dateRange = getDateRange(filters.dateRange);
-        exportFilters = {
-          search: filters.search,
-          status: filters.status,
-          dataSentStatus: filters.dataSent,
-          dateStart: dateRange.start,
-          dateEnd: dateRange.end
-        };
-      } else {
-        // Use only date range from export dialog
-        exportFilters = {
-          search: '',
-          status: 'all',
-          dataSentStatus: 'all',
-          dateStart: options.date_range?.from || '',
-          dateEnd: options.date_range?.to || ''
-        };
-      }
-      
-      console.log('Export filters:', exportFilters);
-      
-      // Make the export request
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          includeProducts: options.include_products,
-          exportScope: options.export_scope,
-          filters: exportFilters
-        })
-      });
-      
-      console.log('Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Export API error:', errorText);
-        throw new Error(`Export failed: ${response.status} - ${errorText}`);
-      }
-      
-      // Get the file content
-      const blob = await response.blob();
-      console.log('Blob size:', blob.size);
-      
-      if (blob.size === 0) {
-        throw new Error('Export returned empty file');
-      }
-      
-      const url = window.URL.createObjectURL(blob);
-      
-      // Create download link
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `GameDay_Invoices_${new Date().toISOString().split('T')[0]}.${options.format === 'excel' ? 'xlsx' : 'csv'}`;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Cleanup
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      console.log('Export completed successfully');
-      
-    } catch (error) {
-      console.error('Export error:', error);
-      throw error; // Re-throw to be caught by the export dialog
-    }
-  };
-
   const handleSyncComplete = () => {
     // Refresh the invoice data after sync
     const currentFilters = filters;
@@ -343,10 +259,6 @@ export default function DashboardPage() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <SyncDialog onSyncComplete={handleSyncComplete} />
-            <ExportDialog 
-              invoices={filteredInvoices} 
-              onExport={handleExport}
-            />
           </div>
         </div>
       </div>
