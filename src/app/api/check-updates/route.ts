@@ -3,11 +3,11 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    // Check for very recent transactions (last 6 minutes to account for cron timing)
+    // Check for very recent transactions (last 6 minutes)
     const sixMinutesAgo = new Date()
     sixMinutesAgo.setMinutes(sixMinutesAgo.getMinutes() - 6)
     
-    const { data: recentTransactions, count } = await supabaseAdmin
+    const { count } = await supabaseAdmin
       .from('transactions')
       .select('id', { count: 'exact' })
       .gte('created_at', sixMinutesAgo.toISOString())

@@ -70,6 +70,7 @@ export function InvoiceFilters({
             value={filters.search}
             onChange={(e) => handleFilterChange('search', e.target.value)}
             className="pl-10"
+            autoComplete="off"
           />
         </div>
         

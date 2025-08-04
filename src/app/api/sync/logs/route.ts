@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { getTexasNextMidnight } from '@/lib/timezone';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    // No authentication required
     
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '10');
     const syncType = url.searchParams.get('type') || 'all';
@@ -32,7 +23,6 @@ export async function GET(request: NextRequest) {
         updated_at,
         last_processed_invoice_id
       `)
-      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -49,29 +39,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get latest auto-sync status
-    const { data: latestAutoSync } = await supabaseAdmin
-      .from('sync_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('sync_type', 'scheduled')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    // Calculate next midnight run in Texas timezone
-    const nextMidnight = getTexasNextMidnight();
-
     return NextResponse.json({
       success: true,
-      syncLogs,
-      latestAutoSync,
-      autoSyncStatus: {
-        enabled: true,
-        intervalMinutes: 1440, // 24 hours
-        lastRun: latestAutoSync?.created_at || null,
-        nextExpectedRun: nextMidnight.toISOString()
-      }
+      syncLogs
     });
 
   } catch (error) {

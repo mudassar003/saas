@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     
     console.log('Transaction sync API called with action:', action)
 
-    // App is protected by Clerk middleware - no need for user checks
+    // No authentication required
     
     // Get MX Merchant config directly without user lookup
     const { data: config, error: configError } = await supabaseAdmin
@@ -286,7 +286,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    // App is protected by Clerk middleware - no auth check needed
+    // No authentication required
     
     // Get sync status
     // Get invoice count

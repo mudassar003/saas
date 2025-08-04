@@ -22,7 +22,6 @@ export type Database = {
       users: {
         Row: {
           id: string
-          clerk_user_id: string
           email: string
           first_name: string | null
           last_name: string | null
@@ -31,7 +30,6 @@ export type Database = {
         }
         Insert: {
           id?: string
-          clerk_user_id: string
           email: string
           first_name?: string | null
           last_name?: string | null
@@ -40,7 +38,6 @@ export type Database = {
         }
         Update: {
           id?: string
-          clerk_user_id?: string
           email?: string
           first_name?: string | null
           last_name?: string | null

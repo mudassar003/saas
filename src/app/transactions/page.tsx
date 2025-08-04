@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { TransactionTable } from '@/components/transaction/transaction-table';
 import { TransactionFilters } from '@/components/transaction/transaction-filters';
-import { AutoSyncHeader } from '@/components/sync/auto-sync-header';
 import { SyncDialog } from '@/components/sync/sync-dialog';
 import { Pagination } from '@/components/ui/pagination';
 import { DataSentUpdate } from '@/types/invoice';
@@ -249,7 +248,6 @@ export default function TransactionsPage() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <AutoSyncHeader />
           <div className="flex items-center gap-2">
             <SyncDialog onSyncComplete={handleSyncComplete} />
           </div>

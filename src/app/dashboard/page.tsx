@@ -5,7 +5,6 @@ import { InvoiceTable } from '@/components/invoice/invoice-table';
 import { InvoiceFilters } from '@/components/invoice/invoice-filters';
 import { ExportDialog } from '@/components/export/export-dialog';
 import { SyncDialog } from '@/components/sync/sync-dialog';
-import { AutoSyncHeader } from '@/components/sync/auto-sync-header';
 import { Pagination } from '@/components/ui/pagination';
 // Unused import removed
 import { Invoice, DataSentUpdate, ExportOptions } from '@/types/invoice';
@@ -342,7 +341,6 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <AutoSyncHeader />
           <div className="flex items-center gap-2">
             <SyncDialog onSyncComplete={handleSyncComplete} />
             <ExportDialog 

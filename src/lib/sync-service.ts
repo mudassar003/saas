@@ -7,7 +7,7 @@ export class SyncService {
   private config: Tables<'mx_merchant_configs'>
 
   constructor(config: Tables<'mx_merchant_configs'>) {
-    // No user ID needed - app protected by Clerk
+    // No user ID needed
     this.config = config
     this.mxClient = new MXMerchantClient(config.consumer_key, config.consumer_secret, config.environment as 'sandbox' | 'production')
   }
@@ -95,127 +95,6 @@ export class SyncService {
 
         // Add small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100))
-      }
-
-      // Final sync log update
-      await DAL.updateSyncLog(syncLog.id, {
-        status: totalFailed === 0 ? 'completed' : 'failed',
-        records_processed: totalProcessed,
-        records_failed: totalFailed,
-        error_message: allErrors.length > 0 ? allErrors.join('; ') : undefined,
-        api_calls_made: apiCallsCount,
-        last_processed_invoice_id: lastProcessedInvoiceId ?? undefined
-      })
-
-      return {
-        success: totalFailed === 0,
-        totalProcessed,
-        totalFailed,
-        errors: allErrors,
-        syncLogId: syncLog.id
-      }
-
-    } catch (error) {
-      console.error('Sync failed:', error)
-      
-      await DAL.updateSyncLog(syncLog.id, {
-        status: 'failed',
-        error_message: error instanceof Error ? error.message : 'Unknown error'
-      })
-
-      return {
-        success: false,
-        totalProcessed: 0,
-        totalFailed: 0,
-        errors: [error instanceof Error ? error.message : 'Unknown error'],
-        syncLogId: syncLog.id
-      }
-    }
-  }
-
-  // Incremental sync - only fetch invoices updated since last sync
-  async syncIncrementalInvoices(since: string): Promise<{
-    success: boolean
-    totalProcessed: number
-    totalFailed: number
-    errors: string[]
-    syncLogId: string | null
-  }> {
-    const syncLog = await DAL.createSyncLog({
-      sync_type: 'scheduled',
-      status: 'started'
-    })
-
-    if (!syncLog) {
-      return {
-        success: false,
-        totalProcessed: 0,
-        totalFailed: 0,
-        errors: ['Failed to create sync log'],
-        syncLogId: null
-      }
-    }
-
-    try {
-      let totalProcessed = 0
-      let totalFailed = 0
-      const allErrors: string[] = []
-      let apiCallsCount = 0
-      let lastProcessedInvoiceId: number | null = null
-
-      // For incremental sync, fetch recent invoices and filter by date
-      const sinceDate = new Date(since)
-      const limit = 100
-      const offset = 0
-      
-      console.log(`Fetching recent invoices for incremental sync since: ${sinceDate.toISOString()}`)
-      
-      const response = await this.mxClient.getInvoices({ limit, offset })
-      apiCallsCount++
-
-      if (!response.records) {
-        const error = `API call failed: No records returned`
-        allErrors.push(error)
-        console.error(error)
-        throw new Error(error)
-      }
-
-      const invoices = response.records
-      
-      // Filter invoices created since the specified date
-      const filteredInvoices = invoices.filter(invoice => {
-        if (!invoice.created) return true; // Include if no created date
-        const invoiceCreated = new Date(invoice.created);
-        return invoiceCreated >= sinceDate;
-      });
-
-      if (filteredInvoices.length === 0) {
-        // No new invoices - successful sync with 0 records
-        await DAL.updateSyncLog(syncLog.id, {
-          status: 'completed',
-          records_processed: 0,
-          records_failed: 0,
-          api_calls_made: apiCallsCount
-        })
-
-        return {
-          success: true,
-          totalProcessed: 0,
-          totalFailed: 0,
-          errors: [],
-          syncLogId: syncLog.id
-        }
-      }
-
-      // Insert invoices into database (using same pattern as manual sync)
-      const insertResult = await DAL.bulkInsertInvoices(filteredInvoices)
-      totalProcessed += insertResult.success
-      totalFailed += insertResult.failed
-      allErrors.push(...insertResult.errors)
-
-      // Update last processed invoice ID
-      if (filteredInvoices.length > 0) {
-        lastProcessedInvoiceId = filteredInvoices[filteredInvoices.length - 1].id
       }
 
       // Final sync log update
@@ -550,7 +429,7 @@ export class SyncService {
     }
   }
 
-  // Get sync status - app protected by Clerk
+  // Get sync status
   static async getSyncStatus(): Promise<{
     lastSync: Tables<'sync_logs'> | null
     totalInvoices: number
@@ -594,7 +473,7 @@ export class SyncService {
     }
   }
 
-  // Create sync service instance - app protected by Clerk
+  // Create sync service instance
   static async createForSystem(): Promise<SyncService | null> {
     const config = await DAL.getMXMerchantConfig()
     

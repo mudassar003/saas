@@ -1,25 +1,9 @@
-import { supabase, supabaseAdmin, Tables, Inserts } from './supabase'
+import { supabaseAdmin, Tables, Inserts } from './supabase'
 import { MXInvoice, MXInvoiceDetail, MXPayment } from '@/types/invoice'
 import { getTexasISOString, getTexasDateForFilename } from '@/lib/timezone'
 
 // Data Access Layer for secure database operations
 export class DAL {
-  // Get user by Clerk ID
-  static async getUserByClerkId(clerkUserId: string): Promise<Tables<'users'> | null> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('clerk_user_id', clerkUserId)
-      .single()
-
-    if (error) {
-      console.error('Error fetching user:', error)
-      return null
-    }
-
-    return data
-  }
-
   // Get user by email
   static async getUserByEmail(email: string): Promise<Tables<'users'> | null> {
     const { data, error } = await supabaseAdmin
@@ -36,33 +20,7 @@ export class DAL {
     return data
   }
 
-  // Create or update user from Clerk webhook
-  static async upsertUser(userData: {
-    clerk_user_id: string
-    email: string
-    first_name?: string
-    last_name?: string
-  }): Promise<Tables<'users'> | null> {
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .upsert({
-        clerk_user_id: userData.clerk_user_id,
-        email: userData.email,
-        first_name: userData.first_name || null,
-        last_name: userData.last_name || null
-      })
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error upserting user:', error)
-      return null
-    }
-
-    return data
-  }
-
-  // Get MX Merchant config - app protected by Clerk
+  // Get MX Merchant config
   static async getMXMerchantConfig(): Promise<Tables<'mx_merchant_configs'> | null> {
     const { data, error } = await supabaseAdmin
       .from('mx_merchant_configs')
@@ -78,9 +36,9 @@ export class DAL {
     return data
   }
 
-  // Create sync log entry - app protected by Clerk
+  // Create sync log entry
   static async createSyncLog(syncData: {
-    sync_type: 'initial' | 'webhook' | 'manual' | 'scheduled' | 'transactions' | 'combined'
+    sync_type: 'initial' | 'webhook' | 'manual' | 'transactions' | 'combined'
     status: 'started' | 'completed' | 'failed' | 'cancelled'
     records_processed?: number
     records_failed?: number
@@ -94,7 +52,7 @@ export class DAL {
     const { data, error } = await supabaseAdmin
       .from('sync_logs')
       .insert({
-        user_id: 'system', // App protected by Clerk - using system user
+        user_id: 'system', // Using system user
         sync_type: syncData.sync_type,
         status: syncData.status,
         records_processed: syncData.records_processed || 0,
@@ -216,7 +174,7 @@ export class DAL {
     return results
   }
 
-  // Get invoices with pagination - app protected by Clerk
+  // Get invoices with pagination
   static async getInvoices(options: {
     limit?: number
     offset?: number
@@ -278,7 +236,7 @@ export class DAL {
     }
   }
 
-  // Update invoice data sent status - app protected by Clerk
+  // Update invoice data sent status
   static async updateInvoiceDataSentStatus(invoiceId: string, status: 'yes' | 'no', notes?: string): Promise<Tables<'invoices'> | null> {
     const { data, error } = await supabaseAdmin
       .from('invoices')
@@ -300,7 +258,7 @@ export class DAL {
     return data
   }
 
-  // Get invoice by ID with product details - app protected by Clerk
+  // Get invoice by ID with product details
   static async getInvoiceById(invoiceId: string): Promise<{
     invoice: Tables<'invoices'> | null
     items: Tables<'invoice_items'>[]
@@ -384,7 +342,7 @@ export class DAL {
     return results
   }
 
-  // Get invoices without product details (for lazy loading) - app protected by Clerk
+  // Get invoices without product details (for lazy loading)
   static async getInvoicesWithoutProducts(): Promise<number[]> {
     const { data, error } = await supabaseAdmin
       .from('invoices')
@@ -524,7 +482,7 @@ export class TransactionDAL {
     return results
   }
 
-  // Get transactions with pagination - app protected by Clerk
+  // Get transactions with pagination
   static async getTransactions(options: {
     limit?: number
     offset?: number
@@ -582,7 +540,7 @@ export class TransactionDAL {
     }
   }
 
-  // Get combined transaction and invoice data for dashboard - app protected by Clerk
+  // Get combined transaction and invoice data for dashboard
   static async getCombinedTransactionData(options: {
     limit?: number
     offset?: number

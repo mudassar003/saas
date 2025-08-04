@@ -19,7 +19,6 @@ A comprehensive invoice management system for healthcare providers, built with N
 - **Database**: Supabase (PostgreSQL)
 - **API Integration**: MX Merchant REST API
 - **Export**: excel4node (Excel), papaparse (CSV)
-- **Authentication**: Ready for Clerk integration
 - **Deployment**: Vercel
 
 ## 📋 Prerequisites
