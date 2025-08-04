@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(git restore:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "WebFetch(domain:developer.mxmerchant.com)"
     ],
     "deny": []
   }
