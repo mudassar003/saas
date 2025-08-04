@@ -32,11 +32,6 @@ interface ApiResponse {
 }
 
 export default function DashboardPage() {
-  // Redirect to transactions page as new default
-  if (typeof window !== 'undefined') {
-    window.location.href = '/transactions';
-    return null;
-  }
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -60,6 +55,12 @@ export default function DashboardPage() {
     dataNotSent: 0,
     pending: 0
   });
+
+  // Redirect to transactions page as new default
+  if (typeof window !== 'undefined') {
+    window.location.href = '/transactions';
+    return null;
+  }
 
   // Convert date range filter to actual dates
   const getDateRange = (dateRange: string) => {

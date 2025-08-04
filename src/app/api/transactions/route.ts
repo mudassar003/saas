@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, Tables } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 // Optimized transaction with invoice data type - only the fields we actually fetch
 interface TransactionWithInvoice {
