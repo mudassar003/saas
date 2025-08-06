@@ -6,7 +6,12 @@ import { logWebhook } from '@/lib/webhook-debug'
  */
 export async function POST(request: NextRequest) {
   try {
-    const webhookData = await request.json()
+    // Get raw body first for debugging
+    const rawBody = await request.text()
+    console.log('Raw webhook body:', rawBody)
+    
+    // Parse JSON
+    const webhookData = JSON.parse(rawBody)
     
     // Log webhook (same as Flask print)
     console.log('✅ Webhook received:', JSON.stringify(webhookData, null, 2))
@@ -21,7 +26,7 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('Webhook error:', error)
-    return NextResponse.json({ error: 'Webhook failed' }, { status: 400 })
+    return NextResponse.json({ error: 'Webhook failed', details: error.message }, { status: 400 })
   }
 }
 
