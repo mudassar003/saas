@@ -11,14 +11,9 @@ import { formatTexasDateTime } from '@/lib/timezone'
 
 interface SyncStatus {
   lastSync: {
-    id: string
-    sync_type: string
     status: string
-    records_processed: number
-    records_failed: number
+    sync_type: string
     started_at: string
-    completed_at: string | null
-    error_message: string | null
   } | null
   totalInvoices: number
   invoicesWithProducts: number
@@ -196,25 +191,13 @@ export function SyncDashboard({ onSyncComplete }: SyncDashboardProps) {
                   </Badge>
                 </div>
                 <div className="text-sm text-gray-600">
-                  {syncStatus.lastSync.sync_type} sync • {syncStatus.lastSync.records_processed} processed
-                  {syncStatus.lastSync.records_failed > 0 && (
-                    <span className="text-red-600"> • {syncStatus.lastSync.records_failed} failed</span>
-                  )}
+                  {syncStatus.lastSync.sync_type} sync • API-based (no database logging)
                 </div>
               </div>
               <div className="text-xs text-gray-500">
                 {formatTexasDateTime(syncStatus.lastSync.started_at)}
               </div>
             </div>
-            
-            {syncStatus.lastSync.error_message && (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {syncStatus.lastSync.error_message}
-                </AlertDescription>
-              </Alert>
-            )}
           </div>
         )}
 

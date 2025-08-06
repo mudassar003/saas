@@ -64,7 +64,7 @@ src/app/api/transactions/route.ts                # Transaction operations
 src/app/api/transactions/[id]/route.ts           # Individual transaction
 src/app/api/invoices/[id]/data-sent/route.ts     # Invoice status updates
 src/app/api/sync/transactions/route.ts           # Transaction sync
-src/app/api/sync/logs/route.ts                   # Sync logging
+~~src/app/api/sync/logs/route.ts~~                 # DELETED - Sync logging endpoint removed
 src/app/api/sync/setup/route.ts                  # Sync configuration
 src/app/api/webhooks/mx-merchant/route.ts        # Webhook handling
 src/app/api/check-updates/route.ts               # Update checking

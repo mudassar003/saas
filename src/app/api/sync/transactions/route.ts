@@ -14,21 +14,37 @@ export async function POST(request: NextRequest) {
 
     // No authentication required
     
-    // Get MX Merchant config directly without user lookup
+    // Get MX Merchant config from database or fallback to environment variables
     const { data: config, error: configError } = await supabaseAdmin
       .from('mx_merchant_configs')
       .select('*')
       .eq('is_active', true)
       .single()
 
+    let mxConfig
     if (configError || !config) {
-      return NextResponse.json({ 
-        error: 'MX Merchant configuration not found. Please configure your API credentials first.' 
-      }, { status: 400 })
+      // Fallback to environment variables (for setup page compatibility)
+      const consumerKey = process.env.MX_MERCHANT_CONSUMER_KEY
+      const consumerSecret = process.env.MX_MERCHANT_CONSUMER_SECRET
+      const environment = process.env.MX_MERCHANT_ENVIRONMENT || 'production'
+
+      if (!consumerKey || !consumerSecret) {
+        return NextResponse.json({ 
+          error: 'MX Merchant configuration not found. Please configure your API credentials first.' 
+        }, { status: 400 })
+      }
+
+      mxConfig = {
+        consumer_key: consumerKey,
+        consumer_secret: consumerSecret,
+        environment: environment as 'sandbox' | 'production'
+      }
+    } else {
+      mxConfig = config
     }
 
     // Create sync service instance with hardcoded user ID
-    const syncService = new SyncService(config)
+    const syncService = new SyncService(mxConfig)
 
     let result
     
@@ -38,7 +54,7 @@ export async function POST(request: NextRequest) {
         console.log('Starting simple transaction incremental sync...')
         try {
           // Create MX Client directly
-          const mxClient = new MXMerchantClient(config.consumer_key, config.consumer_secret, config.environment as 'sandbox' | 'production')
+          const mxClient = new MXMerchantClient(mxConfig.consumer_key, mxConfig.consumer_secret, mxConfig.environment as 'sandbox' | 'production')
           
           // Fetch recent transactions only (last 3 days for performance)
           console.log('Fetching recent transactions from MX Merchant...')
@@ -105,7 +121,7 @@ export async function POST(request: NextRequest) {
         console.log('Starting simple combined incremental sync...')
         try {
           // Create MX Client directly
-          const mxClient = new MXMerchantClient(config.consumer_key, config.consumer_secret, config.environment as 'sandbox' | 'production')
+          const mxClient = new MXMerchantClient(mxConfig.consumer_key, mxConfig.consumer_secret, mxConfig.environment as 'sandbox' | 'production')
           
           // Sync most recent transactions (100 records)
           console.log('Fetching 100 most recent transactions from MX Merchant...')

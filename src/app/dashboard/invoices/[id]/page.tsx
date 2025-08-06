@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataSentButtons } from '@/components/invoice/data-sent-buttons'
-import { getInvoiceById, getInvoiceItems } from '@/lib/dal'
-import { getMXInvoiceDetail } from '@/lib/mx-merchant-client'
+import { getInvoiceById } from '@/lib/dal'
+import { getMXInvoiceDetail, transformMXPurchaseToInvoiceItem } from '@/lib/mx-merchant-client'
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
 import { formatTexasDateTime, getTexasNow } from '@/lib/timezone'
 import type { Invoice, InvoiceItem, MXInvoiceDetail, MXPurchase } from '@/types/invoice'
@@ -29,19 +29,18 @@ async function getInvoiceData(invoiceId: number): Promise<{
     notFound()
   }
 
-  // Step 2: Get items from database
-  const items = await getInvoiceItems(invoice.id)
-
-  // Step 3: If no items, fetch from MX Merchant API
+  // Step 2: Always fetch items directly from MX Merchant API (no database dependency)
   let apiData = null
-  if (items.length === 0) {
-    try {
-      apiData = await getMXInvoiceDetail(invoiceId)
-      // TODO: Cache the items in database for future use
-    } catch (error) {
-      console.error('Failed to fetch invoice details from API:', error)
-    }
+  try {
+    apiData = await getMXInvoiceDetail(invoiceId)
+  } catch (error) {
+    console.error('Failed to fetch invoice details from API:', error)
   }
+
+  // Transform API purchases to InvoiceItem format for consistent display
+  const items: InvoiceItem[] = apiData?.purchases?.map(purchase => 
+    transformMXPurchaseToInvoiceItem(purchase, invoice.id)
+  ) || []
 
   return { invoice, items, apiData: apiData ?? undefined }
 }

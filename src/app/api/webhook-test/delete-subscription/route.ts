@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 
-export async function POST() {
+export async function DELETE() {
   try {
-    // No need to parse request body since we're hardcoding eventType
-    
     // Hardcoded values for testing - from your mx_merchant_configs table
     const consumerKey = "23pCdSYoeh57Prs4S3E2pgXA";
     const consumerSecret = "hTlF6fxcLOxCAXAjgVsjvyjWTNY=";
@@ -15,22 +13,22 @@ export async function POST() {
       ? 'https://api.mxmerchant.com/checkout/v3'
       : 'https://sandbox.api.mxmerchant.com/checkout/v3';
 
-    // Create webhook subscription payload with merchant ID
-    const webhookPayload = {
-      eventType: "PaymentSuccess", // Fixed to use correct eventType value
+    // Delete webhook subscription payload
+    const deletePayload = {
+      eventType: "PaymentSuccess", // The event type to delete
       merchantId: merchantId, // Required field - using hardcoded merchant ID
-      sendEmail: false, // Disable email notifications
-      sendSMS: false, // Required field  
-      sendWebhook: true, // Enable webhook notifications
-      callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://saas-wine-three.vercel.app'}/api/webhook-test/receive`,
-      threshold: 0, // Required for certain event types
-      sources: "QuickPay,API,Recurring", // Comma separated, no spaces
+      sendEmail: false, // Turn off email
+      sendSMS: false, // Turn off SMS  
+      sendWebhook: false, // Turn off webhook - this disables it
+      callbackUrl: "", // Empty callback URL
+      threshold: 0,
+      sources: "", // Empty sources
       inviteUsers: "" // Required field - can be empty string
     };
 
-    console.log('Creating webhook subscription:', {
+    console.log('Deleting webhook subscription:', {
       url: `${baseUrl}/subscription`,
-      payload: webhookPayload,
+      payload: deletePayload,
       merchantId: merchantId
     });
 
@@ -38,16 +36,16 @@ export async function POST() {
     const credentials = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
     
     const response = await fetch(`${baseUrl}/subscription`, {
-      method: 'PUT',
+      method: 'PUT', // Use PUT to update/disable the subscription
       headers: {
         'Authorization': `Basic ${credentials}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(webhookPayload)
+      body: JSON.stringify(deletePayload)
     });
 
     const responseText = await response.text();
-    console.log('MX Merchant response:', {
+    console.log('MX Merchant delete response:', {
       status: response.status,
       statusText: response.statusText,
       body: responseText
@@ -65,12 +63,12 @@ export async function POST() {
       status: response.status,
       statusText: response.statusText,
       data: responseData,
-      webhookUrl: webhookPayload.callbackUrl,
+      message: 'Webhook subscription disabled',
       environment
     });
 
   } catch (error) {
-    console.error('Webhook subscription error:', error);
+    console.error('Webhook deletion error:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

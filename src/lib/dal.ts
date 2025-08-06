@@ -1,5 +1,5 @@
 import { supabaseAdmin, Tables, Inserts } from './supabase'
-import { MXInvoice, MXInvoiceDetail, MXPayment } from '@/types/invoice'
+import { MXInvoice, MXPayment } from '@/types/invoice'
 import { getTexasISOString, getTexasDateForFilename } from '@/lib/timezone'
 
 // Data Access Layer for secure database operations
@@ -30,76 +30,6 @@ export class DAL {
 
     if (error) {
       console.error('Error fetching MX Merchant config:', error)
-      return null
-    }
-
-    return data
-  }
-
-  // Create sync log entry
-  static async createSyncLog(syncData: {
-    sync_type: 'initial' | 'webhook' | 'manual' | 'transactions' | 'combined'
-    status: 'started' | 'completed' | 'failed' | 'cancelled'
-    records_processed?: number
-    records_failed?: number
-    error_message?: string
-    api_calls_made?: number
-    last_processed_invoice_id?: number
-    last_processed_payment_id?: number
-    transactions_processed?: number
-    transactions_failed?: number
-  }): Promise<Tables<'sync_logs'> | null> {
-    const { data, error } = await supabaseAdmin
-      .from('sync_logs')
-      .insert({
-        user_id: 'system', // Using system user
-        sync_type: syncData.sync_type,
-        status: syncData.status,
-        records_processed: syncData.records_processed || 0,
-        records_failed: syncData.records_failed || 0,
-        error_message: syncData.error_message || null,
-        api_calls_made: syncData.api_calls_made || 0,
-        last_processed_invoice_id: syncData.last_processed_invoice_id || null,
-        last_processed_payment_id: syncData.last_processed_payment_id || null,
-        transactions_processed: syncData.transactions_processed || 0,
-        transactions_failed: syncData.transactions_failed || 0
-      })
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error creating sync log:', error)
-      return null
-    }
-
-    return data
-  }
-
-  // Update sync log
-  static async updateSyncLog(syncLogId: string, updates: {
-    status?: 'started' | 'completed' | 'failed' | 'cancelled'
-    records_processed?: number
-    records_failed?: number
-    error_message?: string
-    completed_at?: string
-    api_calls_made?: number
-    last_processed_invoice_id?: number
-    last_processed_payment_id?: number
-    transactions_processed?: number
-    transactions_failed?: number
-  }): Promise<Tables<'sync_logs'> | null> {
-    const { data, error } = await supabaseAdmin
-      .from('sync_logs')
-      .update({
-        ...updates,
-        completed_at: updates.completed_at || (updates.status === 'completed' || updates.status === 'failed' ? getTexasISOString() : undefined)
-      })
-      .eq('id', syncLogId)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error updating sync log:', error)
       return null
     }
 
@@ -188,7 +118,7 @@ export class DAL {
   }> {
     let query = supabaseAdmin
       .from('invoices')
-      .select('*, invoice_items(count)', { count: 'exact' })
+      .select('*', { count: 'exact' })
 
     // Apply filters
     if (options.search) {
@@ -257,109 +187,6 @@ export class DAL {
 
     return data
   }
-
-  // Get invoice by ID with product details
-  static async getInvoiceById(invoiceId: string): Promise<{
-    invoice: Tables<'invoices'> | null
-    items: Tables<'invoice_items'>[]
-  }> {
-    const { data: invoice, error: invoiceError } = await supabaseAdmin
-      .from('invoices')
-      .select('*')
-      .eq('id', invoiceId)
-      .single()
-
-    if (invoiceError) {
-      console.error('Error fetching invoice:', invoiceError)
-      return { invoice: null, items: [] }
-    }
-
-    const { data: items, error: itemsError } = await supabaseAdmin
-      .from('invoice_items')
-      .select('*')
-      .eq('invoice_id', invoiceId)
-      .order('product_name')
-
-    if (itemsError) {
-      console.error('Error fetching invoice items:', itemsError)
-      return { invoice, items: [] }
-    }
-
-    return {
-      invoice,
-      items: items || []
-    }
-  }
-
-  // Insert invoice items from MX Merchant detail API
-  static async insertInvoiceItems(invoiceId: string, items: MXInvoiceDetail['purchases']): Promise<{
-    success: number
-    failed: number
-    errors: string[]
-  }> {
-    const results = {
-      success: 0,
-      failed: 0,
-      errors: [] as string[]
-    }
-
-    if (!items || items.length === 0) {
-      return results
-    }
-
-    const itemInserts: Inserts<'invoice_items'>[] = items.map(item => ({
-      invoice_id: invoiceId,
-      mx_purchase_id: item.id,
-      product_name: item.productName,
-      quantity: item.quantity,
-      unit_price: parseFloat(item.price || '0'),
-      subtotal_amount: parseFloat(item.subTotalAmount || '0'),
-      tax_amount: parseFloat(item.taxAmount || '0'),
-      discount_amount: parseFloat(item.discountAmount || '0'),
-      price_discount_amount: parseFloat(item.priceDiscountAmount || '0'),
-      total_amount: parseFloat(item.totalAmount || '0'),
-      quantity_returned: item.quantityReturned || 0,
-      tracking_number: item.trackingNumber || null,
-      api_created: item.created ? getTexasISOString(new Date(item.created)) : null
-    }))
-
-    const { data, error } = await supabaseAdmin
-      .from('invoice_items')
-      .upsert(itemInserts, { 
-        onConflict: 'mx_purchase_id,invoice_id',
-        ignoreDuplicates: false 
-      })
-      .select('id')
-
-    if (error) {
-      console.error('Error inserting invoice items:', error)
-      results.failed = itemInserts.length
-      results.errors.push(error.message)
-    } else {
-      results.success = data?.length || 0
-    }
-
-    return results
-  }
-
-  // Get invoices without product details (for lazy loading)
-  static async getInvoicesWithoutProducts(): Promise<number[]> {
-    const { data, error } = await supabaseAdmin
-      .from('invoices')
-      .select('mx_invoice_id')
-      .not('mx_invoice_id', 'in', `(
-        SELECT DISTINCT i.mx_invoice_id 
-        FROM invoices i 
-        INNER JOIN invoice_items ii ON i.id = ii.invoice_id
-      )`)
-
-    if (error) {
-      console.error('Error fetching invoices without products:', error)
-      return []
-    }
-
-    return data?.map(invoice => invoice.mx_invoice_id) || []
-  }
 }
 
 // Simplified functions for invoice detail page
@@ -376,21 +203,6 @@ export async function getInvoiceById(mxInvoiceId: number): Promise<Tables<'invoi
   }
 
   return data
-}
-
-export async function getInvoiceItems(invoiceId: string): Promise<Tables<'invoice_items'>[]> {
-  const { data, error } = await supabaseAdmin
-    .from('invoice_items')
-    .select('*')
-    .eq('invoice_id', invoiceId)
-    .order('product_name')
-
-  if (error) {
-    console.error('Error fetching invoice items:', error)
-    return []
-  }
-
-  return data || []
 }
 
 // Transaction-related DAL methods

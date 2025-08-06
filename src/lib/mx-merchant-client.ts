@@ -22,7 +22,7 @@ export class MXMerchantClient {
     environment: 'sandbox' | 'production' = 'sandbox'
   ) {
     this.baseUrl = environment === 'sandbox' 
-      ? 'https://api.mxmerchant.com' 
+      ? 'https://sandbox.api.mxmerchant.com' 
       : 'https://api.mxmerchant.com';
     this.consumerKey = consumerKey;
     this.consumerSecret = consumerSecret;

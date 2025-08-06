@@ -4,8 +4,8 @@ import { useState } from 'react';
 
 export default function WebhookTestPage() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [webhookData, setWebhookData] = useState<any[]>([]);
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [webhookData, setWebhookData] = useState<Record<string, unknown>[]>([]);
 
   const createWebhookSubscription = async () => {
     setLoading(true);
@@ -58,7 +58,7 @@ export default function WebhookTestPage() {
         <div className="bg-white p-6 rounded-lg shadow mb-6">
           <h2 className="text-lg font-semibold mb-4">Create Webhook Subscription</h2>
           <p className="text-gray-600 mb-4">
-            This will create a webhook subscription for "Successful Payments" events
+            This will create a webhook subscription for &quot;Successful Payments&quot; events
           </p>
           <button
             onClick={createWebhookSubscription}
@@ -111,7 +111,7 @@ export default function WebhookTestPage() {
               {webhookData.map((item, index) => (
                 <div key={index} className="border rounded p-4">
                   <div className="text-xs text-gray-500 mb-2">
-                    Received: {new Date(item.created_at).toLocaleString()}
+                    Received: {new Date(item.created_at as string).toLocaleString()}
                   </div>
                   <pre className="text-sm bg-gray-50 p-3 rounded overflow-auto">
                     {JSON.stringify(item.webhook_data, null, 2)}
