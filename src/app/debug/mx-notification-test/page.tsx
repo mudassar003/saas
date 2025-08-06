@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
-import { CheckCircle2, AlertCircle, RefreshCw, Bell, CreditCard, Activity } from 'lucide-react'
+import { CheckCircle2, AlertCircle, RefreshCw, Bell, CreditCard } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 interface NotificationResult {
@@ -406,18 +406,10 @@ export default function MXNotificationTestPage() {
         <CardContent>
           <div className="space-y-3">
             <p className="text-sm text-blue-700">
-              Monitor webhook reception in real-time after creating notifications.
+              Monitor webhook reception via console logs after creating notifications.
             </p>
-            <Button 
-              onClick={() => window.open('/debug/webhooks', '_blank')}
-              variant="outline"
-              className="w-full"
-            >
-              <Activity className="mr-2 h-4 w-4" />
-              Open Webhook Debug Monitor
-            </Button>
             <div className="text-xs text-blue-600">
-              💡 Keep this page open to see incoming webhooks after creating notifications
+              💡 Check browser console (F12) to see incoming webhooks after creating notifications
             </div>
           </div>
         </CardContent>

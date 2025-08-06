@@ -16,18 +16,8 @@ MX Merchant → /api/webhook/mx-merchant → Upstash Queue → Railway Worker �
 
 ```
 src/
-├── app/api/webhook/mx-merchant/
-│   └── route.ts                    # Main webhook endpoint
-└── lib/
-    └── webhook-debug.ts            # Debug utilities (temporary)
-```
-
-### **Debug Files (Temporary - Easy to Remove)**
-
-```
-src/
-└── app/debug/webhooks/
-    └── page.tsx                    # Debug monitoring page
+└── app/api/webhook/mx-merchant/
+    └── route.ts                    # Main webhook endpoint
 ```
 
 ---
@@ -54,41 +44,7 @@ src/
 
 ---
 
-## 🛠️ Temporary Debug System
-
-### **2. Debug Utilities**
-**File**: `src/lib/webhook-debug.ts`
-
-**Purpose**: In-memory webhook logging for development
-
-**Functions**:
-- `logWebhook(payload)` - Log incoming webhook
-- `getWebhookLogs()` - Retrieve all logs
-- `markWebhookProcessed(id)` - Mark as processed
-- `clearWebhookLogs()` - Clear all logs
-
-**Features**:
-- Only active in non-production environments
-- Stores last 50 webhooks in memory
-- Automatic cleanup on deployment
-
-### **3. Debug Monitoring Page**
-**File**: `src/app/debug/webhooks/page.tsx`
-
-**Purpose**: Real-time webhook monitoring dashboard
-
-**URL**: `/debug/webhooks`
-
-**Features**:
-- Auto-refresh every 3 seconds
-- Event type color coding
-- Full payload viewing
-- Clear logs functionality
-- Webhook endpoint information
-
----
-
-## 🔧 Configuration
+##  Configuration
 
 ### **Webhook URL for MX Merchant**
 ```
@@ -108,9 +64,6 @@ Development: http://localhost:3000/api/webhook/mx-merchant
 
 ## 📊 Monitoring & Debugging
 
-### **Real-time Monitoring**
-Visit `/debug/webhooks` to monitor webhook reception in real-time.
-
 ### **Console Logging**
 All webhooks are logged to console with:
 - Merchant ID
@@ -123,38 +76,12 @@ Failed webhooks return HTTP 500 for MX Merchant retry logic.
 
 ---
 
-## 🗑️ Easy Cleanup (When Debug Not Needed)
-
-### **Remove Debug System (3 steps)**:
-
-1. **Delete temporary files**:
-   ```bash
-   rm src/lib/webhook-debug.ts
-   rm -rf src/app/debug/webhooks/
-   ```
-
-2. **Remove import from webhook**:
-   ```typescript
-   // Delete this line from route.ts:
-   import { logWebhook } from '@/lib/webhook-debug'
-   ```
-
-3. **Remove debug call**:
-   ```typescript
-   // Delete this line from route.ts:
-   logWebhook(webhookData)
-   ```
-
-**Production webhook remains fully functional after cleanup.**
-
----
-
-## 🔄 Implementation Status
+##  Implementation Status
 
 1. ✅ **Webhook Endpoint** - COMPLETED
    - Production endpoint: `/api/webhook/mx-merchant`
    - Multi-tenant support via merchantId
-   - Real-time debug monitoring
+   - Console logging for monitoring
 
 2. ✅ **MX Merchant Integration** - COMPLETED
    - PaymentSuccess notification active (ID: 41932856)
@@ -182,7 +109,7 @@ Failed webhooks return HTTP 500 for MX Merchant retry logic.
 
 - [ ] Create MX Merchant notification subscription
 - [ ] Update webhook URL to production endpoint
-- [ ] Monitor webhook reception via debug page
+- [ ] Monitor webhook reception via console logs
 - [ ] Verify all event types are received
 - [ ] Test error handling scenarios
 

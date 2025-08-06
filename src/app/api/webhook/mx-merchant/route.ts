@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { logWebhook } from '@/lib/webhook-debug'
 
 /**
  * Simplified MX Merchant Webhook - Matches Flask app speed
@@ -15,7 +14,6 @@ export async function POST(request: NextRequest) {
     
     // Log webhook (same as Flask print)
     console.log('✅ Webhook received:', JSON.stringify(webhookData, null, 2))
-    logWebhook(webhookData)
     
     // Instant response
     return NextResponse.json({ 
