@@ -5,29 +5,29 @@ import { NextRequest, NextResponse } from 'next/server'
  */
 export async function POST(request: NextRequest) {
   try {
-    // Get raw body first for debugging
-    const rawBody = await request.text()
-    console.log('Raw webhook body:', rawBody)
-    
-    // Parse JSON
-    const webhookData = JSON.parse(rawBody)
+    // Use built-in JSON parsing (like Flask request.json)
+    const webhookData = await request.json()
     
     // Log webhook (same as Flask print)
-    console.log('✅ Webhook received:', JSON.stringify(webhookData, null, 2))
+    console.log('✅ Webhook received:')
+    console.log(JSON.stringify(webhookData, null, 2))
     
-    // Instant response
-    return NextResponse.json({ 
-      success: true,
-      received: webhookData,
-      timestamp: new Date().toISOString()
+    // Return HTML response (same as Flask)
+    return new Response(`
+      <h2>✅ Webhook Received Successfully!</h2>
+      <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3>📦 Received Payload:</h3>
+          <pre style="background-color: #2d2d2d; color: #ffffff; padding: 15px; border-radius: 5px; overflow-x: auto;">
+${JSON.stringify(webhookData, null, 2)}
+          </pre>
+      </div>
+    `, {
+      headers: { 'Content-Type': 'text/html' }
     })
     
   } catch (error) {
     console.error('Webhook error:', error)
-    return NextResponse.json({ 
-      error: 'Webhook failed', 
-      details: error instanceof Error ? error.message : 'Unknown error' 
-    }, { status: 400 })
+    return new Response(`Error processing webhook: ${error}`, { status: 400 })
   }
 }
 
