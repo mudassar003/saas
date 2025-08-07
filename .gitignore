@@ -71,3 +71,5 @@ setup-*
 src/app/setup/
 src/app/transaction-setup/
 src/app/api/sync/setup/
+
+.vercel
