@@ -90,7 +90,7 @@ export async function GET() {
       formattedMessage = `Found ${notificationCount} notification subscription${notificationCount === 1 ? '' : 's'}`;
       
       // Format each record for better display
-      processedData = records.map((subscription: any, index: number) => ({
+      processedData = records.map((subscription: Record<string, unknown>, index: number) => ({
         id: subscription.id || `subscription_${index + 1}`,
         url: subscription.callbackUrl || subscription.url || subscription.webhookUrl || 'N/A',
         eventType: subscription.eventType || 'Unknown',

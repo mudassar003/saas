@@ -24,7 +24,7 @@
   "sendSMS": true,
   "phoneNumber": "1112223344",
   "sendWebhook": true,
-  "callbackUrl": "https://your-domain.com/api/webhooks/mx-merchant",
+  "callbackUrl": "https://saas-auto.vercel.app/api/webhook",
   "sources": "QuickPay, API, Recurring",
   "merchantId": 10001291238,
   "threshold": 0
@@ -152,7 +152,7 @@ Your webhook endpoint must:
 ```json
 {
   "sendWebhook": true,
-  "callbackUrl": "https://saas-wine-three.vercel.app/api/webhook-test/receive",
+  "callbackUrl": "https://saas-auto.vercel.app/api/webhook",
   "sources": "QuickPay, API, Recurring",
   "threshold": 0,
   "sendEmail": false,
@@ -164,7 +164,7 @@ Your webhook endpoint must:
 ```json
 {
   "sendWebhook": true,
-  "callbackUrl": "https://saas-wine-three.vercel.app/api/webhooks/mx-merchant",
+  "callbackUrl": "https://saas-auto.vercel.app/api/webhook",
   "sources": "QuickPay, API, Recurring",
   "merchantId": YOUR_MERCHANT_ID,
   "threshold": 0,
