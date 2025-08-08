@@ -30,7 +30,7 @@ export default function MXNotificationTestPage() {
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [notificationResult, setNotificationResult] = useState<NotificationResult | null>(null)
   const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null)
-  const [webhookUrl, setWebhookUrl] = useState('https://saas-wine-three.vercel.app/api/webhook/mx-merchant')
+  const [webhookUrl, setWebhookUrl] = useState('https://saas-auto.vercel.app/api/webhook')
   const [paymentAmount, setPaymentAmount] = useState('10.00')
   const [listResult, setListResult] = useState<NotificationResult | null>(null)
   const [isListingNotifications, setIsListingNotifications] = useState(false)
@@ -266,7 +266,7 @@ export default function MXNotificationTestPage() {
                   <AlertCircle className="h-4 w-4 text-red-600" />
                 )}
                 <AlertDescription className="ml-2">
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <p className="font-medium">
                       {listResult.success ? 'Current Notifications:' : 'Error'}
                     </p>
@@ -276,13 +276,17 @@ export default function MXNotificationTestPage() {
                     {listResult.error && (
                       <p className="text-sm text-red-600">{listResult.error}</p>
                     )}
-                    {listResult.data && (
-                      <details className="text-xs">
-                        <summary className="cursor-pointer font-medium">Notification Details</summary>
-                        <pre className="mt-2 p-2 bg-gray-100 rounded overflow-auto">
-                          {JSON.stringify(listResult.data, null, 2)}
-                        </pre>
-                      </details>
+                    
+                    {/* Full raw response display */}
+                    {listResult.success && listResult.data && (
+                      <div className="space-y-3">
+                        <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                          <h4 className="font-medium text-sm mb-2">Complete API Response:</h4>
+                          <pre className="text-xs bg-white p-3 rounded border overflow-auto max-h-96">
+                            {JSON.stringify(listResult, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </AlertDescription>

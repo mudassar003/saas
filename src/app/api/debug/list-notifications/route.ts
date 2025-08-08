@@ -78,12 +78,65 @@ export async function GET() {
       responseData = responseText;
     }
 
+    // Process the response data to make it more readable
+    let processedData = responseData;
+    let notificationCount = 0;
+    let formattedMessage = 'Retrieved notification subscriptions successfully';
+
+    // Handle the MX Merchant API response structure which has { records: [...], recordCount: X }
+    if (responseData && responseData.records && Array.isArray(responseData.records)) {
+      const records = responseData.records;
+      notificationCount = responseData.recordCount || records.length;
+      formattedMessage = `Found ${notificationCount} notification subscription${notificationCount === 1 ? '' : 's'}`;
+      
+      // Format each record for better display
+      processedData = records.map((subscription: any, index: number) => ({
+        id: subscription.id || `subscription_${index + 1}`,
+        url: subscription.callbackUrl || subscription.url || subscription.webhookUrl || 'N/A',
+        eventType: subscription.eventType || 'Unknown',
+        eventDescription: subscription.eventDescription || 'Unknown',
+        status: subscription.sendWebhook ? 'Active (Webhook)' : 
+               (subscription.sendEmail ? 'Active (Email)' : 'Inactive'),
+        created: subscription.created || subscription.createdDate || 'Unknown',
+        modified: subscription.modified || 'Never',
+        merchantId: subscription.merchantId || merchantId,
+        emailAddress: subscription.emailAddress || 'N/A',
+        phoneNumber: subscription.phoneNumber || 'N/A',
+        sources: subscription.Sources || 'All',
+        sendWebhook: subscription.sendWebhook,
+        sendEmail: subscription.sendEmail,
+        sendSMS: subscription.sendSMS,
+        raw: subscription
+      }));
+    } else if (Array.isArray(responseData)) {
+      notificationCount = responseData.length;
+      formattedMessage = `Found ${notificationCount} notification subscription${notificationCount === 1 ? '' : 's'}`;
+      
+      processedData = responseData.map((subscription, index) => ({
+        id: subscription.id || `subscription_${index + 1}`,
+        url: subscription.callbackUrl || subscription.url || subscription.webhookUrl || 'N/A',
+        eventType: subscription.eventType || 'Unknown',
+        status: subscription.sendWebhook ? 'Active' : 'Inactive',
+        created: subscription.created || subscription.createdDate || 'Unknown',
+        merchantId: subscription.merchantId || merchantId,
+        raw: subscription
+      }));
+    } else if (!responseData || (responseData.records && responseData.records.length === 0)) {
+      formattedMessage = 'No notification subscriptions found';
+      notificationCount = 0;
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Retrieved notification subscriptions successfully',
-      data: responseData,
-      environment: environment,
-      merchantId: merchantId
+      message: formattedMessage,
+      count: notificationCount,
+      data: processedData,
+      metadata: {
+        environment: environment,
+        merchantId: merchantId,
+        apiUrl: apiUrl,
+        timestamp: new Date().toISOString()
+      }
     });
 
   } catch (error) {
