@@ -3,25 +3,23 @@
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
-import { RefreshCw, Database, CheckCircle2, AlertCircle, Info } from 'lucide-react'
+import { RefreshCw, Database, CheckCircle2, AlertCircle } from 'lucide-react'
 
 interface SyncResult {
   success: boolean
   message?: string
   error?: string
-  summary?: {
-    totalProcessed: number
-    totalFailed: number
-    totalFetched: number
-    totalAvailable: number
-    newInvoices: number
-    updatedInvoices: number
-    unchangedInvoices: number
-    preservedWorkflowData: number
+  stats?: {
+    transactionsSynced: number
+    invoicesLinked: number
+    transactionsWithProducts: number
+    transactionsLinkedToInvoices: number
+    apiCalls: number
+    efficiency: string
   }
-  errors?: string[]
 }
 
 interface SyncDialogProps {
@@ -33,8 +31,19 @@ export function SyncDialog({ onSyncComplete }: SyncDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState<SyncResult | null>(null)
   const [progress, setProgress] = useState(0)
+  const [transactionCount, setTransactionCount] = useState<number>(50)
+  const [dateFilter, setDateFilter] = useState<string>('')
+  const [emergencyMode, setEmergencyMode] = useState<boolean>(false)
 
   const handleSync = async () => {
+    if (!transactionCount || transactionCount < 1 || transactionCount > 1000) {
+      setResult({
+        success: false,
+        error: 'Please enter a valid number between 1 and 1000'
+      })
+      return
+    }
+
     setIsLoading(true)
     setResult(null)
     setProgress(0)
@@ -48,8 +57,23 @@ export function SyncDialog({ onSyncComplete }: SyncDialogProps) {
         })
       }, 500)
 
-      const response = await fetch('/api/sync/transactions?action=combined', {
-        method: 'POST'
+      const queryParams = new URLSearchParams({
+        count: transactionCount.toString()
+      })
+      
+      if (dateFilter) {
+        queryParams.append('date', dateFilter)
+      }
+
+      const response = await fetch('/api/sync/manual', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transactionCount: transactionCount,
+          dateFilter: dateFilter || undefined
+        })
       })
 
       clearInterval(progressInterval)
@@ -98,44 +122,88 @@ export function SyncDialog({ onSyncComplete }: SyncDialogProps) {
           Sync Latest Data
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
-            Simple Data Sync
+            Sync Latest Data
           </DialogTitle>
           <DialogDescription>
-            Fetch 100 most recent transactions and invoices from MX Merchant and add new records to database.
+            Fetch recent transactions, then automatically fetch related invoices and map products
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Info Alert */}
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              <div className="space-y-2">
-                <p><strong>This simple sync will:</strong></p>
-                <ul className="text-sm space-y-1 ml-4">
-                  <li>• Fetch 100 most recent transactions and invoices</li>
-                  <li>• Insert only new records not in database</li>
-                  <li>• Skip existing records for fast performance</li>
-                  <li>• No updates or comparisons - insert only</li>
-                </ul>
+          {/* Emergency Mode Toggle */}
+          {!result && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  id="emergencyMode"
+                  type="checkbox"
+                  checked={emergencyMode}
+                  onChange={(e) => setEmergencyMode(e.target.checked)}
+                  className="rounded"
+                />
+                <label htmlFor="emergencyMode" className="text-sm font-medium">
+                  Emergency Mode (with date filter)
+                </label>
               </div>
-            </AlertDescription>
-          </Alert>
+              
+              {/* Transaction Count Input */}
+              <div className="space-y-2">
+                <label htmlFor="transactionCount" className="text-sm font-medium">
+                  Number of transactions to fetch
+                </label>
+                <Input
+                  id="transactionCount"
+                  type="number"
+                  min={1}
+                  max={emergencyMode ? 1000 : 100}
+                  value={transactionCount}
+                  onChange={(e) => setTransactionCount(parseInt(e.target.value) || 50)}
+                  placeholder={emergencyMode ? "1000" : "50"}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {emergencyMode 
+                    ? "Emergency: Up to 1000 transactions" 
+                    : "Normal: Up to 100 recent transactions (webhook handles real-time)"
+                  }
+                </p>
+              </div>
+
+              {/* Date Filter (Emergency Mode Only) */}
+              {emergencyMode && (
+                <div className="space-y-2">
+                  <label htmlFor="dateFilter" className="text-sm font-medium">
+                    Filter by date (optional)
+                  </label>
+                  <Input
+                    id="dateFilter"
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty for all transactions, or select specific date
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Loading State */}
           {isLoading && (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span>Syncing latest data...</span>
+                <span>Syncing {transactionCount} transactions...</span>
                 <span>{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="h-2" />
               <p className="text-xs text-muted-foreground">
-                Fetching latest data from MX Merchant and inserting new records...
+                Fetching transactions → Extracting invoice IDs → Fetching invoices → Mapping products...
               </p>
             </div>
           )}
@@ -153,38 +221,22 @@ export function SyncDialog({ onSyncComplete }: SyncDialogProps) {
                   <p className="font-medium">{result.message || result.error}</p>
                   
                   {/* Success Statistics */}
-                  {result.success && result.summary && (
+                  {result.success && result.stats && (
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="bg-green-50 p-3 rounded border">
-                          <p className="font-medium text-green-800">🆕 New Invoices</p>
-                          <p className="text-xl font-bold text-green-900">{result.summary.newInvoices}</p>
-                        </div>
                         <div className="bg-blue-50 p-3 rounded border">
-                          <p className="font-medium text-blue-800">🔄 Updated</p>
-                          <p className="text-xl font-bold text-blue-900">{result.summary.updatedInvoices}</p>
+                          <p className="font-medium text-blue-800">💳 Transactions</p>
+                          <p className="text-xl font-bold text-blue-900">{result.stats.transactionsSynced}</p>
                         </div>
-                        <div className="bg-gray-50 p-3 rounded border">
-                          <p className="font-medium text-gray-800">✅ Unchanged</p>
-                          <p className="text-xl font-bold text-gray-900">{result.summary.unchangedInvoices}</p>
-                        </div>
-                        <div className="bg-red-50 p-3 rounded border">
-                          <p className="font-medium text-red-800">❌ Failed</p>
-                          <p className="text-xl font-bold text-red-900">{result.summary.totalFailed}</p>
+                        <div className="bg-green-50 p-3 rounded border">
+                          <p className="font-medium text-green-800">🔗 Invoices Linked</p>
+                          <p className="text-xl font-bold text-green-900">{result.stats.invoicesLinked}</p>
                         </div>
                       </div>
-                      
-                      <div className="bg-purple-50 p-3 rounded border">
-                        <p className="font-medium text-purple-800">🔒 Workflow Data Preserved</p>
-                        <p className="text-sm text-purple-700">
-                          {result.summary.preservedWorkflowData} invoices kept their nurse workflow status
-                        </p>
-                      </div>
-                      
-                      <div className="bg-blue-50 p-3 rounded border">
-                        <p className="font-medium text-blue-800">📊 Sync Summary</p>
-                        <p className="text-sm text-blue-700">
-                          Processed {result.summary.totalFetched} invoices from {result.summary.totalAvailable} available
+                      <div className="bg-gray-50 p-3 rounded border text-center">
+                        <p className="text-sm text-gray-600">⚡ API Efficiency</p>
+                        <p className="text-lg font-semibold text-gray-800">
+                          {result.stats.apiCalls} calls • {result.stats.efficiency}
                         </p>
                       </div>
                     </div>
@@ -195,20 +247,6 @@ export function SyncDialog({ onSyncComplete }: SyncDialogProps) {
                     <div className="text-sm">
                       <p className="text-red-600">{result.message}</p>
                     </div>
-                  )}
-
-                  {/* Sync Errors */}
-                  {result.errors && result.errors.length > 0 && (
-                    <details className="text-sm">
-                      <summary className="cursor-pointer text-red-600 hover:text-red-700">
-                        View Sync Errors ({result.errors.length})
-                      </summary>
-                      <ul className="mt-2 space-y-1 text-red-600 text-xs">
-                        {result.errors.map((error, index) => (
-                          <li key={index}>• {error}</li>
-                        ))}
-                      </ul>
-                    </details>
                   )}
                 </div>
               </AlertDescription>
@@ -224,22 +262,24 @@ export function SyncDialog({ onSyncComplete }: SyncDialogProps) {
             >
               {result?.success ? 'Close' : 'Cancel'}
             </Button>
-            <Button
-              onClick={handleSync}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <Database className="h-4 w-4 mr-2" />
-                  Start Sync
-                </>
-              )}
-            </Button>
+            {!result && (
+              <Button
+                onClick={handleSync}
+                disabled={isLoading || !transactionCount || transactionCount < 1 || transactionCount > 1000}
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <Database className="h-4 w-4 mr-2" />
+                    Sync {transactionCount} Transactions
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>

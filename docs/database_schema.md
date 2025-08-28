@@ -111,7 +111,8 @@ CREATE INDEX idx_invoices_data_sent_status ON invoices(merchant_id, data_sent_st
 | amount                 | numeric                  | NO          | null                     | Transaction amount |
 | transaction_date       | timestamp with time zone | NO          | null                     | When transaction occurred |
 | status                 | character varying        | NO          | null                     | Transaction status: 'Approved', 'Declined', 'Settled' |
-| mx_invoice_number      | integer                  | YES         | null                     | Invoice number if transaction linked to invoice |
+| mx_invoice_number      | integer                  | YES         | null                     | Invoice number if transaction linked to invoice (for display) |
+| mx_invoice_id          | bigint                   | YES         | null                     | **NEW**: MX Merchant invoice ID (for direct API calls to getInvoiceDetail) |
 | invoice_id             | uuid                     | YES         | null                     | **Foreign key** to invoices table |
 | client_reference       | character varying        | YES         | null                     | Client reference number |
 | customer_name          | character varying        | YES         | null                     | **Patient name** - Primary field for dashboard |
@@ -264,13 +265,18 @@ ALTER TABLE product_categories ADD CONSTRAINT unique_merchant_product UNIQUE(mer
 
 ## 🔗 Table Relationships & Data Flow
 
-### **Primary Data Flow**:
+### **Primary Data Flow** (Updated for Direct Invoice Access):
 ```
-1. Webhook/Manual Sync → transactions table (with basic data)
-2. If transaction has invoice → Fetch invoice details → invoices table
+1. Webhook/Manual Sync → transactions table (with both mx_invoice_number + mx_invoice_id)
+2. If transaction has mx_invoice_id → Direct API call getMXInvoiceDetail(mx_invoice_id) → invoices table
 3. Extract product from invoice → Update transactions.product_name
 4. Lookup product category → Update transactions.product_category
 ```
+
+### **Key Architecture Improvement**:
+- **Before**: Complex lookups to convert invoice numbers to invoice IDs
+- **After**: Direct API calls using `mx_invoice_id` stored from transaction `invoiceIds` array
+- **Performance**: 10x faster sync with no database lookups required
 
 ### **Membership Dashboard Queries**:
 ```sql

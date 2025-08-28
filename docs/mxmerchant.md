@@ -507,3 +507,137 @@ for refund
   "customerNumber": null,
   "source": "Invoice"
 } 
+
+---
+
+## 🔍 **CRITICAL DISCOVERY: Transaction-Invoice Linking Analysis (2025-01-10)**
+
+### **❌ Major Issue Found in Our Sync Strategy:**
+
+After analyzing real MX Merchant API responses vs our current implementation, we discovered a **critical flaw** in how we're trying to link transactions to invoices.
+
+#### **🕵️ What We Discovered:**
+
+**❌ Transaction List API Response (GET /checkout/v3/payment):**
+```javascript
+// From our actual transaction data:
+{
+  "id": 4000000053828681,
+  "invoice": "2626",                    // ✅ Invoice NUMBER (string)
+  "customerName": "Lucas Higdon",
+  // ❌ NO "invoiceIds" array exists!
+}
+```
+
+**✅ Individual Transaction API Response (GET /checkout/v3/payment/{id}):**
+```javascript
+// ONLY when fetching individual transaction:
+{
+  "id": 4000000053173106,
+  "invoice": "2577",                    // Invoice NUMBER (string)  
+  "invoiceIds": [10270193],             // ✅ Invoice IDs array EXISTS!
+  "customerName": "Joseph Achour"
+}
+```
+
+#### **⚠️ Performance Problem Identified:**
+
+**Our Current Broken Logic:**
+```javascript
+// This fails because invoiceIds doesn't exist in transaction LIST
+const invoiceIds = transactions.filter(t => t.invoiceIds?.length > 0)
+```
+
+**What Actually Happens:**
+1. `getPayments()` returns transactions with only `invoice` numbers
+2. Our code looks for `invoiceIds[]` array → **DOESN'T EXIST**  
+3. No invoices get processed → **No product mapping occurs**
+4. Sync completes with 0 invoices processed
+
+#### **🔧 Two Possible Solutions:**
+
+**Option 1: Use Invoice Numbers (Faster but Complex)**
+```javascript
+// Get transactions with invoice numbers
+const transactions = await getPayments({ limit: count })
+const invoiceNumbers = transactions.filter(t => t.invoice).map(t => parseInt(t.invoice))
+
+// Get ALL invoices to find matching ones
+const allInvoices = await getInvoices({ limit: 1000 })  
+const matchingInvoices = allInvoices.records.filter(inv => 
+  invoiceNumbers.includes(inv.invoiceNumber)
+)
+
+// Problem: Still need individual invoice detail calls for products
+for (const invoice of matchingInvoices) {
+  const details = await getInvoiceDetail(invoice.id)  // More API calls!
+}
+```
+
+**Option 2: Individual Transaction Details (Slower but Direct)**
+```javascript
+// Get transactions
+const transactions = await getPayments({ limit: count })
+
+// Fetch individual transaction details to get invoiceIds
+for (const transaction of transactions) {
+  if (transaction.invoice) {
+    const transactionDetail = await getPaymentDetail(transaction.id)
+    const invoiceIds = transactionDetail.invoiceIds || []
+    
+    // Now we can directly fetch invoice details
+    for (const invoiceId of invoiceIds) {
+      const invoiceDetail = await getInvoiceDetail(invoiceId)
+      // Process products...
+    }
+  }
+}
+```
+
+#### **🎯 Recommended Fix:**
+
+**Hybrid Approach** (Best Performance vs Completeness):
+```javascript
+// Step 1: Get transactions (fast)
+const transactions = await getPayments({ limit: count })
+
+// Step 2: Get recent invoices in bulk (fast) 
+const recentInvoices = await getInvoices({ limit: 200 })
+
+// Step 3: Link by invoice number (no extra API calls)
+const linkedData = linkByInvoiceNumbers(transactions, recentInvoices)
+
+// Step 4: Only fetch individual invoice details for products when needed
+// (Lazy loading - only when user views specific transaction)
+```
+
+#### **📊 Impact on Current Sync:**
+
+This explains why your sync was taking 1+ minutes and processing 0 invoices:
+- ❌ Looking for non-existent `invoiceIds` in transaction list
+- ❌ No invoices being processed  
+- ❌ No product mapping occurring
+- ✅ Transactions saved correctly
+- ❌ Product fields remain NULL
+
+**Next Action:** Fix the sync code to use the correct linking method based on available data structure.
+
+---
+
+## 🚨 **SYNC IMPLEMENTATION STATUS (2025-01-10)**
+
+### **Current Status: BROKEN - Zero Invoices Processed**
+
+**Root Cause Confirmed:**
+- SimpleSyncService.extractInvoiceIds() method at src/lib/simple-sync.ts:166 looks for `transaction.invoiceIds[]` 
+- This field **DOES NOT EXIST** in transaction list API (GET /checkout/v3/payment)
+- Field only exists in individual transaction detail API (GET /checkout/v3/payment/{id})
+- Result: 0 invoice IDs extracted → 0 invoices processed → 0 products mapped
+
+**Impact:**
+- ✅ Transactions saved correctly to database  
+- ❌ 0 invoices processed (should be N invoices)
+- ❌ 0 products mapped (should be N products)
+- ❌ All product_name and product_category fields remain NULL
+
+**Required Fix:** Replace the broken `extractInvoiceIds()` method with one of three solutions documented above.

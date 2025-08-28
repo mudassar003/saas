@@ -1,294 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SyncService } from '@/lib/sync-service'
-import { DAL, TransactionDAL } from '@/lib/dal'
+import { SimpleSyncService } from '@/lib/simple-sync'
 import { supabaseAdmin } from '@/lib/supabase'
-import { MXMerchantClient } from '@/lib/mx-merchant-client'
-// Auth import removed - not used in this file
 
 export async function POST(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const action = searchParams.get('action') || 'transactions'
+    const count = parseInt(searchParams.get('count') || '50')
+    const dateFilter = searchParams.get('date')
     
-    console.log('Transaction sync API called with action:', action)
+    console.log(`Starting simple sync for ${count} transactions${dateFilter ? ` since ${dateFilter}` : ''}`)
 
-    // No authentication required
-    
-    // Get MX Merchant config from database or fallback to environment variables
-    const { data: config, error: configError } = await supabaseAdmin
-      .from('mx_merchant_configs')
-      .select('*')
-      .eq('is_active', true)
-      .single()
-
-    let mxConfig
-    if (configError || !config) {
-      // Fallback to environment variables (for setup page compatibility)
-      const consumerKey = process.env.MX_MERCHANT_CONSUMER_KEY
-      const consumerSecret = process.env.MX_MERCHANT_CONSUMER_SECRET
-      const environment = process.env.MX_MERCHANT_ENVIRONMENT || 'production'
-
-      if (!consumerKey || !consumerSecret) {
-        return NextResponse.json({ 
-          error: 'MX Merchant configuration not found. Please configure your API credentials first.' 
-        }, { status: 400 })
-      }
-
-      mxConfig = {
-        consumer_key: consumerKey,
-        consumer_secret: consumerSecret,
-        environment: environment as 'sandbox' | 'production'
-      }
-    } else {
-      mxConfig = config
+    // Validate count parameter
+    if (count < 1 || count > 1000) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Count must be between 1 and 1000' 
+      }, { status: 400 })
     }
 
-    // Create sync service instance with hardcoded user ID
-    const syncService = new SyncService(mxConfig)
-
-    let result
+    // Create sync service instance
+    const syncService = await SimpleSyncService.createFromConfig()
     
-    switch (action) {
-      case 'transactions':
-        // Sync only recent transactions - simple incremental sync
-        console.log('Starting simple transaction incremental sync...')
-        try {
-          // Create MX Client directly
-          const mxClient = new MXMerchantClient(mxConfig.consumer_key, mxConfig.consumer_secret, mxConfig.environment as 'sandbox' | 'production')
-          
-          // Fetch recent transactions only (last 3 days for performance)
-          console.log('Fetching recent transactions from MX Merchant...')
-          const threeDaysAgo = new Date()
-          threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
-          
-          const paymentsResponse = await mxClient.getPayments({
-            limit: 1000,
-            created: threeDaysAgo.toISOString().split('T')[0]
-          })
-          const recentPayments = paymentsResponse.records || []
-          
-          // Filter out transactions that already exist in database
-          console.log(`Checking ${recentPayments.length} transactions for duplicates...`)
-          const existingPayments = await supabaseAdmin
-            .from('transactions')
-            .select('mx_payment_id')
-            .in('mx_payment_id', recentPayments.map(p => p.id))
-          
-          const existingIds = new Set(existingPayments.data?.map(p => p.mx_payment_id) || [])
-          const newPayments = recentPayments.filter(p => !existingIds.has(p.id))
-          
-          // Save only new transactions to database
-          console.log(`Inserting ${newPayments.length} new transactions to database...`)
-          const transactionResults = await TransactionDAL.bulkInsertTransactions( newPayments)
-          
-          result = {
-            success: true,
-            totalProcessed: transactionResults.success,
-            totalFailed: transactionResults.failed,
-            errors: transactionResults.errors.slice(0, 10),
-            syncLogId: 'bypass-setup'
-          }
-          
-          console.log(`Transaction sync complete: ${transactionResults.success} transactions saved`)
-          
-        } catch (error) {
-          console.error('Transaction sync failed:', error)
-          result = {
-            success: false,
-            totalProcessed: 0,
-            totalFailed: 1,
-            errors: [`Transaction sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
-            syncLogId: null
-          }
-        }
-        
-        return NextResponse.json({
-          success: result.success,
-          message: result.success 
-            ? `Transaction sync completed successfully. Processed: ${result.totalProcessed}, Failed: ${result.totalFailed}`
-            : `Transaction sync failed. Processed: ${result.totalProcessed}, Failed: ${result.totalFailed}`,
-          summary: {
-            totalProcessed: result.totalProcessed,
-            totalFailed: result.totalFailed,
-            syncType: 'transactions'
-          },
-          errors: result.errors.slice(0, 10), // Limit error messages
-          syncLogId: result.syncLogId
-        })
-
-      case 'combined':
-        // Simple incremental sync for both transactions and invoices
-        console.log('Starting simple combined incremental sync...')
-        try {
-          // Create MX Client directly
-          const mxClient = new MXMerchantClient(mxConfig.consumer_key, mxConfig.consumer_secret, mxConfig.environment as 'sandbox' | 'production')
-          
-          // Sync most recent transactions (100 records)
-          console.log('Fetching 100 most recent transactions from MX Merchant...')
-          
-          const paymentsResponse = await mxClient.getPayments({
-            limit: 100
-          })
-          const recentPayments = paymentsResponse.records || []
-          
-          // Filter out existing transactions
-          const existingPayments = await supabaseAdmin
-            .from('transactions')
-            .select('mx_payment_id')
-            .in('mx_payment_id', recentPayments.map(p => p.id))
-          
-          const existingPaymentIds = new Set(existingPayments.data?.map(p => p.mx_payment_id) || [])
-          const newPayments = recentPayments.filter(p => !existingPaymentIds.has(p.id))
-          
-          console.log(`Inserting ${newPayments.length} new transactions...`)
-          const transactionResults = await TransactionDAL.bulkInsertTransactions( newPayments)
-          
-          // Sync most recent invoices (100 records)
-          console.log('Fetching 100 most recent invoices from MX Merchant...')
-          const invoicesResponse = await mxClient.getInvoices({
-            limit: 100
-          })
-          const recentInvoices = invoicesResponse.records || []
-          
-          // Filter out existing invoices
-          const existingInvoices = await supabaseAdmin
-            .from('invoices')
-            .select('mx_invoice_id')
-            .in('mx_invoice_id', recentInvoices.map(i => i.id))
-          
-          const existingInvoiceIds = new Set(existingInvoices.data?.map(i => i.mx_invoice_id) || [])
-          const newInvoices = recentInvoices.filter(i => !existingInvoiceIds.has(i.id))
-          
-          console.log(`Inserting ${newInvoices.length} new invoices...`)
-          const invoiceResults = await DAL.bulkInsertInvoices(newInvoices)
-          
-          // API-based foreign key linking (replaces problematic database trigger)
-          console.log('Linking transactions to invoices...')
-          let linkedCount = 0
-          try {
-            // Find transactions that need linking (have mx_invoice_number but no invoice_id)
-            const { data: unlinkableTransactions } = await supabaseAdmin
-              .from('transactions')
-              .select('id, mx_invoice_number')
-              .not('mx_invoice_number', 'is', null)
-              .is('invoice_id', null)
-              .limit(500) // Limit to prevent performance issues
-            
-            if (unlinkableTransactions && unlinkableTransactions.length > 0) {
-              // Get unique invoice numbers to query
-              const invoiceNumbers = [...new Set(unlinkableTransactions.map(t => t.mx_invoice_number))]
-              
-              // Find matching invoices
-              const { data: matchingInvoices } = await supabaseAdmin
-                .from('invoices')
-                .select('id, invoice_number')
-                .in('invoice_number', invoiceNumbers)
-                
-              if (matchingInvoices && matchingInvoices.length > 0) {
-                // Create invoice number to ID mapping
-                const invoiceMap = new Map(
-                  matchingInvoices.map(inv => [inv.invoice_number, inv.id])
-                )
-                
-                // Update transactions with matching invoice_ids
-                for (const transaction of unlinkableTransactions) {
-                  const invoiceId = invoiceMap.get(transaction.mx_invoice_number)
-                  if (invoiceId) {
-                    await supabaseAdmin
-                      .from('transactions')
-                      .update({ invoice_id: invoiceId })
-                      .eq('id', transaction.id)
-                    linkedCount++
-                  }
-                }
-              }
-            }
-            console.log(`Linked ${linkedCount} transactions to invoices`)
-          } catch (linkError) {
-            console.error('Error linking transactions to invoices:', linkError)
-            // Continue with sync even if linking fails
-          }
-          
-          result = {
-            success: true,
-            totalInvoicesProcessed: invoiceResults.success,
-            totalTransactionsProcessed: transactionResults.success,
-            totalLinked: linkedCount,
-            totalFailed: transactionResults.failed + invoiceResults.failed,
-            errors: [...transactionResults.errors, ...invoiceResults.errors].slice(0, 10),
-            syncLogId: 'bypass-setup'
-          }
-          
-          console.log(`Sync complete: ${transactionResults.success} transactions, ${invoiceResults.success} invoices saved`)
-          
-        } catch (error) {
-          console.error('Setup sync failed:', error)
-          result = {
-            success: false,
-            totalInvoicesProcessed: 0,
-            totalTransactionsProcessed: 0,
-            totalLinked: 0,
-            totalFailed: 1,
-            errors: [`Sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
-            syncLogId: null
-          }
-        }
-        
-        return NextResponse.json({
-          success: result.success,
-          message: result.success 
-            ? `Combined sync completed successfully. Invoices: ${result.totalInvoicesProcessed}, Transactions: ${result.totalTransactionsProcessed}, Linked: ${result.totalLinked}, Failed: ${result.totalFailed}`
-            : `Combined sync failed. Invoices: ${result.totalInvoicesProcessed}, Transactions: ${result.totalTransactionsProcessed}, Linked: ${result.totalLinked}, Failed: ${result.totalFailed}`,
-          summary: {
-            totalInvoicesProcessed: result.totalInvoicesProcessed,
-            totalTransactionsProcessed: result.totalTransactionsProcessed,
-            totalLinked: result.totalLinked,
-            totalFailed: result.totalFailed,
-            syncType: 'combined'
-          },
-          errors: result.errors.slice(0, 10),
-          syncLogId: result.syncLogId
-        })
-
-      case 'invoices':
-        // Sync only invoices (existing functionality)
-        console.log('Starting invoice-only sync...')
-        try {
-          result = await syncService.syncAllInvoices('manual')
-        } catch (error) {
-          // Bypass sync log errors for setup
-          console.error('Invoice sync error (bypassed for setup):', error)
-          result = {
-            success: false,
-            totalProcessed: 0,
-            totalFailed: 1,
-            errors: ['Setup sync failed - this is expected for initial setup'],
-            syncLogId: null
-          }
-        }
-        
-        return NextResponse.json({
-          success: result.success,
-          message: result.success 
-            ? `Invoice sync completed successfully. Processed: ${result.totalProcessed}, Failed: ${result.totalFailed}`
-            : `Invoice sync failed. Processed: ${result.totalProcessed}, Failed: ${result.totalFailed}`,
-          summary: {
-            totalProcessed: result.totalProcessed,
-            totalFailed: result.totalFailed,
-            syncType: 'invoices'
-          },
-          errors: result.errors.slice(0, 10),
-          syncLogId: result.syncLogId
-        })
-
-      default:
-        return NextResponse.json({ 
-          error: 'Invalid action. Use ?action=transactions, ?action=invoices, or ?action=combined' 
-        }, { status: 400 })
+    if (!syncService) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'MX Merchant configuration not found. Please configure your API credentials first.' 
+      }, { status: 400 })
     }
+
+    // Execute sync with optional date filter
+    const result = await syncService.syncTransactions(count, dateFilter || undefined)
+    
+    return NextResponse.json({
+      success: result.success,
+      message: result.success 
+        ? `Sync completed. Transactions: ${result.transactionsProcessed}, Invoices: ${result.invoicesProcessed}, Products: ${result.productsProcessed}`
+        : `Sync failed. Errors: ${result.errors.join(', ')}`,
+      summary: {
+        transactionsProcessed: result.transactionsProcessed,
+        invoicesProcessed: result.invoicesProcessed,
+        productsProcessed: result.productsProcessed,
+        totalFailed: result.errors.length
+      },
+      errors: result.errors.slice(0, 5)
+    })
 
   } catch (error) {
-    console.error('Transaction sync API error:', error)
+    console.error('Sync API error:', error)
     return NextResponse.json(
       { 
         success: false,

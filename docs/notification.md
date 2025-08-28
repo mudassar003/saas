@@ -1,7 +1,7 @@
 # MX Merchant Notification/Webhook API Documentation
 
 ## API Endpoints
-
+documentation https://developer.mxmerchant.com/docs/notification-examples
 ### Base URLs
 - **Sandbox**: `https://sandbox.api.mxmerchant.com/checkout/v3/subscription`
 - **Production**: `https://api.mxmerchant.com/checkout/v3/subscription`
@@ -71,60 +71,58 @@ MX Merchant supports these webhook event types:
 ### Successful Payment Event
 ```json
 {
-  "eventType": "payment.success",
-  "merchantId": 1000095245,
-  "timestamp": "2025-07-24T10:01:50.51Z",
-  "data": {
-    "paymentId": 4000000050326218,
-    "amount": "155.25",
-    "status": "Approved",
-    "invoice": "2484",
-    "clientReference": "2484", 
-    "customerName": "Anthony Massey",
-    "customerCode": "05K4Y006HCZH",
-    "authCode": "814825",
-    "authMessage": "Approved and completed successfully",
-    "responseCode": 0,
-    "reference": "520510705231",
-    "cardAccount": {
-      "cardType": "Visa",
-      "last4": "7604",
-      "token": "PgP3goOxVMUnVZ8QSgEdpqT7fbVtyY66"
-    },
-    "currency": "USD",
-    "tax": "6.18",
-    "surchargeAmount": "5.25",
-    "surchargeLabel": "admin fee",
-    "tenderType": "Card",
-    "type": "Sale",
-    "source": "Recurring",
-    "batch": "Z03H5",
-    "refundedAmount": "0",
-    "settledAmount": "0"
-  }
+  {
+  "eventType": "PaymentSuccess",
+  "merchantId": "418355562",
+  "xmid": "554402000377887",
+  "dba": "Merchant Name",
+  "id": "22343388",
+  "invoiceId": null,
+  "invoiceNumber": "Z009BQGM",
+  "transactionDate": "Aug 9 2018 6:21PM",
+  "localDate": "Aug 9 2018 2:21PM",
+  "transactionTypeName": "Sale",
+  "paymentType": "ACH",
+  "card": null,
+  "referenceNumber": "822118000094",
+  "authorizationCode": null,
+  "responseCode": "0",
+  "pan4": null,
+  "totalAmount": "11.11",
+  "responseMessage": "Approved",
+  "customer": null,
+  "customerNumber": null,
+  "source": "QuickPay",
+  "customFields": null
+}
 }
 ```
 
 ### Failed Payment Event
 ```json
 {
-  "eventType": "payment.failed",
-  "merchantId": 1000095245,
-  "timestamp": "2025-07-24T10:01:50.51Z",
-  "data": {
-    "paymentId": 4000000050326219,
-    "amount": "155.25",
-    "status": "Declined",
-    "invoice": null,
-    "customerName": "John Doe",
-    "authMessage": "Insufficient funds",
-    "responseCode": 51,
-    "cardAccount": {
-      "cardType": "Visa",
-      "last4": "1234"
-    },
-    "declineReason": "Insufficient funds"
-  }
+  "eventType": "PaymentFail",
+  "merchantId": "418355562",
+  "xmid": "554402000377887",
+  "dba": "Merchant Name",
+  "id": "22343395",
+  "invoiceId": null,
+  "invoiceNumber": "Z00AJPR8",
+  "transactionDate": "Aug 9 2018 6:56PM",
+  "localDate": "Aug 9 2018 2:56PM",
+  "transactionTypeName": "Sale",
+  "paymentType": "Card",
+  "card": "Visa",
+  "referenceNumber": "822118000102",
+  "authorizationCode": null,
+  "responseCode": "61",
+  "pan4": "0001",
+  "totalAmount": "11.11",
+  "responseMessage": "Exceeds withdrawal amount limit. ",
+  "customer": null,
+  "customerNumber": null,
+  "source": "QuickPay",
+  "customFields": null
 }
 ```
 

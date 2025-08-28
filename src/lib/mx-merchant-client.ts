@@ -324,6 +324,7 @@ export function transformMXPaymentToTransaction(mxPayment: MXPayment): Omit<Tran
     
     // Invoice Linking
     mx_invoice_number: mxPayment.invoice ? parseInt(mxPayment.invoice) : null,
+    mx_invoice_id: mxPayment.invoiceIds?.length > 0 ? mxPayment.invoiceIds[0] : null, // NEW: Direct API access
     invoice_id: null, // Will be populated during sync when linking to existing invoices
     client_reference: mxPayment.clientReference || null,
     

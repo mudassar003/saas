@@ -206,6 +206,7 @@ export interface MXPayment {
   created: string;
   status: 'Approved' | 'Declined' | string;
   invoice?: string | null; // Links to invoice number
+  invoiceIds?: number[] | null; // Direct invoice IDs array from API
   clientReference?: string | null;
   customerName?: string | null;
   customerCode?: string | null;
