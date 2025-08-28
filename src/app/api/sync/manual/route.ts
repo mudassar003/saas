@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Manual sync failed',
-      details: error instanceof z.ZodError ? error.errors : undefined
+      details: error instanceof z.ZodError ? error.issues : undefined
     }, { status: 500 })
   }
 }
