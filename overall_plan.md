@@ -35,7 +35,7 @@ https://api.mxmerchant.com/checkout/v3/invoice =  "id": 10299890,
 3. only way to fetch complete product data is using invoice id 
 4. in webhook we only get invoice numner but we dont get invoice id
 
-we are buildiing a multi tenat system as each transaction or api will have merchant id so we will use rls. 
+we are building a multi-tenant system as each transaction or api will have merchant id so we will use rls. 
 
 1. now options as in my mind if i use cron job after every 5 minutes it will run a loop to credentials of all tenat and will fetch specific number of invoices or transaction and other api calls and save data in database and it is compulsory by mx merchant to have api keys in each api call as basic authentication ( key:secret pair)
 
