@@ -8,7 +8,10 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabaseAdmin
       .from('webhook_test_data')
       .insert({
-        raw_data: rawBody
+        raw_body: rawBody,
+        webhook_data: JSON.parse(rawBody),
+        headers: Object.fromEntries(request.headers.entries()),
+        received_at: new Date().toISOString()
       })
       .select()
     
