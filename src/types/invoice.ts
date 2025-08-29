@@ -157,6 +157,7 @@ export interface Transaction {
   
   // Invoice Linking
   mx_invoice_number?: number | null;
+  mx_invoice_id?: number | null;
   invoice_id?: string | null;
   client_reference?: string | null;
   

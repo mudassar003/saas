@@ -221,8 +221,8 @@ export class SimpleSyncService {
       invoice_number: invoice.invoiceNumber,
       customer_name: invoice.customerName || null,
       customer_number: invoice.customerNumber || null,
-      customer_email: invoice.customerEmail || null,
-      customer_id: invoice.customerId || null,
+      customer_email: null, // Not available in MX API
+      customer_id: invoice.customer?.id || null,
       invoice_date: invoice.invoiceDate || null,
       due_date: invoice.dueDate || null,
       api_created: invoice.created || null,
@@ -244,7 +244,7 @@ export class SimpleSyncService {
       memo: invoice.memo || null,
       is_tax_exempt: invoice.isTaxExempt || false,
       merchant_id: invoice.merchantId || null,
-      billing_address: invoice.billingAddress || null,
+      billing_address: null, // Not available in MX API
       raw_data: invoice, // Products are embedded in raw_data.purchases array
       data_sent_status: 'pending'
     }
@@ -327,7 +327,7 @@ export class SimpleSyncService {
       // Process each transaction
       for (const transaction of transactionsNeedingProducts) {
         try {
-          const invoice = transaction.invoices
+          const invoice = Array.isArray(transaction.invoices) ? transaction.invoices[0] : transaction.invoices
           const purchases = invoice?.raw_data?.purchases
 
           if (!purchases || !Array.isArray(purchases) || purchases.length === 0) {
