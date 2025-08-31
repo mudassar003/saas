@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { MXPaymentDetail, MXInvoiceDetail } from '@/types/invoice';
+import { MXPaymentDetail, MXInvoiceDetail, MXWebhookPayload } from '@/types/invoice';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -161,7 +161,7 @@ export async function logWebhookProcessing(
 
 export function transformPaymentDetailToTransaction(
   paymentDetail: MXPaymentDetail,
-  webhookPayload: Record<string, unknown>,
+  webhookPayload: MXWebhookPayload,
   productName: string | null = null,
   productCategory: string | null = null,
   invoiceId: string | null = null
@@ -171,18 +171,18 @@ export function transformPaymentDetailToTransaction(
     amount: parseFloat(paymentDetail.amount || '0'),
     transaction_date: paymentDetail.created || new Date().toISOString(),
     status: paymentDetail.status || 'Unknown',
-    customer_name: paymentDetail.customerName || webhookPayload.customer as string || null,
-    card_type: paymentDetail.cardAccount?.cardType || webhookPayload.card as string || null,
-    card_last4: paymentDetail.cardAccount?.last4 || webhookPayload.pan4 as string || null,
-    auth_code: paymentDetail.authCode || webhookPayload.authorizationCode as string || null,
-    source: paymentDetail.source || webhookPayload.source as string || null,
-    merchant_id: paymentDetail.merchantId || parseInt(webhookPayload.merchantId as string),
+    customer_name: paymentDetail.customerName || webhookPayload.customer || null,
+    card_type: paymentDetail.cardAccount?.cardType || webhookPayload.card || null,
+    card_last4: paymentDetail.cardAccount?.last4 || webhookPayload.pan4 || null,
+    auth_code: paymentDetail.authCode || webhookPayload.authorizationCode || null,
+    source: paymentDetail.source || webhookPayload.source || null,
+    merchant_id: paymentDetail.merchantId || parseInt(webhookPayload.merchantId),
     mx_invoice_number: paymentDetail.invoice ? parseInt(paymentDetail.invoice) : null,
     mx_invoice_id: paymentDetail.invoiceIds?.[0] || null,
     product_name: productName,
     product_category: productCategory,
     invoice_id: invoiceId,
-    raw_data: paymentDetail as Record<string, unknown>
+    raw_data: paymentDetail as unknown as Record<string, unknown>
   };
 }
 
@@ -200,6 +200,6 @@ export function transformInvoiceDetailToInvoice(
     invoice_date: invoiceDetail.invoiceDate || new Date().toISOString(),
     merchant_id: parseInt(merchantId),
     billing_address: invoiceDetail.billingAddress || null,
-    raw_data: invoiceDetail as Record<string, unknown>
+    raw_data: invoiceDetail as unknown as Record<string, unknown>
   };
 }

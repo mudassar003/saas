@@ -102,8 +102,25 @@ export interface MXInvoiceDetail extends MXInvoice {
     id: number;
     name: string;
   };
+  billingAddress?: {
+    name?: string;
+    address1?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    country?: string;
+  };
+  shippingAddress?: {
+    address1?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    country?: string;
+  };
   payments: Record<string, unknown>[];
   taxes: Record<string, unknown>[];
+  shippingLineItems?: Record<string, unknown>[];
+  discounts?: Record<string, unknown>[];
 }
 
 export interface MXPurchase {
@@ -296,4 +313,6 @@ export interface MXWebhookPayload {
   baseAmount?: string;
   advantageFeeType?: string;
   advantageFeeAmount?: string;
+  // Index signature for additional unknown fields
+  [key: string]: unknown;
 }

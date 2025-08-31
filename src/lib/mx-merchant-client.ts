@@ -10,7 +10,7 @@ import {
   Transaction
 } from '@/types/invoice';
 import { getTexasISOString, getTexasDateForFilename } from '@/lib/timezone';
-import { getMerchantCredentials, getBaseUrl } from '@/lib/database/merchant-credentials';
+import { getMerchantCredentials } from '@/lib/database/merchant-credentials';
 
 export class MXMerchantClient {
   private baseUrl: string;
