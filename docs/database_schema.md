@@ -24,7 +24,7 @@ This documentation describes the optimized database schema for our real-time web
 | created_at      | timestamp with time zone | YES         | now()                           | Record creation timestamp |
 | updated_at      | timestamp with time zone | YES         | now()                           | Last update timestamp |
 
-**Indexes these are already in database here are for your reference so you can use in frontend queries**:
+**Indexes these are already in database here are for your reference so you can use in frontend queries**
 ```sql
 -- Primary tenant lookup for API credential retrieval
 CREATE INDEX idx_mx_merchant_configs_merchant_id ON mx_merchant_configs(merchant_id);

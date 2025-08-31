@@ -70,7 +70,7 @@ Full API Response:
     "address1": "42620 Drazenovich Epoch Terrace",
     "city": "Sterling",
     "state": "VA",
-    "zip": "20166",
+    "zip": "20166", abs
     "country": "US"
   },
   "masterCardSecureCode": "0",

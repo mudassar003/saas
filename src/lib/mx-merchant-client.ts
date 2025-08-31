@@ -10,6 +10,7 @@ import {
   Transaction
 } from '@/types/invoice';
 import { getTexasISOString, getTexasDateForFilename } from '@/lib/timezone';
+import { getMerchantCredentials, getBaseUrl } from '@/lib/database/merchant-credentials';
 
 export class MXMerchantClient {
   private baseUrl: string;
@@ -80,8 +81,9 @@ export class MXMerchantClient {
   /**
    * Get detailed invoice information with products
    */
-  async getInvoiceDetail(invoiceId: number): Promise<MXInvoiceDetail> {
-    const endpoint = `/checkout/v3/invoice/${invoiceId}`;
+  async getInvoiceDetail(invoiceId: number, merchantId?: string): Promise<MXInvoiceDetail> {
+    const queryParams = merchantId ? `?merchantId=${merchantId}` : '';
+    const endpoint = `/checkout/v3/invoice/${invoiceId}${queryParams}`;
     return this.makeRequest<MXInvoiceDetail>(endpoint);
   }
 
@@ -156,8 +158,9 @@ export class MXMerchantClient {
   /**
    * Get detailed payment/transaction information
    */
-  async getPaymentDetail(paymentId: number): Promise<MXPaymentDetail> {
-    const endpoint = `/checkout/v3/payment/${paymentId}`;
+  async getPaymentDetail(paymentId: number, merchantId?: string): Promise<MXPaymentDetail> {
+    const queryParams = merchantId ? `?merchantId=${merchantId}` : '';
+    const endpoint = `/checkout/v3/payment/${paymentId}${queryParams}`;
     return this.makeRequest<MXPaymentDetail>(endpoint);
   }
 
@@ -235,12 +238,23 @@ export class MXMerchantClient {
   }
 }
 
-// Create a singleton instance with environment credentials
+// Create a singleton instance with environment credentials (legacy support)
 export const mxMerchantClient = new MXMerchantClient(
   process.env.MX_MERCHANT_CONSUMER_KEY || '',
   process.env.MX_MERCHANT_CONSUMER_SECRET || '',
   (process.env.MX_MERCHANT_ENVIRONMENT as 'sandbox' | 'production') || 'production'
 );
+
+// Create MX Merchant client instance with dynamic credentials for specific merchant
+export async function createMXClientForMerchant(merchantId: string): Promise<MXMerchantClient> {
+  const credentials = await getMerchantCredentials(merchantId);
+  
+  return new MXMerchantClient(
+    credentials.username,
+    credentials.password,
+    credentials.environment
+  );
+}
 
 // Simplified function for invoice detail page
 export async function getMXInvoiceDetail(invoiceId: number): Promise<MXInvoiceDetail> {

@@ -1,48 +1,116 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { createMXClientForMerchant } from '@/lib/mx-merchant-client'
+import { MXWebhookPayload } from '@/types/invoice'
+import {
+  saveTransactionFromWebhook,
+  saveInvoiceFromWebhook,
+  lookupProductCategory,
+  updateTransactionInvoiceLink,
+  logWebhookProcessing,
+  transformPaymentDetailToTransaction,
+  transformInvoiceDetailToInvoice
+} from '@/lib/database/webhook-operations'
 
 export async function POST(request: NextRequest) {
   const timestamp = new Date().toISOString()
-  console.log(`🚀 [${timestamp}] Webhook POST request received`)
+  console.log(`🚀 [${timestamp}] MX Merchant webhook received`)
   
   try {
     const rawBody = await request.text()
-    const headers = Object.fromEntries(request.headers.entries())
+    const payload: MXWebhookPayload = JSON.parse(rawBody)
     
-    console.log(`📝 [${timestamp}] Raw body length: ${rawBody.length} chars`)
-    console.log(`📋 [${timestamp}] Headers:`, JSON.stringify(headers, null, 2))
-    console.log(`💾 [${timestamp}] Webhook payload:`, rawBody)
+    console.log(`📥 [${timestamp}] Processing transaction ${payload.id} for merchant ${payload.merchantId}`)
     
-    const { data, error } = await supabaseAdmin
-      .from('webhook_test_data')
-      .insert({
-        raw_body: rawBody,
-        webhook_data: JSON.parse(rawBody),
-        headers: headers,
-        received_at: timestamp
-      })
-      .select()
+    const { merchantId } = payload
+    const transactionId = parseInt(payload.id)
     
-    if (error) {
-      console.error(`❌ [${timestamp}] Database error:`, error)
-      return NextResponse.json(
-        { error: 'Failed to save webhook data', details: error.message },
-        { status: 500 }
-      )
+    // 1. Get merchant-specific MX Client with credentials
+    const mxClient = await createMXClientForMerchant(merchantId)
+    
+    // 2. Fetch enhanced transaction details from MX Merchant API
+    const transactionDetail = await mxClient.getPaymentDetail(transactionId, merchantId)
+    
+    let invoiceId: string | null = null
+    let productName: string | null = null
+    let productCategory: string | null = null
+    
+    // 3. Process invoices if they exist
+    if (transactionDetail.invoiceIds && transactionDetail.invoiceIds.length > 0) {
+      const mxInvoiceId = transactionDetail.invoiceIds[0]
+      
+      try {
+        // Fetch invoice details
+        const invoiceDetail = await mxClient.getInvoiceDetail(mxInvoiceId, merchantId)
+        
+        // Extract product information
+        if (invoiceDetail.purchases && invoiceDetail.purchases.length > 0) {
+          productName = invoiceDetail.purchases[0].productName
+          productCategory = await lookupProductCategory(productName, merchantId)
+        }
+        
+        // Save invoice to database
+        const invoiceData = transformInvoiceDetailToInvoice(invoiceDetail, merchantId)
+        const savedInvoice = await saveInvoiceFromWebhook(invoiceData)
+        invoiceId = savedInvoice.id
+        
+        console.log(`💰 [${timestamp}] Invoice ${mxInvoiceId} processed with product: ${productName}`)
+        
+      } catch (invoiceError) {
+        console.error(`⚠️ [${timestamp}] Invoice processing failed for ${mxInvoiceId}:`, invoiceError)
+        // Continue with transaction processing even if invoice fails
+      }
     }
-
-    console.log(`✅ [${timestamp}] Webhook saved successfully with ID: ${data[0]?.id}`)
+    
+    // 4. Save transaction with all collected data
+    const transactionData = transformPaymentDetailToTransaction(
+      transactionDetail,
+      payload,
+      productName,
+      productCategory,
+      invoiceId
+    )
+    
+    const savedTransaction = await saveTransactionFromWebhook(transactionData)
+    
+    // 5. Link transaction to invoice if both exist
+    if (invoiceId && savedTransaction.id) {
+      await updateTransactionInvoiceLink(savedTransaction.id, invoiceId)
+    }
+    
+    // 6. Log successful processing
+    await logWebhookProcessing(merchantId, transactionId, 'success')
+    
+    console.log(`✅ [${timestamp}] Transaction ${transactionId} processed successfully`)
     
     return NextResponse.json({
       success: true,
-      id: data[0]?.id,
-      timestamp: timestamp
+      transactionId: savedTransaction.id,
+      invoiceId,
+      productCategory,
+      timestamp
     })
 
   } catch (error) {
-    console.error(`💥 [${timestamp}] Webhook processing error:`, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error(`💥 [${timestamp}] Webhook processing failed:`, error)
+    
+    // Log failed processing if we have merchant info
+    try {
+      const payload = JSON.parse(await request.clone().text())
+      if (payload.merchantId && payload.id) {
+        await logWebhookProcessing(
+          payload.merchantId,
+          parseInt(payload.id),
+          'error',
+          errorMessage
+        )
+      }
+    } catch (logError) {
+      console.error(`Failed to log error:`, logError)
+    }
+    
     return NextResponse.json(
-      { error: 'Webhook processing failed' },
+      { error: 'Webhook processing failed', details: errorMessage },
       { status: 500 }
     )
   }

@@ -234,9 +234,66 @@ export interface MXPayment {
 }
 
 export interface MXPaymentDetail extends MXPayment {
-  // Additional fields that might be in detail view
-  fullCardNumber?: string;
-  billingAddress?: Record<string, unknown>;
-  shippingAddress?: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
+  // Enhanced fields available in detail API endpoint
+  batchId?: number;
+  entryMode?: string;
+  cardId?: string;
+  expiryMonth?: string;
+  expiryYear?: string;
+  isDebit?: boolean;
+  isCorp?: boolean;
+  avsResponseCode?: string;
+  avsAddressMatch?: boolean;
+  avsZipMatch?: boolean;
+  originalAmount?: string;
+  availableAuthAmount?: string;
+  cashbackAmount?: string;
+  surchargeRate?: string;
+  discountAmount?: string;
+  balance?: string;
+  requireSignature?: boolean;
+  settledDate?: string;
+  cardPresent?: boolean;
+  reviewIndicator?: number;
+  shouldGetCreditCardLevel?: boolean;
+  IssuerResponseCode?: string;
+  posData?: {
+    panCaptureMethod?: string;
+  };
+  risk?: {
+    avsResponseCode?: string;
+    avsAddressMatch?: boolean;
+    avsZipMatch?: boolean;
+    avsAccountNameMatchPerformed?: boolean;
+  };
+}
+
+// Webhook payload interface based on actual MX Merchant webhook structure
+export interface MXWebhookPayload {
+  eventType: 'PaymentSuccess' | 'PaymentFail' | 'RefundCreated';
+  merchantId: string;
+  xmid?: string;
+  dba?: string;
+  id: string; // Transaction ID
+  invoiceId?: string; // Usually empty, need API call for actual invoice IDs
+  invoiceNumber?: string; // Invoice number for display
+  transactionDate: string;
+  localDate?: string;
+  transactionTypeName?: string;
+  paymentType?: string;
+  card?: string; // Card type (MasterCard, Visa, etc.)
+  referenceNumber?: string;
+  authorizationCode?: string;
+  responseCode?: string;
+  replayId?: string;
+  pan4?: string; // Last 4 digits of card
+  totalAmount: string;
+  responseMessage?: string;
+  customer: string; // Customer name
+  customerNumber?: string;
+  source: string; // 'Recurring', 'API', 'QuickPay', etc.
+  customFields?: string;
+  baseAmount?: string;
+  advantageFeeType?: string;
+  advantageFeeAmount?: string;
 }
