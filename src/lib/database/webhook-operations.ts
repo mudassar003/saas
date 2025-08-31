@@ -136,21 +136,22 @@ export async function logWebhookProcessing(
   status: 'success' | 'error',
   errorMessage?: string
 ): Promise<void> {
+  const timestamp = new Date().toISOString();
+  
   const { error } = await supabase
     .from('sync_logs')
     .insert({
-      user_id: null, // Webhook processing doesn't have a user
       sync_type: 'webhook',
       status,
-      total_invoices: status === 'success' ? 1 : 0,
-      total_transactions: status === 'success' ? 1 : 0,
+      records_processed: status === 'success' ? 1 : 0,
+      records_failed: status === 'success' ? 0 : 1,
       error_message: errorMessage || null,
-      details: {
-        merchant_id: merchantId,
-        transaction_id: transactionId,
-        processed_at: new Date().toISOString()
-      },
-      created_at: new Date().toISOString()
+      started_at: timestamp,
+      completed_at: timestamp,
+      api_calls_made: status === 'success' ? 2 : 1, // Payment detail + invoice detail calls
+      last_processed_payment_id: transactionId,
+      transactions_processed: status === 'success' ? 1 : 0,
+      transactions_failed: status === 'success' ? 0 : 1
     });
     
   if (error) {
