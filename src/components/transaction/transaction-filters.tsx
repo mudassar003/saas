@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Select, 
   SelectContent, 
@@ -12,17 +13,26 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 
+type TabKey = 'all' | 'trt' | 'weight_loss' | 'peptides' | 'ed' | 'cancellations';
+
 interface FilterState {
   search: string;
   status: string;
   showType: string;
+  category: string;
+  membershipStatus: string;
+  googleReview: string;
+  referralSource: string;
+  fulfillmentType: string;
   dateRange: string;
+  activeTab: TabKey;
 }
 
 interface TransactionFiltersProps {
   onFiltersChange: (filters: FilterState) => void;
   resultsCount: number;
   totalCount: number;
+  activeTab: TabKey;
   statistics: {
     total: number;
     withInvoices: number;
@@ -30,6 +40,20 @@ interface TransactionFiltersProps {
     approved: number;
     settled: number;
     declined: number;
+    categories: {
+      TRT: number;
+      'Weight Loss': number;
+      Peptides: number;
+      ED: number;
+      Other: number;
+      Uncategorized: number;
+    };
+    tabCounts: Record<TabKey, number>;
+    membershipStatus: {
+      active: number;
+      canceled: number;
+      paused: number;
+    };
   };
 }
 
@@ -37,17 +61,41 @@ export function TransactionFilters({
   onFiltersChange, 
   resultsCount, 
   totalCount,
+  activeTab,
   statistics
 }: TransactionFiltersProps) {
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     status: 'all',
     showType: 'all',
-    dateRange: 'all'
+    category: 'all',
+    membershipStatus: 'all',
+    googleReview: 'all',
+    referralSource: 'all',
+    fulfillmentType: 'all',
+    dateRange: 'all',
+    activeTab: 'all'
   });
+
+  // Local state for search input (doesn't trigger API calls)
+  const [searchInput, setSearchInput] = useState('');
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    onFiltersChange(newFilters);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newFilters = { ...filters, search: searchInput.trim() };
+    setFilters(newFilters);
+    onFiltersChange(newFilters);
+  };
+
+  const handleSearchClear = () => {
+    setSearchInput('');
+    const newFilters = { ...filters, search: '' };
     setFilters(newFilters);
     onFiltersChange(newFilters);
   };
@@ -57,8 +105,15 @@ export function TransactionFilters({
       search: '',
       status: 'all',
       showType: 'all',
-      dateRange: 'all'
+      category: 'all',
+      membershipStatus: 'all',
+      googleReview: 'all',
+      referralSource: 'all',
+      fulfillmentType: 'all',
+      dateRange: 'all',
+      activeTab: activeTab // Keep the current tab
     };
+    setSearchInput('');
     setFilters(emptyFilters);
     onFiltersChange(emptyFilters);
   };
@@ -66,110 +121,237 @@ export function TransactionFilters({
   const hasActiveFilters = filters.search || 
     filters.status !== 'all' || 
     filters.showType !== 'all' || 
+    filters.category !== 'all' || 
+    filters.membershipStatus !== 'all' || 
+    filters.googleReview !== 'all' || 
+    filters.referralSource !== 'all' || 
+    filters.fulfillmentType !== 'all' || 
     filters.dateRange !== 'all';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
+
       {/* Search and Quick Actions */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search transactions, customers..."
-            value={filters.search}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      <div className="flex flex-col lg:flex-row items-start lg:items-center gap-2">
+        <form onSubmit={handleSearchSubmit} className="relative w-full lg:flex-1 lg:max-w-sm flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by customer name..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-10"
+              autoComplete="off"
+              suppressHydrationWarning={true}
+            />
+          </div>
+          <Button type="submit" size="sm" className="px-3">
+            <Search className="h-4 w-4" />
+          </Button>
+          {(searchInput || filters.search) && (
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={handleSearchClear}
+              className="px-3"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </form>
         
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Filters:</span>
-        </div>
-        
-        {/* Transaction Type Filter */}
-        <Select value={filters.showType} onValueChange={(value) => handleFilterChange('showType', value)}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Transaction Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Transactions ({statistics.total})</SelectItem>
-            <SelectItem value="with_invoices">With Invoices ({statistics.withInvoices})</SelectItem>
-            <SelectItem value="standalone">Standalone ({statistics.standalone})</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Status Filter */}
-        <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="Approved">Approved ({statistics.approved})</SelectItem>
-            <SelectItem value="Settled">Settled ({statistics.settled})</SelectItem>
-            <SelectItem value="Declined">Declined ({statistics.declined})</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Date Range Filter */}
-        <Select value={filters.dateRange} onValueChange={(value) => handleFilterChange('dateRange', value)}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="Date Range" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Time</SelectItem>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="week">This Week</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
-            <SelectItem value="year">This Year</SelectItem>
-          </SelectContent>
-        </Select>
-
         {/* Clear Filters */}
         {hasActiveFilters && (
-          <Button variant="outline" size="sm" onClick={clearFilters}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={clearFilters}
+            className="transition-all duration-200 hover:scale-105 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700 dark:hover:bg-rose-900/20 dark:hover:border-rose-800 dark:hover:text-rose-300"
+          >
             <X className="h-4 w-4 mr-1" />
-            Clear
+            Clear All
           </Button>
         )}
       </div>
 
+      {/* Compact Filters - Reduced for Tab-based Navigation */}
+      <div className="bg-slate-50/50 dark:bg-slate-900/20 rounded-lg p-3 border border-slate-200 dark:border-slate-800">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          {/* Only show relevant filters based on active tab */}
+          {activeTab !== 'cancellations' && (
+            <Select value={filters.showType} onValueChange={(value) => handleFilterChange('showType', value)}>
+              <SelectTrigger className="w-full h-8 text-xs">
+                <SelectValue>
+                  {filters.showType === 'all' ? 'Type: All' : 
+                   filters.showType === 'with_invoices' ? 'Type: With Invoice' :
+                   filters.showType === 'standalone' ? 'Type: Standalone' : 'Type'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="with_invoices">With Invoice</SelectItem>
+                <SelectItem value="standalone">Standalone</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+            
+          <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+            <SelectTrigger className="w-full h-8 text-xs">
+              <SelectValue>
+                {filters.status === 'all' ? 'Status: All' : 
+                 filters.status === 'Approved' ? 'Status: Approved' :
+                 filters.status === 'Settled' ? 'Status: Settled' :
+                 filters.status === 'Declined' ? 'Status: Declined' : 'Status'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="Approved">Approved</SelectItem>
+              <SelectItem value="Settled">Settled</SelectItem>
+              <SelectItem value="Declined">Declined</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Only show membership status filter on cancellations tab */}
+          {activeTab === 'cancellations' && (
+            <Select value={filters.membershipStatus} onValueChange={(value) => handleFilterChange('membershipStatus', value)}>
+              <SelectTrigger className="w-full h-8 text-xs">
+                <SelectValue>
+                  {filters.membershipStatus === 'all' ? 'Status: All' : 
+                   filters.membershipStatus === 'active' ? 'Status: Active' :
+                   filters.membershipStatus === 'canceled' ? 'Status: Canceled' :
+                   filters.membershipStatus === 'paused' ? 'Status: Paused' : 'Status'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="canceled">Canceled</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+            
+          <Select value={filters.googleReview} onValueChange={(value) => handleFilterChange('googleReview', value)}>
+            <SelectTrigger className="w-full h-8 text-xs">
+              <SelectValue>
+                {filters.googleReview === 'all' ? 'Review: All' : 
+                 filters.googleReview === 'true' ? 'Review: Yes' :
+                 filters.googleReview === 'false' ? 'Review: No' : 'Review'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="true">Yes</SelectItem>
+              <SelectItem value="false">No</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.referralSource} onValueChange={(value) => handleFilterChange('referralSource', value)}>
+            <SelectTrigger className="w-full h-8 text-xs">
+              <SelectValue>
+                {filters.referralSource === 'all' ? 'Referral: All' : 
+                 filters.referralSource === 'online' ? 'Referral: Online' :
+                 filters.referralSource === 'refer_a_friend' ? 'Referral: Refer Friend' :
+                 filters.referralSource === 'other' ? 'Referral: Other' : 'Referral'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="online">Online</SelectItem>
+              <SelectItem value="refer_a_friend">Refer Friend</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+            
+          <Select value={filters.fulfillmentType} onValueChange={(value) => handleFilterChange('fulfillmentType', value)}>
+            <SelectTrigger className="w-full h-8 text-xs">
+              <SelectValue>
+                {filters.fulfillmentType === 'all' ? 'Fulfillment: All' : 
+                 filters.fulfillmentType === 'in_office' ? 'Fulfillment: In Office' :
+                 filters.fulfillmentType === 'mail_out' ? 'Fulfillment: Mail Out' : 'Fulfillment'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="in_office">In Office</SelectItem>
+              <SelectItem value="mail_out">Mail Out</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.dateRange} onValueChange={(value) => handleFilterChange('dateRange', value)}>
+            <SelectTrigger className="w-full h-8 text-xs">
+              <SelectValue>
+                {filters.dateRange === 'all' ? 'Date: All Time' : 
+                 filters.dateRange === 'today' ? 'Date: Today' :
+                 filters.dateRange === 'week' ? 'Date: Week' :
+                 filters.dateRange === 'month' ? 'Date: Month' : 'Date'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">Week</SelectItem>
+              <SelectItem value="month">Month</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Hide category filter on specific tabs since they're already filtered */}
+          {activeTab === 'all' && (
+            <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
+              <SelectTrigger className="w-full h-8 text-xs">
+                <SelectValue>
+                  {filters.category === 'all' ? 'Category: All' : 
+                   filters.category === 'TRT' ? 'Category: TRT' :
+                   filters.category === 'Weight Loss' ? 'Category: Weight Loss' :
+                   filters.category === 'Peptides' ? 'Category: Peptides' :
+                   filters.category === 'ED' ? 'Category: ED' : 'Category'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="TRT">TRT</SelectItem>
+                <SelectItem value="Weight Loss">Weight Loss</SelectItem>
+                <SelectItem value="Peptides">Peptides</SelectItem>
+                <SelectItem value="ED">ED</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      </div>
+
       {/* Results Summary */}
-      <div className="text-sm text-muted-foreground">
-        Showing {resultsCount.toLocaleString()} of {totalCount.toLocaleString()} transactions
-        {hasActiveFilters && (
-          <span className="ml-2 text-blue-600">
-            (filtered)
-          </span>
+      <div className="text-sm text-muted-foreground flex items-center gap-4">
+        <span>
+          Showing {resultsCount.toLocaleString()} of {totalCount.toLocaleString()} patients
+          {hasActiveFilters && (
+            <span className="ml-2 text-blue-600">
+              (filtered)
+            </span>
+          )}
+        </span>
+        {filters.search && (
+          <Badge variant="outline" className="text-xs">
+            Searching: &quot;{filters.search}&quot;
+          </Badge>
         )}
       </div>
 
-      {/* Transaction Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <div className="bg-blue-50 p-3 rounded border-l-4 border-blue-500">
-          <p className="text-sm font-medium text-blue-600">Total</p>
-          <p className="text-2xl font-bold text-blue-900">{statistics.total}</p>
-        </div>
-        <div className="bg-green-50 p-3 rounded border-l-4 border-green-500">
-          <p className="text-sm font-medium text-green-600">With Invoices</p>
-          <p className="text-2xl font-bold text-green-900">{statistics.withInvoices}</p>
-        </div>
-        <div className="bg-orange-50 p-3 rounded border-l-4 border-orange-500">
-          <p className="text-sm font-medium text-orange-600">Standalone</p>
-          <p className="text-2xl font-bold text-orange-900">{statistics.standalone}</p>
-        </div>
-        <div className="bg-emerald-50 p-3 rounded border-l-4 border-emerald-500">
-          <p className="text-sm font-medium text-emerald-600">Approved</p>
-          <p className="text-2xl font-bold text-emerald-900">{statistics.approved}</p>
-        </div>
-        <div className="bg-purple-50 p-3 rounded border-l-4 border-purple-500">
-          <p className="text-sm font-medium text-purple-600">Settled</p>
-          <p className="text-2xl font-bold text-purple-900">{statistics.settled}</p>
-        </div>
-        <div className="bg-red-50 p-3 rounded border-l-4 border-red-500">
-          <p className="text-sm font-medium text-red-600">Declined</p>
-          <p className="text-2xl font-bold text-red-900">{statistics.declined}</p>
+      {/* Compact Statistics */}
+      <div className="bg-slate-50/50 dark:bg-slate-900/20 rounded-lg p-2 border border-slate-200 dark:border-slate-800">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="flex items-center gap-1 px-2 py-1 bg-sky-100 dark:bg-sky-900/30 rounded text-sky-700 dark:text-sky-300">
+            <span>Total:</span> <span className="font-bold">{statistics.total}</span>
+          </div>
+          <div className="flex items-center gap-1 px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 rounded text-emerald-700 dark:text-emerald-300">
+            <span>Active:</span> <span className="font-bold">{statistics.membershipStatus.active}</span>
+          </div>
+          <div className="flex items-center gap-1 px-2 py-1 bg-violet-100 dark:bg-violet-900/30 rounded text-violet-700 dark:text-violet-300">
+            <span>Approved:</span> <span className="font-bold">{statistics.approved}</span>
+          </div>
+          <div className="flex items-center gap-1 px-2 py-1 bg-rose-100 dark:bg-rose-900/30 rounded text-rose-700 dark:text-rose-300">
+            <span>Declined:</span> <span className="font-bold">{statistics.declined}</span>
+          </div>
         </div>
       </div>
     </div>

@@ -292,10 +292,10 @@ export interface MXWebhookPayload {
   xmid?: string;
   dba?: string;
   id: string; // Transaction ID
+  transactionDate?: string; // ⭐ MX Merchant transaction time - "Aug 9 2018 6:21PM" format
+  localDate?: string; // ⭐ Merchant's local timezone
   invoiceId?: string; // Usually empty, need API call for actual invoice IDs
   invoiceNumber?: string; // Invoice number for display
-  transactionDate: string;
-  localDate?: string;
   transactionTypeName?: string;
   paymentType?: string;
   card?: string; // Card type (MasterCard, Visa, etc.)

@@ -4,6 +4,8 @@
 
 This documentation describes the optimized database schema for our real-time webhook-based transaction processing system with membership dashboard capabilities. All tables are designed for millions of rows with proper indexing and multi-tenant isolation.
 
+**Total Tables:** 5 (mx_merchant_configs, invoices, transactions, product_categories, sync_logs)
+
 ---
 
 ## 📋 Database Tables & Relationships
@@ -260,6 +262,66 @@ ALTER TABLE product_categories ADD CONSTRAINT unique_merchant_product UNIQUE(mer
 **Relationships**:
 - **Many-to-One** with `mx_merchant_configs` (via merchant_id)
 - **Used by** `transactions` (lookup via merchant_id + product_name)
+
+---
+
+### 5. **sync_logs** - Webhook & Sync Processing Audit Trail
+
+**Purpose:** Tracks all webhook processing, manual syncs, and batch operations for monitoring and debugging.
+
+| column_name | data_type | is_nullable | column_default | Purpose & Usage |
+| ----------- | --------- | ----------- | -------------- | --------------- |
+| id | uuid | NO | gen_random_uuid() | Primary key |
+| sync_type | varchar(50) | NO | null | **Processing type**: 'webhook', 'manual', 'scheduled', 'bulk' |
+| status | varchar(20) | NO | null | **Processing status**: 'success', 'error', 'in_progress', 'cancelled' |
+| records_processed | integer | YES | 0 | Number of records successfully processed |
+| records_failed | integer | YES | 0 | Number of records that failed processing |
+| error_message | text | YES | null | Detailed error message for failed processing |
+| started_at | timestamp with time zone | YES | now() | When processing started |
+| completed_at | timestamp with time zone | YES | null | When processing completed |
+| api_calls_made | integer | YES | 0 | Number of MX Merchant API calls made |
+| last_processed_invoice_id | bigint | YES | null | Last invoice ID processed (for resume capability) |
+| last_processed_payment_id | bigint | YES | null | Last payment ID processed (for resume capability) |
+| transactions_processed | integer | YES | 0 | Number of transactions processed |
+| transactions_failed | integer | YES | 0 | Number of transaction processing failures |
+| created_at | timestamp with time zone | YES | now() | Record creation timestamp |
+| updated_at | timestamp with time zone | YES | now() | Last update timestamp |
+
+**Indexes:**
+```sql
+-- Performance indexes for monitoring queries
+CREATE INDEX idx_sync_logs_sync_type ON sync_logs(sync_type);
+CREATE INDEX idx_sync_logs_status ON sync_logs(status);
+CREATE INDEX idx_sync_logs_started_at ON sync_logs(started_at DESC);
+
+-- Constraints for data integrity
+ALTER TABLE sync_logs ADD CONSTRAINT chk_sync_logs_status 
+  CHECK (status IN ('success', 'error', 'in_progress', 'cancelled'));
+
+ALTER TABLE sync_logs ADD CONSTRAINT chk_sync_logs_sync_type 
+  CHECK (sync_type IN ('webhook', 'manual', 'scheduled', 'bulk'));
+```
+
+**Usage Examples:**
+```sql
+-- Monitor webhook processing success rate
+SELECT sync_type, status, COUNT(*) 
+FROM sync_logs 
+WHERE sync_type = 'webhook' 
+GROUP BY sync_type, status;
+
+-- Find recent processing errors
+SELECT * FROM sync_logs 
+WHERE status = 'error' 
+ORDER BY started_at DESC 
+LIMIT 10;
+```
+
+**Relationships:**
+- **Standalone audit table** - References transaction/invoice IDs but no foreign keys
+- **Used by webhook processing** - Logs every webhook processing attempt
+- **Used by manual sync** - Tracks batch sync operations
+- **Used for monitoring** - Performance and error tracking
 
 ---
 

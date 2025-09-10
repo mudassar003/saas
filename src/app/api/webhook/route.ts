@@ -70,6 +70,13 @@ export async function POST(request: NextRequest) {
       invoiceId
     )
     
+    // Log date source for verification
+    if (payload.transactionDate) {
+      console.log(`📅 [${timestamp}] Using webhook date: ${payload.transactionDate} → ${transactionData.transaction_date}`);
+    } else {
+      console.log(`📅 [${timestamp}] Using API date: ${transactionDetail.created} → ${transactionData.transaction_date}`);
+    }
+    
     const savedTransaction = await saveTransactionFromWebhook(transactionData)
     
     // 5. Link transaction to invoice if both exist

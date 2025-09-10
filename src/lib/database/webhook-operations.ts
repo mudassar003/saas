@@ -160,6 +160,24 @@ export async function logWebhookProcessing(
   }
 }
 
+// Helper function to parse MX Merchant date format "Aug 9 2018 6:21PM" to ISO string
+function parseMXMerchantDate(dateString: string): string {
+  if (!dateString) return new Date().toISOString();
+  
+  try {
+    // MX Merchant format: "Aug 9 2018 6:21PM" 
+    const parsedDate = new Date(dateString);
+    if (isNaN(parsedDate.getTime())) {
+      console.warn(`Failed to parse MX Merchant date: ${dateString}, using current time`);
+      return new Date().toISOString();
+    }
+    return parsedDate.toISOString();
+  } catch (error) {
+    console.warn(`Error parsing MX Merchant date: ${dateString}, using current time`);
+    return new Date().toISOString();
+  }
+}
+
 export function transformPaymentDetailToTransaction(
   paymentDetail: MXPaymentDetail,
   webhookPayload: MXWebhookPayload,
@@ -167,10 +185,15 @@ export function transformPaymentDetailToTransaction(
   productCategory: string | null = null,
   invoiceId: string | null = null
 ): WebhookTransactionData {
+  // Use webhook transactionDate for 100% authentic data from MX Merchant
+  const authenticTransactionDate = webhookPayload.transactionDate 
+    ? parseMXMerchantDate(webhookPayload.transactionDate)
+    : paymentDetail.created || new Date().toISOString();
+
   return {
     mx_payment_id: paymentDetail.id,
     amount: parseFloat(paymentDetail.amount || '0'),
-    transaction_date: paymentDetail.created || new Date().toISOString(),
+    transaction_date: authenticTransactionDate, // ⭐ Now uses webhook's exact transaction date
     status: paymentDetail.status || 'Unknown',
     customer_name: paymentDetail.customerName || webhookPayload.customer || null,
     card_type: paymentDetail.cardAccount?.cardType || webhookPayload.card || null,

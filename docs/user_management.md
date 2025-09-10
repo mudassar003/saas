@@ -1,216 +1,69 @@
 # User Management System Implementation Guide
 
-## Project Context & Requirements
+## Overview
+Implement enterprise-grade multi-tenant authentication for medical practice SaaS using Next.js 15 + PostgreSQL + NextAuth.js.
 
-### Current System State
-- **Next.js 15** + **TypeScript** + **Supabase PostgreSQL**
-- **Existing Tables**: `invoices`, `transactions`, `mx_merchant_configs`, `users` (basic)
-- **Current Auth**: No authentication system (needs implementation)
-- **Target**: Multi-tenant SaaS for medical practices (private/internal use)
-
-### Strategic Requirements
-- **Database Portability**: Must support future migration to AWS RDS (HIPAA compliant)
-- **No Vendor Lock-in**: Custom auth implementation using NextAuth.js + PostgreSQL
-- **Multi-Tenant**: 4 user roles with proper tenant isolation
-- **Security**: Row-Level Security (RLS) for data isolation
-- **Private Entity**: No 2FA needed, admin-only user creation
+## Current System Analysis
+- **Existing**: Transaction processing system with 5 tables (`invoices`, `transactions`, `mx_merchant_configs`, `product_categories`, `sync_logs`)
+- **Missing**: Authentication, authorization, multi-tenant isolation
+- **Goal**: Secure multi-tenant system with 4 user roles
 
 ---
 
-## User Roles & Access Levels
-
-### 1. **Super Admin** - Global System Administrators
-- **Access**: All tenants, all data, full CRUD
-- **Capabilities**:
-  - Create/manage tenants (medical practices)
-  - Create/manage all user types
-  - View any tenant's data
-  - System configuration and settings
-  - Initial data onboarding for tenants
-
-### 2. **Investor** - Read-Only Global Observers  
-- **Access**: All tenants, read-only
-- **Capabilities**:
-  - View all tenant dashboards and analytics
-  - Switch between tenant contexts
-  - Export reports and data
-- **Restrictions**: No create/update/delete operations
-
-### 3. **Tenant Admin** - Single Tenant Administrators
-- **Access**: Own tenant only, full CRUD within tenant
-- **Capabilities**:
-  - Manage tenant users (create/delete staff)
-  - Trigger data sync from MX Merchant
-  - Full access to tenant's invoices/transactions
-  - Update tenant settings
-- **Restrictions**: Cannot access other tenants
-
-### 4. **Tenant User** - Limited Single Tenant Users
-- **Access**: Own tenant only, mostly read-only
-- **Capabilities**:
-  - View tenant dashboards
-  - update all updateable columns all permission of admin only cant use manual sync
-- **Restrictions**: No user management, no admin functions
-
----
-
-## Database Schema Implementation
-
-### Phase 1: Essential Tables Only
-
-#### 1. Enhanced Users Table
-```sql
--- Extend existing users table
-ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS global_role TEXT CHECK (global_role IN ('superadmin', 'investor'));
-ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP WITH TIME ZONE;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id);
-
--- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_global_role ON users(global_role) WHERE global_role IS NOT NULL;
+## Required Dependencies
+```bash
+npm install next-auth bcryptjs @upstash/ratelimit @upstash/redis zod
+npm install @types/bcryptjs --save-dev
 ```
 
-#### 2. User-Tenant Membership Table
+## Database Schema Changes
+
+### 1. Create Authentication Tables
 ```sql
-CREATE TABLE IF NOT EXISTS user_tenants (
+-- Users table
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  password_hash TEXT NOT NULL,
+  global_role TEXT CHECK (global_role IN ('superadmin', 'investor')),
+  is_active BOOLEAN DEFAULT true,
+  last_login TIMESTAMP WITH TIME ZONE,
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- User-tenant relationships
+CREATE TABLE user_tenants (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   merchant_id BIGINT REFERENCES mx_merchant_configs(merchant_id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('admin', 'user')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_by UUID REFERENCES users(id),
-  
   PRIMARY KEY (user_id, merchant_id)
 );
 
--- Indexes for fast lookups
-CREATE INDEX IF NOT EXISTS idx_user_tenants_merchant ON user_tenants(merchant_id);
-CREATE INDEX IF NOT EXISTS idx_user_tenants_user_role ON user_tenants(user_id, role);
-```
-
-#### 3. Sessions Table (Database Sessions for HIPAA)
-```sql
-CREATE TABLE IF NOT EXISTS sessions (
+-- Sessions table
+CREATE TABLE sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
   session_token TEXT UNIQUE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
--- Indexes
-CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(session_token);
-CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 ```
 
-#### 4. Optional: Tenant Display Names
+### 2. Enable Row Level Security
 ```sql
--- Add friendly name to existing mx_merchant_configs
-ALTER TABLE mx_merchant_configs ADD COLUMN IF NOT EXISTS tenant_name TEXT;
-```
-
----
-
-## NextAuth.js Implementation
-
-### Configuration Structure
-```typescript
-// pages/api/auth/[...nextauth].ts
-export const authOptions: NextAuthOptions = {
-  session: { 
-    strategy: "database",  // HIPAA compliant
-    maxAge: 72 * 60 * 60    // 72 hours
-  },
-  
-  adapter: CustomPostgreSQLAdapter, // Our custom adapter
-  
-  providers: [
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        return await authenticateUser(credentials)
-      }
-    })
-  ],
-  
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = user.global_role || 'tenant_user'
-        token.tenant_id = user.merchant_id
-        token.is_tenant_admin = user.is_tenant_admin
-      }
-      return token
-    },
-    
-    async session({ session, user, token }) {
-      session.user.role = token.role
-      session.user.tenant_id = token.tenant_id
-      session.user.is_tenant_admin = token.is_tenant_admin
-      return session
-    }
-  },
-  
-  pages: {
-    signIn: '/auth/signin',    // Custom login page
-    error: '/auth/error'       // Custom error page
-  }
-}
-```
-
-### Authentication Logic
-```typescript
-// lib/auth.ts
-export async function authenticateUser(credentials: { email: string, password: string }) {
-  // 1. Find user by email
-  const user = await getUserByEmail(credentials.email)
-  if (!user || !user.is_active) return null
-  
-  // 2. Verify password
-  const isValid = await bcrypt.compare(credentials.password, user.password_hash)
-  if (!isValid) return null
-  
-  // 3. Get tenant associations and roles
-  const tenantMemberships = await getUserTenantMemberships(user.id)
-  
-  // 4. Update last login
-  await updateLastLogin(user.id)
-  
-  // 5. Return user object with role context
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    global_role: user.global_role,
-    merchant_id: tenantMemberships[0]?.merchant_id || null,
-    is_tenant_admin: tenantMemberships.some(m => m.role === 'admin'),
-    tenants: tenantMemberships
-  }
-}
-```
-
----
-
-## Row Level Security (RLS) Implementation
-
-### Enable RLS on All Tables
-```sql
+-- Enable RLS on all tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_tenants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mx_merchant_configs ENABLE ROW LEVEL SECURITY;
-```
 
-### Helper Function for Membership Check
-```sql
+-- Create helper function
 CREATE OR REPLACE FUNCTION user_is_member_of_tenant(p_user_id UUID, p_merchant_id BIGINT)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -220,14 +73,10 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-```
 
-### Data Table Policies (Transactions, Invoices)
-```sql
--- SELECT: User can read if they belong to tenant OR are global admin/investor
-CREATE POLICY "tenant_select" ON transactions
-FOR SELECT
-USING (
+-- Data access policies
+CREATE POLICY "tenant_data_access" ON transactions
+FOR SELECT USING (
   user_is_member_of_tenant(auth.uid(), merchant_id)
   OR EXISTS (
     SELECT 1 FROM users 
@@ -236,241 +85,91 @@ USING (
   )
 );
 
--- INSERT: Only tenant members or superadmin
-CREATE POLICY "tenant_insert" ON transactions
-FOR INSERT
-WITH CHECK (
-  user_is_member_of_tenant(auth.uid(), merchant_id)
-  OR EXISTS (
-    SELECT 1 FROM users 
-    WHERE id = auth.uid() 
-    AND global_role = 'superadmin'
-  )
-);
-
--- UPDATE: Only tenant admins or superadmin
-CREATE POLICY "tenant_update" ON transactions
-FOR UPDATE
-USING (
-  EXISTS (
-    SELECT 1 FROM user_tenants ut 
-    WHERE ut.user_id = auth.uid() 
-    AND ut.merchant_id = transactions.merchant_id 
-    AND ut.role = 'admin'
-  )
-  OR EXISTS (
-    SELECT 1 FROM users 
-    WHERE id = auth.uid() 
-    AND global_role = 'superadmin'
-  )
-);
-```
-
-### Administrative Table Policies
-```sql
--- mx_merchant_configs: Only superadmin can manage tenants
-CREATE POLICY "superadmin_tenants" ON mx_merchant_configs
-FOR ALL
-USING (
-  EXISTS (
-    SELECT 1 FROM users 
-    WHERE id = auth.uid() 
-    AND global_role = 'superadmin'
-  )
-);
-
--- user_tenants: Superadmin or tenant admin can manage memberships
-CREATE POLICY "membership_management" ON user_tenants
-FOR ALL
-USING (
-  EXISTS (
-    SELECT 1 FROM users 
-    WHERE id = auth.uid() 
-    AND global_role = 'superadmin'
-  )
-  OR (
-    auth.uid() IN (
-      SELECT ut2.user_id FROM user_tenants ut2 
-      WHERE ut2.merchant_id = user_tenants.merchant_id 
-      AND ut2.role = 'admin'
-    )
-  )
-);
+-- Apply similar policies to invoices, mx_merchant_configs tables
 ```
 
 ---
 
-## API Routes Implementation
+## Implementation Requirements
 
-### User Management APIs
+### 1. Input Validation (Zod Schemas)
+**File**: `lib/validation/auth-schemas.ts`
 
-#### Create User (POST /api/users)
-```typescript
-// Protected: Super Admin or Tenant Admin only
-export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  
-  const { email, name, password, merchant_id, role } = await request.json()
-  
-  // Authorization check
-  if (session.user.role !== 'superadmin') {
-    // Tenant Admin can only create users for their tenant
-    if (!canManageTenant(session.user.id, merchant_id)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-  }
-  
-  // Create user and membership
-  const hashedPassword = await bcrypt.hash(password, 12)
-  const user = await createUser({ email, name, password_hash: hashedPassword, created_by: session.user.id })
-  await createUserTenantMembership(user.id, merchant_id, role)
-  
-  return NextResponse.json({ success: true, user })
-}
-```
+**Requirements**:
+- Email validation with max 255 chars
+- Password: min 8 chars, uppercase, lowercase, number, special char
+- Name: 2-255 chars, letters/spaces only
+- Role enum validation
+- Export TypeScript types
 
-#### List Users (GET /api/users)
-```typescript
-export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  
-  let users
-  if (session.user.role === 'superadmin') {
-    users = await getAllUsers()
-  } else if (session.user.is_tenant_admin) {
-    users = await getTenantUsers(session.user.tenant_id)
-  } else {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-  
-  return NextResponse.json({ users })
-}
-```
+### 2. Error Handling System
+**File**: `lib/types/errors.ts`
 
-### Tenant Management APIs
+**Requirements**:
+- Define error types: `AuthenticationError`, `AuthorizationError`, `ValidationError`
+- Use Result pattern: `Result<T, E> = { success: true; data: T } | { success: false; error: E }`
+- Create utility functions for error creation
 
-#### Create Tenant (POST /api/tenants) - Super Admin Only
-```typescript
-export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (session?.user.role !== 'superadmin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-  
-  const { tenant_name, merchant_id, consumer_key, consumer_secret, admin_email, admin_name } = await request.json()
-  
-  // Create tenant and initial admin user
-  const tenant = await createTenant({
-    tenant_name,
-    merchant_id,
-    consumer_key,
-    consumer_secret,
-    created_by: session.user.id
-  })
-  
-  const adminUser = await createUser({
-    email: admin_email,
-    name: admin_name,
-    password_hash: await bcrypt.hash(generateTempPassword(), 12),
-    created_by: session.user.id
-  })
-  
-  await createUserTenantMembership(adminUser.id, merchant_id, 'admin')
-  
-  return NextResponse.json({ success: true, tenant, admin_user: adminUser })
-}
-```
+### 3. Security Middleware
+**File**: `middleware.ts`
+
+**Requirements**:
+- Rate limiting: 5 login attempts per 15 minutes
+- CSRF protection for POST requests
+- Origin validation
+- Security headers
+
+### 4. Repository Pattern (DAL)
+**File**: `lib/repositories/user-repository.ts`
+
+**Requirements**:
+- Interface `IUserRepository` with all CRUD operations
+- Caching layer (5-minute TTL for user data)
+- Password hashing with bcrypt (12 rounds)
+- Transaction safety for user creation
+- Proper error handling and logging
+
+### 5. NextAuth.js Configuration
+**File**: `pages/api/auth/[...nextauth].ts`
+
+**Requirements**:
+- Database session strategy (8-hour sessions)
+- Credentials provider with validation
+- Security event logging
+- Permission-based JWT tokens
+- Secure cookie settings
+
+### 6. API Routes with Authorization
+**Files**: `app/api/users/route.ts`, `app/api/tenants/route.ts`
+
+**Requirements**:
+- Input validation on all endpoints
+- Role-based authorization checks
+- Proper error responses
+- Audit logging for admin actions
 
 ---
 
-## UI Components & Pages
+## User Roles & Permissions
 
-### Dashboard Routes by Role
+### Role Hierarchy
+1. **Super Admin**: Global access, create tenants
+2. **Investor**: Read-only access to all tenants
+3. **Tenant Admin**: Full access to own tenant, manage users
+4. **Tenant User**: Read-only access to own tenant data
 
-#### Super Admin Dashboard
-- **Route**: `/admin/dashboard`
-- **Features**:
-  - List all tenants
-  - Create new tenants
-  - Tenant impersonation/switching
-  - Global user management
-  - System health metrics
-
-#### Investor Dashboard  
-- **Route**: `/investor/dashboard`
-- **Features**:
-  - Tenant selection dropdown
-  - Read-only analytics across tenants
-  - Export functionality
-  - Financial metrics and reports
-
-#### Tenant Admin Dashboard
-- **Route**: `/dashboard` (default after login)
-- **Features**:
-  - Tenant data management
-  - User management for tenant
-  - Data sync triggers
-  - Tenant settings
-
-#### Tenant User Dashboard
-- **Route**: `/dashboard` (limited view)
-- **Features**:
-  - View tenant data
-  - Limited export capabilities
-  - Basic reporting
-
-### Auth Pages
-- **Login**: `/auth/signin` - Email/password form
-- **Error**: `/auth/error` - Auth error handling
-
----
-
-## Data Access Layer (DAL)
-
-### User Management Functions
+### Authorization Logic
 ```typescript
-// lib/user-dal.ts
-export class UserDAL {
-  static async createUser(userData: CreateUserData): Promise<User> {
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .insert(userData)
-      .select()
-      .single()
-    
-    if (error) throw new Error(`Failed to create user: ${error.message}`)
-    return data
-  }
-  
-  static async getUserWithTenants(userId: string): Promise<UserWithTenants | null> {
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .select(`
-        *,
-        user_tenants (
-          merchant_id,
-          role,
-          mx_merchant_configs (
-            tenant_name,
-            merchant_id
-          )
-        )
-      `)
-      .eq('id', userId)
-      .single()
-    
-    return error ? null : data
-  }
-  
-  static async createUserTenantMembership(userId: string, merchantId: number, role: string): Promise<void> {
-    const { error } = await supabaseAdmin
-      .from('user_tenants')
-      .insert({ user_id: userId, merchant_id: merchantId, role })
-    
-    if (error) throw new Error(`Failed to create membership: ${error.message}`)
-  }
+// Check if user can access tenant data
+function canAccessTenant(userRole: string, userTenants: number[], targetTenant: number): boolean {
+  if (userRole === 'superadmin' || userRole === 'investor') return true;
+  return userTenants.includes(targetTenant);
+}
+
+// Check if user can manage tenant
+function canManageTenant(userRole: string, userTenants: TenantMembership[], targetTenant: number): boolean {
+  if (userRole === 'superadmin') return true;
+  return userTenants.some(t => t.merchant_id === targetTenant && t.role === 'admin');
 }
 ```
 
@@ -478,82 +177,73 @@ export class UserDAL {
 
 ## Implementation Phases
 
-### Phase 1: Database Setup
-1. Run schema migrations for new tables
-2. Set up RLS policies
-3. Create helper functions
-4. Seed initial Super Admin user
+### Phase 1: Security Foundation (Week 1)
+1. Create input validation schemas
+2. Implement error handling system  
+3. Set up security middleware
+4. Create database tables with RLS policies
 
-### Phase 2: NextAuth Configuration
-1. Install and configure NextAuth.js
-2. Create custom PostgreSQL adapter
-3. Implement authentication logic
-4. Set up session management
+### Phase 2: Authentication Core (Week 2)
+1. Build repository pattern with caching
+2. Configure NextAuth.js with security hardening
+3. Create authentication logic with proper error handling
+4. Add security event logging
 
-### Phase 3: API Routes
-1. User management endpoints
-2. Tenant management endpoints  
-3. Role-based authorization middleware
-4. Data access validation
+### Phase 3: Authorization & APIs (Week 3)
+1. Build user management API routes
+2. Implement tenant management for Super Admins
+3. Add role-based authorization middleware
+4. Create permission checking utilities
 
-### Phase 4: UI Implementation
-1. Login/logout pages
-2. Role-based dashboard components
-3. User management interfaces
-4. Tenant management (Super Admin)
-
-### Phase 5: Testing & Security
-1. Test all role permissions
-2. Verify RLS policy effectiveness
-3. Security audit and penetration testing
-4. Performance optimization
+### Phase 4: UI & Testing (Week 4)
+1. Build login/logout pages
+2. Create role-based dashboard routing
+3. Add user management interfaces
+4. Comprehensive security testing
 
 ---
 
-## Security Considerations
+## Critical Security Requirements
 
-### Password Security
-- **bcrypt** with salt rounds ≥ 12
-- Minimum 8 character passwords
-- No password reuse (future enhancement)
+### Must-Have Security Features
+- **Rate Limiting**: Prevent brute force attacks
+- **Input Validation**: All user input validated with Zod
+- **SQL Injection Protection**: Use parameterized queries only
+- **XSS Protection**: Sanitize all output
+- **CSRF Protection**: Token validation on state-changing operations
+- **Session Security**: HTTP-only cookies, proper expiration
+- **Audit Logging**: Log all authentication and authorization events
 
-### Session Security
-- Database sessions (HIPAA compliant)
-- 8-hour session timeout
-- Secure HTTP-only cookies
-- CSRF protection enabled
-
-### Data Protection
-- RLS policies on all multi-tenant tables
-- Input validation and sanitization
-- SQL injection prevention
-- XSS protection
-
-### Access Control
-- Role-based permissions at API level
-- Database-level enforcement via RLS
-- Tenant isolation guaranteed
-- Audit trail ready (future phase)
+### Compliance Requirements (HIPAA/SOC2)
+- Database sessions (not JWT tokens)
+- Comprehensive audit trails
+- User data encryption at rest
+- Secure password policies
+- Session timeout controls
 
 ---
 
-## Migration Strategy (Future AWS RDS)
+## Production Checklist
 
-This implementation is designed for easy migration:
+### Security Hardening
+- [ ] Rate limiting implemented and tested
+- [ ] All inputs validated with Zod schemas
+- [ ] RLS policies tested for data isolation
+- [ ] Security headers configured
+- [ ] Audit logging functional
 
-1. **Database Export**: Standard PostgreSQL dump/restore
-2. **Schema Compatibility**: All SQL is standard PostgreSQL
-3. **No Vendor Dependencies**: Pure NextAuth.js + PostgreSQL
-4. **Environment Variables**: Easy credential switching
-5. **HIPAA Ready**: Database sessions and audit trail support
+### Performance & Monitoring
+- [ ] Database queries optimized with proper indexing
+- [ ] Caching layer implemented for user data
+- [ ] Error monitoring configured
+- [ ] Health checks for authentication services
 
----
+### Testing
+- [ ] Unit tests for all authentication logic
+- [ ] Integration tests for API routes
+- [ ] Security penetration testing
+- [ ] Multi-tenant isolation verified
 
-## Next Steps for Implementation
+**Estimated Timeline**: 4-6 weeks for production-ready implementation
 
-1. **First**: Set up Prisma ORM for type-safe database operations
-2. **Then**: Follow this guide for user management system
-3. **Testing**: Implement with test users and roles
-4. **Production**: Deploy with proper environment configuration
-
-This system provides enterprise-grade security, scalability, and compliance readiness while maintaining database portability and avoiding vendor lock-in.
+**Key Success Metrics**: Zero security vulnerabilities, <100ms authentication response time, 99.9% uptime
