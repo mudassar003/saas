@@ -1,7 +1,7 @@
 # MX Merchant Notification/Webhook API Documentation
 
 ## API Endpoints
-documentation https://developer.mxmerchant.com/docs/notification-examples
+documentation https://indeveloper.mxmerchant.com/docs/notification-examples
 ### Base URLs
 - **Sandbox**: `https://sandbox.api.mxmerchant.com/checkout/v3/subscription`
 - **Production**: `https://api.mxmerchant.com/checkout/v3/subscription`

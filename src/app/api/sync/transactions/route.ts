@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleSyncService } from '@/lib/simple-sync'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-server'
 
 export async function POST(request: NextRequest) {
   try {

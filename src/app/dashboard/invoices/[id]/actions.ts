@@ -1,7 +1,7 @@
 'use server';
 
 import { DataSentUpdate } from '@/types/invoice';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
 import { getTexasISOString } from '@/lib/timezone';
 

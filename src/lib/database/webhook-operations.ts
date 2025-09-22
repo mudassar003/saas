@@ -172,7 +172,7 @@ function parseMXMerchantDate(dateString: string): string {
       return new Date().toISOString();
     }
     return parsedDate.toISOString();
-  } catch (error) {
+  } catch {
     console.warn(`Error parsing MX Merchant date: ${dateString}, using current time`);
     return new Date().toISOString();
   }

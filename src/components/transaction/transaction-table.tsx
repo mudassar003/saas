@@ -61,7 +61,6 @@ export function TransactionTable({
   const [updatingMembership, setUpdatingMembership] = useState<Set<string>>(new Set());
   const [updatingCategory, setUpdatingCategory] = useState<Set<string>>(new Set());
   const [updatingFulfillment, setUpdatingFulfillment] = useState<Set<string>>(new Set());
-  const [updatingGoogleReview, setUpdatingGoogleReview] = useState<Set<string>>(new Set());
 
   const handleUpdateDataSent = async (update: DataSentUpdate) => {
     if (!onUpdateDataSent) return;
@@ -154,28 +153,6 @@ export function TransactionTable({
     }
   };
 
-  const handleGoogleReviewUpdate = async (transactionId: string, newValue: boolean) => {
-    setUpdatingGoogleReview(prev => new Set(prev).add(transactionId));
-    try {
-      const response = await fetch(`/api/transactions?id=${transactionId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ google_review_submitted: newValue })
-      });
-      
-      if (response.ok) {
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error('Error updating Google review status:', error);
-    } finally {
-      setUpdatingGoogleReview(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(transactionId);
-        return newSet;
-      });
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -234,11 +211,6 @@ export function TransactionTable({
     }
   };
 
-  const getGoogleReviewColor = (submitted: boolean) => {
-    return submitted 
-      ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-300' 
-      : 'bg-rose-50 text-rose-900 dark:bg-rose-900/20 dark:text-rose-300';
-  };
 
 
   if (loading) {
@@ -296,12 +268,6 @@ export function TransactionTable({
             </div>
             <div className="flex-none w-[100px] px-2 py-1 text-[11px] font-bold text-[#3c4043] dark:text-slate-200 border-r border-[#dadce0] dark:border-slate-700 leading-[21px] flex items-center">
               Fulfillment
-            </div>
-            <div className="flex-none w-[110px] px-2 py-1 text-[11px] font-bold text-[#3c4043] dark:text-slate-200 border-r border-[#dadce0] dark:border-slate-700 leading-[21px] flex items-center">
-              Referral Source
-            </div>
-            <div className="flex-none w-[100px] px-2 py-1 text-[11px] font-bold text-[#3c4043] dark:text-slate-200 border-r border-[#dadce0] dark:border-slate-700 leading-[21px] flex items-center">
-              Google Review
             </div>
             <div className="flex-none w-[90px] px-2 py-1 text-[11px] font-bold text-[#3c4043] dark:text-slate-200 border-r border-[#dadce0] dark:border-slate-700 leading-[21px] flex items-center">
               Source
@@ -425,23 +391,6 @@ export function TransactionTable({
                   </select>
                 </div>
                 
-                {/* Referral Source */}
-                <div className="flex-none w-[110px] px-2 py-1 text-[11px] text-[#3c4043] dark:text-slate-200 border-r border-[#dadce0] dark:border-slate-700 leading-[19px] flex items-center">
-                  {transaction.referral_source || 'N/A'}
-                </div>
-                
-                {/* Google Review */}
-                <div className="flex-none w-[100px] px-2 py-1 border-r border-[#dadce0] dark:border-slate-700 leading-[19px] flex items-center">
-                  <select 
-                    value={transaction.google_review_submitted ? 'true' : 'false'}
-                    onChange={(e) => handleGoogleReviewUpdate(transaction.id, e.target.value === 'true')}
-                    disabled={updatingGoogleReview.has(transaction.id)}
-                    className={`w-full text-[11px] border-none bg-transparent outline-none px-1 py-0.5 rounded-sm ${getGoogleReviewColor(transaction.google_review_submitted || false)} cursor-pointer disabled:opacity-50`}
-                  >
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </select>
-                </div>
 
                 {/* Source */}
                 <div className="flex-none w-[90px] px-2 py-1 text-[11px] text-[#3c4043] dark:text-slate-200 border-r border-[#dadce0] dark:border-slate-700 leading-[19px] flex items-center">

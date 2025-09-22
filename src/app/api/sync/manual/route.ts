@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MXMerchantClient } from '@/lib/mx-merchant-client'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import { z } from 'zod'
 import type { MXPurchase } from '@/types/invoice'
 import type { SupabaseClient } from '@supabase/supabase-js'

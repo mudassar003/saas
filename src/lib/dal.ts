@@ -1,4 +1,5 @@
-import { supabaseAdmin, Tables, Inserts } from './supabase'
+import { supabaseAdmin } from './supabase-server'
+import { Tables, Inserts } from './supabase'
 import { MXInvoice, MXPayment } from '@/types/invoice'
 import { getTexasISOString, getTexasDateForFilename } from '@/lib/timezone'
 

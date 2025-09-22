@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-server'
+import { getCurrentMerchantId, applyMerchantFilter } from '@/lib/auth/api-utils'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    
-    // Use real database data (without auth for now)
-    console.log('Fetching invoices from database...')
+
+    // Get current user's merchant access
+    const merchantId = await getCurrentMerchantId(request)
+
+    console.log('Fetching invoices from database...', { merchantId })
 
     // Parse query parameters
     const limit = parseInt(searchParams.get('limit') || '50')
@@ -17,7 +20,7 @@ export async function GET(request: NextRequest) {
     const dateStart = searchParams.get('dateStart') || undefined
     const dateEnd = searchParams.get('dateEnd') || undefined
 
-    // Build database query
+    // Build database query with merchant filtering
     let query = supabaseAdmin
       .from('invoices')
       .select(`
@@ -37,6 +40,9 @@ export async function GET(request: NextRequest) {
       `)
       .order('invoice_date', { ascending: false })
       .order('created_at', { ascending: false })
+
+    // Apply merchant filtering
+    query = applyMerchantFilter(query, merchantId)
 
     // Apply smart search filters
     if (search) {
@@ -72,6 +78,9 @@ export async function GET(request: NextRequest) {
     let statsQuery = supabaseAdmin
       .from('invoices')
       .select('data_sent_status, total_amount', { count: 'exact' })
+
+    // Apply merchant filtering to stats query
+    statsQuery = applyMerchantFilter(statsQuery, merchantId)
 
     // Apply same filters to stats query
     if (search) {

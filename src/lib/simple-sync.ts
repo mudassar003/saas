@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './supabase'
+import { supabaseAdmin } from './supabase-server'
 import { MXMerchantClient } from './mx-merchant-client'
 import { MXPayment, MXInvoiceDetail } from '@/types/invoice'
 
