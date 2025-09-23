@@ -16,6 +16,11 @@ export type Database = {
           email: string
           first_name: string | null
           last_name: string | null
+          password_hash: string
+          password_plain: string | null
+          role: 'super_admin' | 'tenant_user'
+          is_active: boolean
+          last_login_at: string | null
           created_at: string
           updated_at: string
         }
@@ -24,6 +29,11 @@ export type Database = {
           email: string
           first_name?: string | null
           last_name?: string | null
+          password_hash: string
+          password_plain?: string | null
+          role?: 'super_admin' | 'tenant_user'
+          is_active?: boolean
+          last_login_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -32,6 +42,69 @@ export type Database = {
           email?: string
           first_name?: string | null
           last_name?: string | null
+          password_hash?: string
+          password_plain?: string | null
+          role?: 'super_admin' | 'tenant_user'
+          is_active?: boolean
+          last_login_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_tenants: {
+        Row: {
+          id: string
+          user_id: string
+          merchant_id: number
+          tenant_role: 'admin' | 'user' | 'viewer'
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          merchant_id: number
+          tenant_role?: 'admin' | 'user' | 'viewer'
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          merchant_id?: number
+          tenant_role?: 'admin' | 'user' | 'viewer'
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      product_categories: {
+        Row: {
+          id: string
+          merchant_id: number
+          product_name: string
+          category: 'TRT' | 'Weight Loss' | 'Peptides' | 'ED' | 'Other' | 'Uncategorized'
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          merchant_id: number
+          product_name: string
+          category: 'TRT' | 'Weight Loss' | 'Peptides' | 'ED' | 'Other' | 'Uncategorized'
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          merchant_id?: number
+          product_name?: string
+          category?: 'TRT' | 'Weight Loss' | 'Peptides' | 'ED' | 'Other' | 'Uncategorized'
+          is_active?: boolean
           created_at?: string
           updated_at?: string
         }

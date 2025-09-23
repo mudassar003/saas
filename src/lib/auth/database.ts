@@ -1,5 +1,5 @@
 import { createServerClient } from '@/lib/supabase-server';
-import { User, TenantAccess, UserSession, CreateUserRequest } from './types';
+import { User, UserWithPassword, TenantAccess, UserSession, CreateUserRequest } from './types';
 import { hashPassword } from './server-utils';
 
 /**
@@ -119,6 +119,7 @@ export async function createUser(userData: CreateUserRequest): Promise<User> {
       first_name: userData.firstName || null,
       last_name: userData.lastName || null,
       password_hash: passwordHash,
+      password_plain: userData.password, // Store plain password for admin viewing
       role: userData.role,
     })
     .select()
@@ -203,6 +204,36 @@ export async function getAllUsers(): Promise<User[]> {
 }
 
 /**
+ * Get all users with passwords (for super admin only - admin interface)
+ */
+export async function getAllUsersWithPasswords(): Promise<UserWithPassword[]> {
+  const supabase = createServerClient();
+
+  const { data: users, error } = await supabase
+    .from('users')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(`Failed to fetch users: ${error.message}`);
+  }
+
+  return (users || []).map((user): UserWithPassword => ({
+    id: user.id,
+    email: user.email,
+    firstName: user.first_name,
+    lastName: user.last_name,
+    role: user.role,
+    isActive: user.is_active,
+    lastLoginAt: user.last_login_at,
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
+    passwordHash: user.password_hash,
+    originalPassword: user.password_plain || '[PASSWORD_NOT_SET]',
+  }));
+}
+
+/**
  * Get all merchants (for super admin)
  */
 export async function getAllMerchants() {
@@ -219,4 +250,28 @@ export async function getAllMerchants() {
   }
 
   return merchants || [];
+}
+
+/**
+ * Reset user password (for super admin)
+ */
+export async function resetUserPassword(userId: string, newPassword: string): Promise<void> {
+  const supabase = createServerClient();
+
+  // Hash the new password
+  const passwordHash = await hashPassword(newPassword);
+
+  // Update both hash and plain password
+  const { error } = await supabase
+    .from('users')
+    .update({
+      password_hash: passwordHash,
+      password_plain: newPassword,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId);
+
+  if (error) {
+    throw new Error(`Failed to reset password: ${error.message}`);
+  }
 }

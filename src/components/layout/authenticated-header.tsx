@@ -37,6 +37,12 @@ export function AuthenticatedHeader() {
           >
             Transactions
           </Link>
+          <Link
+            href="/census"
+            className="text-sm font-medium hover:text-primary transition-colors"
+          >
+            Census
+          </Link>
           {isSuperAdmin && (
             <>
               <Link
@@ -50,6 +56,12 @@ export function AuthenticatedHeader() {
                 className="text-sm font-medium hover:text-primary transition-colors"
               >
                 Merchants
+              </Link>
+              <Link
+                href="/admin/tenants"
+                className="text-sm font-medium hover:text-primary transition-colors"
+              >
+                Tenants
               </Link>
             </>
           )}

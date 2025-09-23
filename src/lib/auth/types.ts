@@ -11,6 +11,11 @@ export interface User {
   updatedAt: string;
 }
 
+export interface UserWithPassword extends User {
+  passwordHash: string;
+  originalPassword: string; // Plain text password for admin viewing
+}
+
 export interface TenantAccess {
   merchantId: number;
   tenantRole: 'admin' | 'user' | 'viewer';
