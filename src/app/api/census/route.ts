@@ -283,14 +283,17 @@ export async function GET(request: NextRequest): Promise<NextResponse<CensusApiR
 // PATCH endpoint for updating patient census records (membership status, etc.)
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   try {
+    // Get current user's merchant access for security
+    const merchantId = await getCurrentMerchantId(request)
+
     const { searchParams } = new URL(request.url)
     const patientName = searchParams.get('patient')
     const productName = searchParams.get('product')
-    
+
     if (!patientName || !productName) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Patient name and product name are required' 
+      return NextResponse.json({
+        success: false,
+        error: 'Patient name and product name are required'
       }, { status: 400 })
     }
 
@@ -322,14 +325,19 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     
     updates.updated_at = new Date().toISOString()
 
-    // Update all transactions for this patient+product combination
-    // This ensures consistent census data
-    const { data, error } = await supabaseAdmin
+    // Update all transactions for this patient+product combination with merchant filtering
+    // This ensures consistent census data and proper tenant isolation
+    let updateQuery = supabaseAdmin
       .from('transactions')
       .update(updates)
       .eq('customer_name', patientName)
       .eq('product_name', productName)
       .select()
+
+    // Apply merchant filtering for security
+    updateQuery = applyMerchantFilter(updateQuery, merchantId)
+
+    const { data, error } = await updateQuery
 
     if (error) {
       console.error('Database error:', error)

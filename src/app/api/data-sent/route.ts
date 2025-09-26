@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { getTexasISOString } from '@/lib/timezone';
+import { getCurrentMerchantId, applyMerchantFilter } from '@/lib/auth/api-utils';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get current user's merchant access for security
+    const merchantId = await getCurrentMerchantId(request);
+
     const body = await request.json();
     const { invoice_id, transaction_id, status, notes } = body;
-    
+
     // Validate that either invoice_id or transaction_id is provided
     if (!invoice_id && !transaction_id) {
       return NextResponse.json(
@@ -37,12 +41,16 @@ export async function POST(request: NextRequest) {
         updated_at: timestamp
       };
       
-      const { data, error } = await supabaseAdmin
+      // Apply merchant filtering for security
+      let updateQuery = supabaseAdmin
         .from('invoices')
         .update(updatePayload)
         .eq('id', invoice_id)
-        .select()
-        .single();
+        .select();
+
+      updateQuery = applyMerchantFilter(updateQuery, merchantId);
+
+      const { data, error } = await updateQuery.single();
       
       if (error) {
         console.error('Database error updating invoice data sent status:', error);
@@ -76,12 +84,16 @@ export async function POST(request: NextRequest) {
         updated_at: timestamp
       };
       
-      const { data, error } = await supabaseAdmin
+      // Apply merchant filtering for security
+      let updateQuery = supabaseAdmin
         .from('transactions')
         .update(updatePayload)
         .eq('id', transaction_id)
-        .select()
-        .single();
+        .select();
+
+      updateQuery = applyMerchantFilter(updateQuery, merchantId);
+
+      const { data, error } = await updateQuery.single();
       
       if (error) {
         console.error('Database error updating transaction provider status:', error);

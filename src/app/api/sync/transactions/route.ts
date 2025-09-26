@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleSyncService } from '@/lib/simple-sync'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { getCurrentMerchantId, applyMerchantFilter } from '@/lib/auth/api-utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,20 +59,31 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // No authentication required
-    
-    // Get sync status
-    // Get invoice count
-    const { count: totalInvoices } = await supabaseAdmin
+    // Get current user's merchant access for security
+    const merchantId = await getCurrentMerchantId(request)
+
+    // Get sync status with merchant filtering
+    // Get invoice count for user's merchant only
+    let invoiceQuery = supabaseAdmin
       .from('invoices')
       .select('id', { count: 'exact', head: true })
+
+    // Apply merchant filtering
+    invoiceQuery = applyMerchantFilter(invoiceQuery, merchantId)
+
+    const { count: totalInvoices } = await invoiceQuery
       
-    // Get transaction counts from database for user
-    const { data: transactions, error: transactionError, count: transactionCount } = await supabaseAdmin
+    // Get transaction counts from database for user's merchant only
+    let transactionQuery = supabaseAdmin
       .from('transactions')
       .select('id, status, mx_invoice_number', { count: 'exact' })
+
+    // Apply merchant filtering
+    transactionQuery = applyMerchantFilter(transactionQuery, merchantId)
+
+    const { data: transactions, error: transactionError, count: transactionCount } = await transactionQuery
       
     if (transactionError) {
       console.error('Error fetching transaction status:', transactionError)

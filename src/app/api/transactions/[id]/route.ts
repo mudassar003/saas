@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { getCurrentMerchantId, applyMerchantFilter } from '@/lib/auth/api-utils'
 
 export async function GET(
   request: NextRequest,
@@ -7,17 +8,22 @@ export async function GET(
 ) {
   try {
     const { id: transactionId } = await params
-    
-    console.log('Fetching transaction details for ID:', transactionId)
 
-    // Fetch transaction with all linked invoices
-    const query = supabaseAdmin
+    // Get current user's merchant access for security
+    const merchantId = await getCurrentMerchantId(request)
+
+    console.log('Fetching transaction details for ID:', transactionId, { merchantId })
+
+    // Fetch transaction with merchant filtering for security
+    let query = supabaseAdmin
       .from('transactions')
       .select(`*`)
       .eq('id', transactionId)
-      .single()
 
-    const { data: transaction, error } = await query
+    // Apply merchant filtering
+    query = applyMerchantFilter(query, merchantId)
+
+    const { data: transaction, error } = await query.single()
 
     if (error) {
       console.error('Database error:', error)
@@ -34,7 +40,7 @@ export async function GET(
       }, { status: 404 })
     }
 
-    // If transaction has invoice number, fetch all invoices with that number
+    // If transaction has invoice number, fetch all invoices with that number (with merchant filtering)
     let invoices: Array<{
       id: string;
       invoice_number: number;
@@ -46,7 +52,7 @@ export async function GET(
       created_at: string;
     }> = []
     if (transaction.mx_invoice_number) {
-      const { data: invoiceData, error: invoiceError } = await supabaseAdmin
+      let invoiceQuery = supabaseAdmin
         .from('invoices')
         .select(`
           id,
@@ -60,6 +66,11 @@ export async function GET(
         `)
         .eq('invoice_number', transaction.mx_invoice_number)
         .order('created_at', { ascending: false })
+
+      // Apply merchant filtering to invoices as well
+      invoiceQuery = applyMerchantFilter(invoiceQuery, merchantId)
+
+      const { data: invoiceData, error: invoiceError } = await invoiceQuery
 
       if (invoiceData && !invoiceError) {
         invoices = invoiceData
