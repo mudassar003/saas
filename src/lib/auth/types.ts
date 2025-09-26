@@ -5,6 +5,7 @@ export interface User {
   firstName: string | null;
   lastName: string | null;
   role: 'super_admin' | 'tenant_user';
+  sessionVersion: number;
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
@@ -53,6 +54,7 @@ export interface JWTPayload {
   userId: string;
   email: string;
   role: 'super_admin' | 'tenant_user';
+  sessionVersion: number;
   currentMerchantId?: number;
   iat?: number;
   exp?: number;

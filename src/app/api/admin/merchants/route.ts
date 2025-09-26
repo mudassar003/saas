@@ -5,6 +5,7 @@ import { getAllMerchants } from '@/lib/auth/database';
 interface MerchantData {
   merchant_id: number;
   environment: string;
+  tenant_name: string | null;
   is_active: boolean;
   created_at: string;
 }

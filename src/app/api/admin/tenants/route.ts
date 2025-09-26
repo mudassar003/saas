@@ -10,6 +10,7 @@ interface TenantData {
   consumer_secret: string;
   environment: string;
   webhook_secret: string | null;
+  tenant_name: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -29,6 +30,7 @@ interface CreateTenantApiResponse {
 
 // Validation schema for creating tenant
 const createTenantSchema = z.object({
+  tenant_name: z.string().min(1, 'Tenant name is required').max(255, 'Tenant name too long'),
   merchant_id: z.number().positive('Merchant ID must be a positive number'),
   consumer_key: z.string().min(1, 'Consumer key is required'),
   consumer_secret: z.string().min(1, 'Consumer secret is required'),
@@ -110,6 +112,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateTen
     const { data: newTenant, error: createError } = await supabase
       .from('mx_merchant_configs')
       .insert({
+        tenant_name: tenantData.tenant_name,
         merchant_id: tenantData.merchant_id,
         consumer_key: tenantData.consumer_key,
         consumer_secret: tenantData.consumer_secret, // TODO: Encrypt in production

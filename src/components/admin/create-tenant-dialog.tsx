@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 
 const createTenantSchema = z.object({
+  tenant_name: z.string().min(1, 'Tenant name is required').max(255, 'Tenant name too long'),
   merchant_id: z.string().min(1, 'Merchant ID is required'),
   consumer_key: z.string().min(1, 'Consumer key is required'),
   consumer_secret: z.string().min(1, 'Consumer secret is required'),
@@ -39,6 +40,7 @@ interface TenantData {
   consumer_secret: string;
   environment: string;
   webhook_secret: string | null;
+  tenant_name: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -144,6 +146,24 @@ export function CreateTenantDialog({
               {error}
             </Alert>
           )}
+
+          <div className="space-y-2">
+            <label htmlFor="tenant_name" className="text-sm font-medium">
+              Tenant Name *
+            </label>
+            <Input
+              id="tenant_name"
+              placeholder="e.g., GameDay Men's Health - Austin"
+              {...register('tenant_name')}
+              disabled={isSubmitting}
+            />
+            {errors.tenant_name && (
+              <p className="text-sm text-red-600">{errors.tenant_name.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              A friendly display name for this tenant/medical practice
+            </p>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

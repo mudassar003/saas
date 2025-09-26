@@ -20,6 +20,7 @@ interface TenantData {
   consumer_secret: string;
   environment: string;
   webhook_secret: string | null;
+  tenant_name: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -106,6 +107,7 @@ export function TenantTable({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Tenant Name</TableHead>
               <TableHead>Merchant ID</TableHead>
               <TableHead>Environment</TableHead>
               <TableHead>Consumer Key</TableHead>
@@ -119,6 +121,9 @@ export function TenantTable({
           <TableBody>
             {tenants.map((tenant) => (
               <TableRow key={tenant.id}>
+                <TableCell className="font-medium">
+                  {tenant.tenant_name || 'Unnamed Tenant'}
+                </TableCell>
                 <TableCell className="font-medium">
                   {tenant.merchant_id}
                 </TableCell>

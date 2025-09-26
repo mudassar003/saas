@@ -65,6 +65,7 @@ interface MerchantsApiResponse {
   merchants?: Array<{
     merchant_id: number;
     environment: string;
+    tenant_name: string | null;
   }>;
   error?: string;
 }
@@ -76,7 +77,7 @@ export function CreateUserDialog({
 }: CreateUserDialogProps): React.JSX.Element {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [merchants, setMerchants] = useState<Array<{ merchant_id: number; environment: string }>>([]);
+  const [merchants, setMerchants] = useState<Array<{ merchant_id: number; environment: string; tenant_name: string | null }>>([]);
   const [merchantsLoading, setMerchantsLoading] = useState(false);
 
   const {
@@ -315,7 +316,7 @@ export function CreateUserDialog({
                   <SelectContent>
                     {merchants.map((merchant) => (
                       <SelectItem key={merchant.merchant_id} value={merchant.merchant_id.toString()}>
-                        Merchant {merchant.merchant_id} ({merchant.environment})
+                        {merchant.tenant_name || `Tenant ${merchant.merchant_id}`} - ID: {merchant.merchant_id} ({merchant.environment})
                       </SelectItem>
                     ))}
                   </SelectContent>

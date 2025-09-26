@@ -62,6 +62,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<AuthRespo
       userId: userSession.user.id,
       email: userSession.user.email,
       role: userSession.user.role,
+      sessionVersion: userSession.user.sessionVersion,
       currentMerchantId: userSession.currentMerchantId,
     });
 

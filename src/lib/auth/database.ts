@@ -38,6 +38,7 @@ export async function getUserByEmail(email: string): Promise<UserSession | null>
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
+      sessionVersion: user.session_version || 1,
       isActive: user.is_active,
       lastLoginAt: user.last_login_at,
       createdAt: user.created_at,
@@ -88,6 +89,7 @@ export async function getUserById(userId: string): Promise<UserSession | null> {
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
+      sessionVersion: user.session_version || 1,
       isActive: user.is_active,
       lastLoginAt: user.last_login_at,
       createdAt: user.created_at,
@@ -152,6 +154,7 @@ export async function createUser(userData: CreateUserRequest): Promise<User> {
     firstName: user.first_name,
     lastName: user.last_name,
     role: user.role,
+    sessionVersion: user.session_version || 1,
     isActive: user.is_active,
     lastLoginAt: user.last_login_at,
     createdAt: user.created_at,
@@ -196,6 +199,7 @@ export async function getAllUsers(): Promise<User[]> {
     firstName: user.first_name,
     lastName: user.last_name,
     role: user.role,
+    sessionVersion: user.session_version || 1,
     isActive: user.is_active,
     lastLoginAt: user.last_login_at,
     createdAt: user.created_at,
@@ -224,6 +228,7 @@ export async function getAllUsersWithPasswords(): Promise<UserWithPassword[]> {
     firstName: user.first_name,
     lastName: user.last_name,
     role: user.role,
+    sessionVersion: user.session_version || 1,
     isActive: user.is_active,
     lastLoginAt: user.last_login_at,
     createdAt: user.created_at,
@@ -241,7 +246,7 @@ export async function getAllMerchants() {
 
   const { data: merchants, error } = await supabase
     .from('mx_merchant_configs')
-    .select('merchant_id, environment, is_active, created_at')
+    .select('merchant_id, environment, tenant_name, is_active, created_at')
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
@@ -253,7 +258,7 @@ export async function getAllMerchants() {
 }
 
 /**
- * Reset user password (for super admin)
+ * Reset user password (for super admin) - includes automatic session invalidation
  */
 export async function resetUserPassword(userId: string, newPassword: string): Promise<void> {
   const supabase = createServerClient();
@@ -261,12 +266,24 @@ export async function resetUserPassword(userId: string, newPassword: string): Pr
   // Hash the new password
   const passwordHash = await hashPassword(newPassword);
 
-  // Update both hash and plain password
+  // First get current session_version
+  const { data: userData, error: fetchError } = await supabase
+    .from('users')
+    .select('session_version')
+    .eq('id', userId)
+    .single();
+
+  if (fetchError) {
+    throw new Error(`Failed to fetch user data: ${fetchError.message}`);
+  }
+
+  // SECURITY FEATURE: Increment session_version to invalidate all existing sessions
   const { error } = await supabase
     .from('users')
     .update({
       password_hash: passwordHash,
       password_plain: newPassword,
+      session_version: (userData.session_version || 1) + 1, // Increment for session invalidation
       updated_at: new Date().toISOString(),
     })
     .eq('id', userId);

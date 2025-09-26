@@ -281,6 +281,7 @@ export type Database = {
           consumer_secret: string
           environment: string
           webhook_secret: string | null
+          tenant_name: string | null
           is_active: boolean
           created_at: string
           updated_at: string
@@ -293,6 +294,7 @@ export type Database = {
           consumer_secret: string
           environment?: string
           webhook_secret?: string | null
+          tenant_name?: string | null
           is_active?: boolean
           created_at?: string
           updated_at?: string
@@ -305,6 +307,7 @@ export type Database = {
           consumer_secret?: string
           environment?: string
           webhook_secret?: string | null
+          tenant_name?: string | null
           is_active?: boolean
           created_at?: string
           updated_at?: string

@@ -151,6 +151,13 @@ export async function getCurrentUser(): Promise<UserSession | null> {
     return null;
   }
 
+  // SECURITY CHECK: Validate session version for automatic logout after password change
+  if (freshSession.user.sessionVersion !== payload.sessionVersion) {
+    // Session version mismatch - password was changed, invalidate session
+    await removeAuthCookie();
+    return null;
+  }
+
   return freshSession;
 }
 
