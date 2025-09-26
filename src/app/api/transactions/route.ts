@@ -94,87 +94,95 @@ export async function GET(request: NextRequest) {
       `, { count: 'exact' })
       .order('transaction_date', { ascending: false })
 
-    // CRITICAL SECURITY FIX: Apply merchant filtering
-    query = applyMerchantFilter(query, merchantId)
+    // Helper function to apply all filters consistently
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const applyFilters = (q: any) => {
+      // CRITICAL SECURITY FIX: Apply merchant filtering
+      q = applyMerchantFilter(q, merchantId)
 
-    // Apply customer name search only (no live search, server-friendly)
-    if (search) {
-      const searchTerm = search.trim()
-      // Only search by customer name to reduce database load
-      query = query.ilike('customer_name', `%${searchTerm}%`)
-    }
-    
-    if (status !== 'all') {
-      query = query.eq('status', status)
-    }
-
-    // Filter by transaction type (with/without invoices)
-    if (showType === 'with_invoices') {
-      query = query.not('mx_invoice_number', 'is', null)
-    } else if (showType === 'standalone') {
-      query = query.is('mx_invoice_number', null)
-    }
-
-    // Filter by product category
-    if (category !== 'all') {
-      query = query.eq('product_category', category)
-    }
-
-    // Filter by membership status
-    if (membershipStatus !== 'all') {
-      query = query.eq('membership_status', membershipStatus)
-    }
-
-    // Filter by Google Review status
-    if (googleReview !== 'all') {
-      query = query.eq('google_review_submitted', googleReview === 'true')
-    }
-
-    // Filter by referral source
-    if (referralSource !== 'all') {
-      query = query.eq('referral_source', referralSource)
-    }
-
-    // Filter by fulfillment type
-    if (fulfillmentType !== 'all') {
-      query = query.eq('fulfillment_type', fulfillmentType)
-    }
-    
-    // Date range filtering
-    if (dateStart) {
-      query = query.gte('transaction_date', dateStart)
-    }
-    if (dateEnd) {
-      query = query.lte('transaction_date', dateEnd)
-    }
-
-    // Tab-based filtering (Patient Census Dashboard)
-    if (activeTab !== 'all') {
-      if (activeTab === 'trt') {
-        query = query.eq('product_category', 'TRT')
-        query = query.eq('source', 'Recurring')
-        query = query.eq('membership_status', 'active')
-      } else if (activeTab === 'weight_loss') {
-        query = query.eq('product_category', 'Weight Loss')
-        query = query.eq('source', 'Recurring')
-        query = query.eq('membership_status', 'active')
-      } else if (activeTab === 'peptides') {
-        query = query.eq('product_category', 'Peptides')
-        query = query.eq('source', 'Recurring')
-        query = query.eq('membership_status', 'active')
-      } else if (activeTab === 'ed') {
-        query = query.eq('product_category', 'ED')
-        query = query.eq('source', 'Recurring')
-        query = query.eq('membership_status', 'active')
-      } else if (activeTab === 'cancellations') {
-        query = query.eq('source', 'Recurring')
-        query = query.in('membership_status', ['canceled', 'paused'])
-      } else {
-        // All tab - active recurring patients
-        query = query.eq('source', 'Recurring')
-        query = query.eq('membership_status', 'active')
+      // Apply customer name search only (no live search, server-friendly)
+      if (search) {
+        const searchTerm = search.trim()
+        q = q.ilike('customer_name', `%${searchTerm}%`)
       }
+
+      if (status !== 'all') {
+        q = q.eq('status', status)
+      }
+
+      // Filter by transaction type (with/without invoices)
+      if (showType === 'with_invoices') {
+        q = q.not('mx_invoice_number', 'is', null)
+      } else if (showType === 'standalone') {
+        q = q.is('mx_invoice_number', null)
+      }
+
+      // Filter by product category
+      if (category !== 'all') {
+        q = q.eq('product_category', category)
+      }
+
+      // Filter by membership status
+      if (membershipStatus !== 'all') {
+        q = q.eq('membership_status', membershipStatus)
+      }
+
+      // Filter by Google Review status
+      if (googleReview !== 'all') {
+        q = q.eq('google_review_submitted', googleReview === 'true')
+      }
+
+      // Filter by referral source
+      if (referralSource !== 'all') {
+        q = q.eq('referral_source', referralSource)
+      }
+
+      // Filter by fulfillment type
+      if (fulfillmentType !== 'all') {
+        q = q.eq('fulfillment_type', fulfillmentType)
+      }
+
+      // Date range filtering
+      if (dateStart) {
+        q = q.gte('transaction_date', dateStart)
+      }
+      if (dateEnd) {
+        q = q.lte('transaction_date', dateEnd)
+      }
+
+      // Tab-based filtering (Patient Census Dashboard)
+      if (activeTab !== 'all') {
+        if (activeTab === 'trt') {
+          q = q.eq('product_category', 'TRT')
+          q = q.eq('source', 'Recurring')
+          q = q.eq('membership_status', 'active')
+        } else if (activeTab === 'weight_loss') {
+          q = q.eq('product_category', 'Weight Loss')
+          q = q.eq('source', 'Recurring')
+          q = q.eq('membership_status', 'active')
+        } else if (activeTab === 'peptides') {
+          q = q.eq('product_category', 'Peptides')
+          q = q.eq('source', 'Recurring')
+          q = q.eq('membership_status', 'active')
+        } else if (activeTab === 'ed') {
+          q = q.eq('product_category', 'ED')
+          q = q.eq('source', 'Recurring')
+          q = q.eq('membership_status', 'active')
+        } else if (activeTab === 'cancellations') {
+          q = q.eq('source', 'Recurring')
+          q = q.in('membership_status', ['canceled', 'paused'])
+        } else {
+          // All tab - active recurring patients
+          q = q.eq('source', 'Recurring')
+          q = q.eq('membership_status', 'active')
+        }
+      }
+
+      return q
     }
+
+    // Apply filters to main query
+    query = applyFilters(query)
 
     // Apply pagination
     query = query.range(offset, offset + limit - 1)
@@ -271,10 +279,10 @@ export async function GET(request: NextRequest) {
     if (shouldFetchStats) {
       let statsQuery = supabaseAdmin
         .from('transactions')
-        .select('mx_invoice_number, status, amount, product_category, membership_status', { count: 'exact' })
+        .select('mx_invoice_number, status, amount, product_category, membership_status, source', { count: 'exact' })
 
-      // CRITICAL SECURITY FIX: Apply merchant filtering to stats query
-      statsQuery = applyMerchantFilter(statsQuery, merchantId)
+      // CRITICAL FIX: Apply SAME FILTERS as main query to get accurate filtered statistics
+      statsQuery = applyFilters(statsQuery)
 
       const { data: allTransactions, count: totalCount } = await statsQuery
       

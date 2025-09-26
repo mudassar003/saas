@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { getCurrentMerchantId, applyMerchantFilter } from '@/lib/auth/api-utils'
 
 // Patient census record - enterprise-grade type definition
 interface PatientCensusRecord {
@@ -41,7 +42,10 @@ type TabKey = 'all' | 'trt' | 'weight_loss' | 'peptides' | 'ed' | 'cancellations
 export async function GET(request: NextRequest): Promise<NextResponse<CensusApiResponse | { success: false; error: string }>> {
   try {
     const { searchParams } = new URL(request.url)
-    
+
+    // CRITICAL SECURITY FIX: Get current user's merchant access
+    const merchantId = await getCurrentMerchantId(request)
+
     // Parse and validate query parameters with strict typing
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100) // Max 100 for performance
     const offset = Math.max(parseInt(searchParams.get('offset') || '0'), 0)
@@ -76,9 +80,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<CensusApiR
         created_at
       `)
 
-    // Apply tenant isolation - CRITICAL security requirement
-    // Note: merchant_id would be derived from authenticated user in production
-    // baseQuery = baseQuery.eq('merchant_id', tenantId)
+    // CRITICAL SECURITY FIX: Apply merchant filtering
+    baseQuery = applyMerchantFilter(baseQuery, merchantId)
 
     // Apply search filter with proper indexing (customer name search index)
     if (search) {

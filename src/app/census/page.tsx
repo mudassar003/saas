@@ -5,6 +5,7 @@ import { CensusTable } from '@/components/census/census-table';
 import { CensusFilters } from '@/components/census/census-filters';
 import { SyncDialog } from '@/components/sync/sync-dialog';
 import { Pagination } from '@/components/ui/pagination';
+import { getDateRange } from '@/lib/date-filters';
 
 type TabKey = 'all' | 'trt' | 'weight_loss' | 'peptides' | 'ed' | 'cancellations';
 
@@ -125,40 +126,6 @@ export default function CensusPage() {
     } as Record<TabKey, number>
   });
 
-  // Date range conversion utility - enterprise-grade error handling
-  const getDateRange = (dateRange: string): { start?: string; end?: string } => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    switch (dateRange) {
-      case 'today':
-        return {
-          start: today.toISOString().split('T')[0],
-          end: today.toISOString().split('T')[0]
-        };
-      case 'week':
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - today.getDay());
-        return {
-          start: weekStart.toISOString().split('T')[0],
-          end: today.toISOString().split('T')[0]
-        };
-      case 'month':
-        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        return {
-          start: monthStart.toISOString().split('T')[0],
-          end: today.toISOString().split('T')[0]
-        };
-      case 'year':
-        const yearStart = new Date(today.getFullYear(), 0, 1);
-        return {
-          start: yearStart.toISOString().split('T')[0],
-          end: today.toISOString().split('T')[0]
-        };
-      default:
-        return {};
-    }
-  };
 
   // Load patient census data - optimized with proper error handling
   useEffect(() => {
