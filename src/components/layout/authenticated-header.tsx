@@ -7,7 +7,19 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { LogOut, User } from 'lucide-react';
 
 export function AuthenticatedHeader() {
-  const { user, logout, isAuthenticated, isSuperAdmin } = useAuth();
+  const { user, logout, isAuthenticated, isSuperAdmin, isLoading } = useAuth();
+
+  // Show loading state while authentication is being checked
+  if (isLoading) {
+    return (
+      <header className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center gap-6">
+          <h1 className="text-lg font-semibold">Automation Dashboard</h1>
+        </div>
+        <ThemeToggle />
+      </header>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

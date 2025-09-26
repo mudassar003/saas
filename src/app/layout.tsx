@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth";
 import { AuthenticatedHeader } from "@/components/layout/authenticated-header";
+import { getCurrentUser } from "@/lib/auth/server-utils";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,18 +21,27 @@ export const metadata: Metadata = {
   description: "Invoice and transaction management system",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Get initial user data server-side to prevent UI flicker
+  let initialUser = null;
+  try {
+    initialUser = await getCurrentUser();
+  } catch (error) {
+    console.log('No user session found:', error);
+    // This is expected for non-authenticated users
+  }
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <ThemeProvider>
-          <AuthProvider>
+          <AuthProvider initialUser={initialUser}>
             <AuthenticatedHeader />
             {children}
           </AuthProvider>
