@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { getCurrentMerchantId, applyMerchantFilter } from '@/lib/auth/api-utils'
 
 // Optimized transaction with invoice data type - only the fields we actually fetch
 interface TransactionWithInvoice {
@@ -41,8 +42,11 @@ interface TransactionWithInvoice {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    
-    console.log('Fetching transactions from database...')
+
+    // CRITICAL SECURITY FIX: Get current user's merchant access
+    const merchantId = await getCurrentMerchantId(request)
+
+    console.log('Fetching transactions from database...', { merchantId })
 
     // Parse query parameters - optimized for initial load
     const limit = parseInt(searchParams.get('limit') || '50')
@@ -89,6 +93,9 @@ export async function GET(request: NextRequest) {
         ordered_by_provider_at
       `, { count: 'exact' })
       .order('transaction_date', { ascending: false })
+
+    // CRITICAL SECURITY FIX: Apply merchant filtering
+    query = applyMerchantFilter(query, merchantId)
 
     // Apply customer name search only (no live search, server-friendly)
     if (search) {
@@ -262,9 +269,12 @@ export async function GET(request: NextRequest) {
     let totalAmount = 0
     
     if (shouldFetchStats) {
-      const statsQuery = supabaseAdmin
+      let statsQuery = supabaseAdmin
         .from('transactions')
         .select('mx_invoice_number, status, amount, product_category, membership_status', { count: 'exact' })
+
+      // CRITICAL SECURITY FIX: Apply merchant filtering to stats query
+      statsQuery = applyMerchantFilter(statsQuery, merchantId)
 
       const { data: allTransactions, count: totalCount } = await statsQuery
       
@@ -337,13 +347,16 @@ export async function PATCH(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const transactionId = searchParams.get('id')
-    
+
     if (!transactionId) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Transaction ID is required' 
+      return NextResponse.json({
+        success: false,
+        error: 'Transaction ID is required'
       }, { status: 400 })
     }
+
+    // CRITICAL SECURITY FIX: Get current user's merchant access
+    const merchantId = await getCurrentMerchantId(request)
 
     const body = await request.json()
     
@@ -390,10 +403,15 @@ export async function PATCH(request: NextRequest) {
     
     updates.updated_at = new Date().toISOString()
 
-    const { data, error } = await supabaseAdmin
+    // CRITICAL SECURITY FIX: Apply merchant filtering to update query
+    let updateQuery = supabaseAdmin
       .from('transactions')
       .update(updates)
       .eq('id', transactionId)
+
+    updateQuery = applyMerchantFilter(updateQuery, merchantId)
+
+    const { data, error } = await updateQuery
       .select()
       .single()
 

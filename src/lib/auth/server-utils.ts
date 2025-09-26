@@ -141,23 +141,17 @@ export async function getCurrentUser(): Promise<UserSession | null> {
     return null;
   }
 
-  // In a real app, you'd fetch full user data from database here
-  // For now, we'll reconstruct from JWT payload
-  return {
-    user: {
-      id: payload.userId,
-      email: payload.email,
-      firstName: null,
-      lastName: null,
-      role: payload.role,
-      isActive: true,
-      lastLoginAt: null,
-      createdAt: '',
-      updatedAt: '',
-    },
-    tenantAccess: [],
-    currentMerchantId: payload.currentMerchantId,
-  };
+  // CRITICAL FIX: Fetch fresh user data with tenant access from database
+  const { getUserById } = await import('./database');
+  const freshSession = await getUserById(payload.userId);
+
+  if (!freshSession) {
+    // User not found, remove invalid cookie
+    await removeAuthCookie();
+    return null;
+  }
+
+  return freshSession;
 }
 
 /**
