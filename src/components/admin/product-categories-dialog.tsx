@@ -30,7 +30,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 
 const categorySchema = z.object({
   product_name: z.string().min(1, 'Product name is required'),

@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { User } from '@/lib/auth/types';
+import { TENANT_ROLE_DESCRIPTIONS } from '@/lib/auth/permissions';
+import { Info } from 'lucide-react';
 
 const createUserSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -97,6 +99,7 @@ export function CreateUserDialog({
   });
 
   const selectedRole = watch('role');
+  const selectedTenantRole = watch('tenantRole');
 
   // Fetch merchants when dialog opens and role is tenant_user
   useEffect(() => {
@@ -339,14 +342,60 @@ export function CreateUserDialog({
                     <SelectValue placeholder="Select tenant role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="viewer">Viewer</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="viewer">
+                      <div className="flex items-center gap-2">
+                        <span>{TENANT_ROLE_DESCRIPTIONS.viewer.icon}</span>
+                        <span>Viewer (Read-Only)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="user">
+                      <div className="flex items-center gap-2">
+                        <span>{TENANT_ROLE_DESCRIPTIONS.user.icon}</span>
+                        <span>User (Standard Access)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="admin">
+                      <div className="flex items-center gap-2">
+                        <span>{TENANT_ROLE_DESCRIPTIONS.admin.icon}</span>
+                        <span>Admin (Full Control)</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.tenantRole && (
                   <p className="text-sm text-red-600">{errors.tenantRole.message}</p>
                 )}
+              </div>
+            </div>
+          )}
+
+          {selectedRole === 'tenant_user' && selectedTenantRole && (
+            <div className={`p-4 rounded-lg border ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].bgColor} ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].borderColor}`}>
+              <div className="flex items-start gap-3">
+                <Info className={`h-5 w-5 mt-0.5 flex-shrink-0 ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`} />
+                <div className="space-y-2">
+                  <div>
+                    <p className={`font-semibold text-sm ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
+                      {TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].name}
+                    </p>
+                    <p className={`text-sm mt-1 ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
+                      {TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].description}
+                    </p>
+                  </div>
+                  <div>
+                    <p className={`text-xs font-medium ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
+                      Permissions:
+                    </p>
+                    <ul className={`text-xs space-y-0.5 mt-1 ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
+                      {TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].permissions.map((permission, index) => (
+                        <li key={index}>• {permission}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <p className={`text-xs italic ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
+                    {TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].useCase}
+                  </p>
+                </div>
               </div>
             </div>
           )}

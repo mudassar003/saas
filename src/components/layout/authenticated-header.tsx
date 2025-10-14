@@ -1,13 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { LogOut, User } from 'lucide-react';
+import { CategoryManagementDialog } from '@/components/categories/category-management-dialog';
+import { LogOut, User, Tag } from 'lucide-react';
 
 export function AuthenticatedHeader() {
   const { user, logout, isAuthenticated, isSuperAdmin, isLoading } = useAuth();
+  const [categoriesDialogOpen, setCategoriesDialogOpen] = useState(false);
 
   // Show loading state while authentication is being checked
   if (isLoading) {
@@ -77,6 +80,14 @@ export function AuthenticatedHeader() {
               </Link>
             </>
           )}
+          {/* Categories button for ALL authenticated users (tenant users and super admin) */}
+          <button
+            onClick={() => setCategoriesDialogOpen(true)}
+            className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1.5"
+          >
+            <Tag className="h-3.5 w-3.5" />
+            Categories
+          </button>
         </nav>
       </div>
 
@@ -103,6 +114,12 @@ export function AuthenticatedHeader() {
           Logout
         </Button>
       </div>
+
+      {/* Category Management Dialog */}
+      <CategoryManagementDialog
+        open={categoriesDialogOpen}
+        onOpenChange={setCategoriesDialogOpen}
+      />
     </header>
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyTokenEdge } from '@/lib/auth/server-utils';
+import { createServerClient } from '@/lib/supabase-server';
 
 // Protected routes that require authentication
 const protectedRoutes = [
@@ -23,6 +24,7 @@ const protectedApiRoutes = [
   '/api/data-sent',
   '/api/check-updates',
   '/api/census',
+  '/api/categories',
 ];
 
 // API routes that require super admin
@@ -101,8 +103,30 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-user-id', payload.userId);
     requestHeaders.set('x-user-email', payload.email);
     requestHeaders.set('x-user-role', payload.role);
+
     if (payload.currentMerchantId) {
       requestHeaders.set('x-current-merchant-id', payload.currentMerchantId.toString());
+
+      // For tenant users, fetch tenant role from database
+      if (payload.role === 'tenant_user') {
+        try {
+          const supabase = createServerClient();
+          const { data: tenantAccess } = await supabase
+            .from('user_tenants')
+            .select('tenant_role')
+            .eq('user_id', payload.userId)
+            .eq('merchant_id', payload.currentMerchantId)
+            .eq('is_active', true)
+            .single();
+
+          if (tenantAccess?.tenant_role) {
+            requestHeaders.set('x-tenant-role', tenantAccess.tenant_role);
+          }
+        } catch (error) {
+          console.error('Failed to fetch tenant role:', error);
+          // Continue without tenant role - API will handle missing role
+        }
+      }
     }
 
     return NextResponse.next({
