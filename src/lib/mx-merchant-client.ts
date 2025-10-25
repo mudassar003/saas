@@ -318,6 +318,45 @@ export class MXMerchantClient {
   }
 
   /**
+   * Get detailed contract information
+   *
+   * @param contractId - Contract ID (mx_contract_id)
+   * @returns Detailed contract information including purchases
+   */
+  async getContractDetail(contractId: number): Promise<MXContract> {
+    const endpoint = `/checkout/v3/contract/${contractId}`;
+    return this.makeRequest<MXContract>(endpoint);
+  }
+
+  /**
+   * Get payment history for a specific contract
+   *
+   * @param contractId - Contract ID
+   * @param limit - Number of records to return (default: 999)
+   * @param offset - Pagination offset (default: 0)
+   * @param subscriptionId - Optional subscription ID filter
+   *
+   * @returns List of payments associated with this contract
+   */
+  async getContractPayments(
+    contractId: number,
+    limit: number = 999,
+    offset: number = 0,
+    subscriptionId?: number
+  ): Promise<MXPaymentListResponse> {
+    const queryParams = new URLSearchParams();
+
+    queryParams.append('id', contractId.toString());
+    queryParams.append('limit', limit.toString());
+    queryParams.append('offset', offset.toString());
+    if (subscriptionId) queryParams.append('subscriptionId', subscriptionId.toString());
+
+    const endpoint = `/checkout/v3/contract/payment?${queryParams.toString()}`;
+
+    return this.makeRequest<MXPaymentListResponse>(endpoint);
+  }
+
+  /**
    * Test API connection
    */
   async testConnection(): Promise<boolean> {

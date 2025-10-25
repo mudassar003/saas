@@ -10,6 +10,7 @@ const protectedRoutes = [
   '/transaction-setup',
   '/census',
   '/revenue',
+  '/contracts',
 ];
 
 // Admin-only routes (super admin required)
@@ -27,6 +28,7 @@ const protectedApiRoutes = [
   '/api/census',
   '/api/categories',
   '/api/revenue',
+  '/api/contracts',
 ];
 
 // API routes that require super admin

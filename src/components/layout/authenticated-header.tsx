@@ -44,7 +44,7 @@ export function AuthenticatedHeader() {
             href="/dashboard"
             className="text-sm font-medium hover:text-primary transition-colors"
           >
-            Invoices
+            Dashboard
           </Link>
           <Link
             href="/transactions"
@@ -63,6 +63,12 @@ export function AuthenticatedHeader() {
             className="text-sm font-medium hover:text-primary transition-colors"
           >
             Revenue
+          </Link>
+          <Link
+            href="/contracts"
+            className="text-sm font-medium hover:text-primary transition-colors"
+          >
+            Contracts
           </Link>
           {isSuperAdmin && (
             <>
