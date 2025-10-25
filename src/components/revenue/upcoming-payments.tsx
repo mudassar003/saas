@@ -67,17 +67,17 @@ export function UpcomingPayments({ payments, dateRange }: UpcomingPaymentsProps)
   const hasMore = payments.length > 10;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-blue-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Upcoming Payments</h2>
-          <span className="text-sm text-gray-500">({payments.length} days with payments)</span>
+          <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Upcoming Payments</h2>
+          <span className="text-sm text-gray-500 dark:text-gray-400">({payments.length} days with payments)</span>
         </div>
       </div>
 
       {payments.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           <p className="text-sm">No payments scheduled for this period</p>
           <p className="text-xs mt-1">Try selecting a different date range or syncing new data</p>
         </div>
@@ -89,45 +89,45 @@ export function UpcomingPayments({ payments, dateRange }: UpcomingPaymentsProps)
             return (
               <div
                 key={payment.date}
-                className="border border-gray-200 rounded-lg overflow-hidden hover:border-blue-300 transition-colors"
+                className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
               >
                 {/* Payment Summary */}
                 <button
                   onClick={() => toggleExpanded(payment.date)}
-                  className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+                  className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-left">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {formatDate(payment.date)}
                       </p>
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
                         {payment.count} payment{payment.count !== 1 ? 's' : ''}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <p className="text-base font-bold text-gray-900">
+                    <p className="text-base font-bold text-gray-900 dark:text-white">
                       {formatCurrency(payment.amount)}
                     </p>
                     {isExpanded ? (
-                      <ChevronUp className="h-5 w-5 text-gray-400" />
+                      <ChevronUp className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     ) : (
-                      <ChevronDown className="h-5 w-5 text-gray-400" />
+                      <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     )}
                   </div>
                 </button>
 
                 {/* Customer Details (Expanded) */}
                 {isExpanded && (
-                  <div className="px-4 py-3 bg-white border-t border-gray-200">
-                    <p className="text-xs font-medium text-gray-600 mb-2">Customers:</p>
+                  <div className="px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">Customers:</p>
                     <div className="space-y-1">
                       {payment.customers.map((customer, index) => (
                         <div
                           key={index}
-                          className="text-sm text-gray-700 pl-3 py-1 border-l-2 border-blue-300"
+                          className="text-sm text-gray-700 dark:text-gray-300 pl-3 py-1 border-l-2 border-blue-300 dark:border-blue-600"
                         >
                           {customer}
                         </div>

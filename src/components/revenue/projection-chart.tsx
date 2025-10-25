@@ -36,14 +36,14 @@ export function ProjectionChart({ upcomingPayments, dateRange }: ProjectionChart
   const showDaily = upcomingPayments.length <= 30;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center gap-2 mb-6">
-        <BarChart3 className="h-5 w-5 text-blue-600" />
-        <h2 className="text-lg font-semibold text-gray-900">Payment Schedule</h2>
+        <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Payment Schedule</h2>
       </div>
 
       {upcomingPayments.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           <p className="text-sm">No payments scheduled for this period</p>
           <p className="text-xs mt-1">Try selecting a different date range or syncing new data</p>
         </div>
@@ -54,14 +54,14 @@ export function ProjectionChart({ upcomingPayments, dateRange }: ProjectionChart
             {upcomingPayments.map((payment) => (
               <div key={payment.date} className="flex items-center gap-3">
                 {/* Date Label */}
-                <div className="w-20 text-xs font-medium text-gray-600 text-right">
+                <div className="w-20 text-xs font-medium text-gray-600 dark:text-gray-300 text-right">
                   {formatDate(payment.date)}
                 </div>
 
                 {/* Bar */}
                 <div className="flex-1 relative">
                   <div
-                    className="bg-blue-500 hover:bg-blue-600 transition-colors rounded h-8 flex items-center justify-between px-3 cursor-pointer"
+                    className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 transition-colors rounded h-8 flex items-center justify-between px-3 cursor-pointer"
                     style={{ width: `${(payment.amount / maxAmount) * 100}%`, minWidth: '120px' }}
                     title={`${payment.count} payment${payment.count !== 1 ? 's' : ''}: ${formatCurrency(payment.amount)}`}
                   >
@@ -78,20 +78,20 @@ export function ProjectionChart({ upcomingPayments, dateRange }: ProjectionChart
           </div>
 
           {/* Summary Stats */}
-          <div className="border-t border-gray-200 pt-4 grid grid-cols-3 gap-4">
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 grid grid-cols-3 gap-4">
             <div>
-              <p className="text-xs text-gray-600">Total Days</p>
-              <p className="text-lg font-semibold text-gray-900">{upcomingPayments.length}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-300">Total Days</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{upcomingPayments.length}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-600">Total Payments</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-xs text-gray-600 dark:text-gray-300">Total Payments</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
                 {upcomingPayments.reduce((sum, p) => sum + p.count, 0)}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-600">Total Amount</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-xs text-gray-600 dark:text-gray-300">Total Amount</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
                 {formatCurrency(upcomingPayments.reduce((sum, p) => sum + p.amount, 0))}
               </p>
             </div>
