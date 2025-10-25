@@ -1,14 +1,19 @@
-import { 
-  MXInvoiceListResponse, 
-  MXInvoiceDetail, 
-  MXInvoice, 
-  MXPurchase, 
+import {
+  MXInvoiceListResponse,
+  MXInvoiceDetail,
+  MXInvoice,
+  MXPurchase,
   InvoiceItem,
   MXPaymentListResponse,
   MXPaymentDetail,
   MXPayment,
   Transaction
 } from '@/types/invoice';
+import {
+  MXContractListResponse,
+  MXContract,
+  Contract
+} from '@/types/contract';
 import { getTexasISOString, getTexasDateForFilename } from '@/lib/timezone';
 import { getMerchantCredentials } from '@/lib/database/merchant-credentials';
 
@@ -225,6 +230,94 @@ export class MXMerchantClient {
   }
 
   /**
+   * Get contracts with pagination
+   *
+   * @param params.merchantId - Merchant ID (required for tenant isolation)
+   * @param params.limit - Records per page (default: 100, max: 100)
+   * @param params.offset - Pagination offset (0, 100, 200, etc.)
+   * @param params.status - Filter by status: 'Active', 'Completed', 'Cancelled', 'Inactive'
+   *
+   * @returns Contract list with pagination info
+   *
+   * @note Date filtering NOT supported by API - filter in database after fetching
+   */
+  async getContracts(params: {
+    limit?: number;
+    offset?: number;
+    merchantId?: string;
+    status?: 'Active' | 'Completed' | 'Cancelled' | 'Inactive';
+  } = {}): Promise<MXContractListResponse> {
+    const queryParams = new URLSearchParams();
+
+    if (params.merchantId) queryParams.append('merchantId', params.merchantId);
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.offset) queryParams.append('offset', params.offset.toString());
+    if (params.status) queryParams.append('status', params.status);
+
+    const endpoint = `/checkout/v3/contract${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    return this.makeRequest<MXContractListResponse>(endpoint);
+  }
+
+  /**
+   * Get all contracts with automatic pagination
+   * Fetches ALL contracts from API (recommended: fetch only Active contracts)
+   *
+   * @param merchantId - Merchant ID (required)
+   * @param status - Optional status filter ('Active' recommended to reduce data volume)
+   *
+   * @returns All contracts with totals
+   *
+   * @example
+   * // Recommended: Fetch only Active contracts
+   * const activeContracts = await getAllContracts('1000095245', 'Active');
+   *
+   * // Fetch all contracts (Active, Completed, Cancelled)
+   * const allContracts = await getAllContracts('1000095245');
+   */
+  async getAllContracts(
+    merchantId?: string,
+    status?: 'Active' | 'Completed' | 'Cancelled' | 'Inactive'
+  ): Promise<MXContractListResponse> {
+    const limit = 100; // Max allowed by API
+    let offset = 0;
+    const allContracts: MXContract[] = [];
+    let totalCount = 0;
+    let grandTotalAmount = '0';
+
+    while (true) {
+      const response = await this.getContracts({
+        limit,
+        offset,
+        merchantId,
+        status // Filter by status to reduce data volume
+      });
+
+      allContracts.push(...response.records);
+      totalCount = response.recordCount;
+      grandTotalAmount = response.totals?.grandTotalAmount || '0';
+
+      // Break if we got fewer records than requested (last page)
+      if (response.records.length < limit) {
+        break;
+      }
+
+      offset += limit;
+
+      // Safety check to prevent infinite loop
+      if (offset >= totalCount) {
+        break;
+      }
+    }
+
+    return {
+      recordCount: totalCount,
+      records: allContracts,
+      totals: { grandTotalAmount }
+    };
+  }
+
+  /**
    * Test API connection
    */
   async testConnection(): Promise<boolean> {
@@ -329,34 +422,34 @@ export function transformMXPaymentToTransaction(mxPayment: MXPayment): Omit<Tran
   return {
     created_at: getTexasISOString(),
     updated_at: getTexasISOString(),
-    
+
     // MX Merchant Payment fields
     mx_payment_id: mxPayment.id,
     amount: parseFloat(mxPayment.amount || '0'),
     transaction_date: mxPayment.created ? getTexasISOString(new Date(mxPayment.created)) : getTexasISOString(),
     status: mxPayment.status || 'Unknown',
-    
+
     // Invoice Linking
     mx_invoice_number: mxPayment.invoice ? parseInt(mxPayment.invoice) : null,
     mx_invoice_id: mxPayment.invoiceIds?.length ? mxPayment.invoiceIds[0] : null, // NEW: Direct API access
     invoice_id: null, // Will be populated during sync when linking to existing invoices
     client_reference: mxPayment.clientReference || null,
-    
+
     // Customer Info
     customer_name: mxPayment.customerName || null,
     customer_code: mxPayment.customerCode || null,
-    
+
     // Payment Details
     auth_code: mxPayment.authCode || null,
     auth_message: mxPayment.authMessage || null,
     response_code: mxPayment.responseCode || null,
     reference_number: mxPayment.reference || null,
-    
+
     // Card Details
     card_type: mxPayment.cardAccount?.cardType || null,
     card_last4: mxPayment.cardAccount?.last4 || null,
     card_token: mxPayment.cardAccount?.token || null,
-    
+
     // Financial Details
     currency: mxPayment.currency || 'USD',
     tax_amount: mxPayment.tax ? parseFloat(mxPayment.tax) : null,
@@ -364,15 +457,44 @@ export function transformMXPaymentToTransaction(mxPayment: MXPayment): Omit<Tran
     surcharge_label: mxPayment.surchargeLabel || null,
     refunded_amount: mxPayment.refundedAmount ? parseFloat(mxPayment.refundedAmount) : 0,
     settled_amount: mxPayment.settledAmount ? parseFloat(mxPayment.settledAmount) : 0,
-    
+
     // Transaction Metadata
     tender_type: mxPayment.tenderType || null,
     transaction_type: mxPayment.type || null,
     source: mxPayment.source || null,
     batch: mxPayment.batch || null,
     merchant_id: mxPayment.merchantId || null,
-    
+
     // System Fields
     raw_data: mxPayment as unknown as Record<string, unknown>,
+  };
+}
+
+/**
+ * Transform MX Contract to internal Contract format
+ */
+export function transformMXContractToContract(mxContract: MXContract): Omit<Contract, 'id' | 'created_at' | 'updated_at'> {
+  return {
+    last_synced_at: getTexasISOString(),
+
+    // MX Merchant Contract fields
+    mx_contract_id: mxContract.id,
+    mx_subscription_id: mxContract.subscriptionId,
+    contract_name: mxContract.name,
+    merchant_id: mxContract.merchantId,
+    customer_name: mxContract.customerName,
+    billing_interval: mxContract.interval,
+    billing_frequency: mxContract.every,
+    billing_day: mxContract.on,
+    amount: parseFloat(mxContract.amount),
+    status: mxContract.status,
+    type: mxContract.type,
+    start_date: mxContract.startDate,
+    next_bill_date: mxContract.nextBillDate,
+    last_invoice_date: mxContract.lastInvoiceDate || null,
+    has_declined_payment: mxContract.hasDeclinedPayment,
+    grand_total_amount: parseFloat(mxContract.grandTotalAmount),
+    currency_code: mxContract.currencyCode || 'USD',
+    raw_data: mxContract as unknown as Record<string, unknown>,
   };
 }

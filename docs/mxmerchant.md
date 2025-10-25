@@ -1,4 +1,5 @@
-GET /checkout/v3/invoice/
+GET 
+
 
 Full API Response:
 {
