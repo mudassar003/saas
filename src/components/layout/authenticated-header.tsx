@@ -58,6 +58,12 @@ export function AuthenticatedHeader() {
           >
             Census
           </Link>
+          <Link
+            href="/revenue"
+            className="text-sm font-medium hover:text-primary transition-colors"
+          >
+            Revenue
+          </Link>
           {isSuperAdmin && (
             <>
               <Link
