@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RevenueProjectionHeader } from '@/components/revenue/revenue-projection-header';
 import { RevenueMetrics } from '@/components/revenue/revenue-metrics';
 import { ProjectionChart } from '@/components/revenue/projection-chart';
@@ -16,7 +16,7 @@ interface FilterState {
 }
 
 export default function RevenueProjectionPage() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start with loading=true for auto-load
   const [syncing, setSyncing] = useState(false);
   const [projectionData, setProjectionData] = useState<ProjectionResponse['data'] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -151,6 +151,14 @@ export default function RevenueProjectionPage() {
     }
   };
 
+  /**
+   * Auto-load report on page mount with default 30-day range
+   */
+  useEffect(() => {
+    console.log('[Revenue Projection] Page mounted - auto-loading 30-day report');
+    handleGenerateReport();
+  }, []); // Empty dependency array = run only on mount
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <RevenueProjectionHeader
@@ -194,10 +202,19 @@ export default function RevenueProjectionPage() {
 
       {!projectionData && !loading && !error && (
         <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded text-center">
-          <p className="font-medium">No data to display</p>
+          <p className="font-medium">No data available</p>
           <p className="text-sm mt-1">
-            Click &quot;Generate Report&quot; to view revenue projections, or &quot;Fetch New Data&quot; to sync from MX Merchant API
+            Click &quot;Fetch New Data&quot; to sync contracts from MX Merchant API, then the report will be generated automatically
           </p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center space-y-3">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-sm text-muted-foreground">Loading revenue projection...</p>
+          </div>
         </div>
       )}
     </div>
