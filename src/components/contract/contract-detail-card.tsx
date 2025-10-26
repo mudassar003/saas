@@ -37,7 +37,7 @@ export function ContractDetailCard({ contract }: ContractDetailCardProps) {
               <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div className="flex-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Customer</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide">Customer</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
                 {contract.customer_name}
               </p>
@@ -52,11 +52,11 @@ export function ContractDetailCard({ contract }: ContractDetailCardProps) {
               <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
             <div className="flex-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Payment Amount</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide">Payment Amount</p>
               <p className="text-3xl font-bold text-green-600 dark:text-green-400">
                 {formatCurrency(contract.amount, contract.currency_code || 'USD')}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                 {contract.billing_interval} - {contract.billing_frequency}
               </p>
             </div>
@@ -70,11 +70,11 @@ export function ContractDetailCard({ contract }: ContractDetailCardProps) {
               <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="flex-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Billing Schedule</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide">Billing Schedule</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white">
                 Every {contract.billing_frequency}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 on {contract.billing_day}
               </p>
             </div>
@@ -88,7 +88,7 @@ export function ContractDetailCard({ contract }: ContractDetailCardProps) {
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               <div className="flex-1">
-                <p className="text-xs text-muted-foreground">Next Bill Date</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Next Bill Date</p>
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
                   {contract.next_bill_date ? formatDate(contract.next_bill_date) : 'N/A'}
                 </p>
@@ -101,7 +101,7 @@ export function ContractDetailCard({ contract }: ContractDetailCardProps) {
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-gray-600 dark:text-gray-400" />
               <div className="flex-1">
-                <p className="text-xs text-muted-foreground">Start Date</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Start Date</p>
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
                   {contract.start_date ? formatDate(contract.start_date) : 'N/A'}
                 </p>
@@ -115,7 +115,7 @@ export function ContractDetailCard({ contract }: ContractDetailCardProps) {
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-green-600 dark:text-green-400" />
                 <div className="flex-1">
-                  <p className="text-xs text-muted-foreground">Last Payment</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Last Payment</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
                     {formatDate(contract.last_invoice_date)}
                   </p>
@@ -133,11 +133,11 @@ export function ContractDetailCard({ contract }: ContractDetailCardProps) {
                 <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Revenue</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Revenue</p>
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                   {formatCurrency(contract.grand_total_amount, contract.currency_code || 'USD')}
                 </p>
-                <p className="text-xs text-muted-foreground">Lifetime value</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Lifetime value</p>
               </div>
             </div>
           </div>
@@ -160,7 +160,7 @@ export function ContractDetailCard({ contract }: ContractDetailCardProps) {
 
         {/* Contract Type */}
         <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
             <span>Type: {contract.type || 'N/A'}</span>
             <span>Subscription ID: {contract.mx_subscription_id}</span>
           </div>
@@ -169,7 +169,7 @@ export function ContractDetailCard({ contract }: ContractDetailCardProps) {
 
       {/* Baseball Card Footer */}
       <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-t border-gray-200 dark:border-gray-700">
-        <p className="text-xs text-center text-muted-foreground">
+        <p className="text-xs text-center text-gray-600 dark:text-gray-400">
           Last synced: {contract.last_synced_at ? formatDate(contract.last_synced_at) : 'Never'}
         </p>
       </div>
