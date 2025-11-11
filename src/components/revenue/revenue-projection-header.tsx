@@ -40,8 +40,8 @@ export function RevenueProjectionHeader({
         <div className="flex items-center gap-3">
           <TrendingUp className="h-8 w-8 text-blue-600" />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Revenue Projection</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Revenue Projection</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
               Forecast future revenue based on contract billing schedules
             </p>
           </div>
@@ -49,9 +49,9 @@ export function RevenueProjectionHeader({
       </div>
 
       {/* Date Range Selection */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Date Range</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Date Range</h2>
           <div className="flex gap-2">
             <Button
               variant={filters.preset === '7days' ? 'default' : 'outline'}
@@ -83,7 +83,7 @@ export function RevenueProjectionHeader({
         {/* Custom Date Range Inputs */}
         <div className="flex items-center gap-4">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Start Date
             </label>
             <Input
@@ -95,7 +95,7 @@ export function RevenueProjectionHeader({
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               End Date
             </label>
             <Input
@@ -110,7 +110,7 @@ export function RevenueProjectionHeader({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex gap-3">
             <Button
               onClick={onGenerateReport}
