@@ -1,21 +1,11 @@
 'use client';
 
 import { Eye } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Contract } from '@/types/contract';
 import {
   formatCurrency,
-  formatDate,
-  getStatusColor
+  formatDate
 } from '@/lib/utils';
 
 interface ContractTableProps {
@@ -29,92 +19,154 @@ export function ContractTable({
   onViewContract,
   loading = false
 }: ContractTableProps) {
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'bg-success/10 text-success border-success/20';
+      case 'completed':
+        return 'bg-info/10 text-info border-info/20';
+      case 'cancelled':
+        return 'bg-error/10 text-error border-error/20';
+      case 'inactive':
+        return 'bg-warning/10 text-warning border-warning/20';
+      default:
+        return 'bg-muted text-muted-foreground border-border';
+    }
+  };
+
   if (loading) {
     return (
-      <div className="rounded-md border">
-        <div className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Loading contracts...</p>
-        </div>
+      <div className="space-y-3 p-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-16 bg-muted/50 rounded-lg animate-pulse" />
+        ))}
       </div>
     );
   }
 
   if (contracts.length === 0) {
     return (
-      <div className="rounded-md border">
-        <div className="p-8 text-center">
-          <p className="text-muted-foreground">No contracts found.</p>
-        </div>
+      <div className="text-center py-12">
+        <p className="text-muted-foreground text-sm">No contracts found</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow className="h-6">
-            <TableHead className="w-[100px] h-6 py-1 text-xs">Contract ID</TableHead>
-            <TableHead className="w-[120px] h-6 py-1 text-xs">Contract #</TableHead>
-            <TableHead className="h-6 py-1 text-xs">Customer</TableHead>
-            <TableHead className="w-[100px] h-6 py-1 text-xs">Status</TableHead>
-            <TableHead className="w-[120px] h-6 py-1 text-xs">Frequency</TableHead>
-            <TableHead className="w-[120px] h-6 py-1 text-xs text-right">Amount</TableHead>
-            <TableHead className="w-[120px] h-6 py-1 text-xs">Next Bill Date</TableHead>
-            <TableHead className="w-[120px] h-6 py-1 text-xs">Start Date</TableHead>
-            <TableHead className="w-[60px] h-6 py-1 text-xs">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <div className="w-full">
+      {/* Modern scrollable container */}
+      <div className="overflow-x-auto scrollbar-thin">
+        <div className="min-w-[1400px]">
+          {/* Header */}
+          <div className="flex bg-muted/50 sticky top-0 z-10 backdrop-blur-sm border-b border-border">
+            <div className="flex-none w-[140px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Contract ID
+            </div>
+            <div className="flex-none w-[140px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Contract #
+            </div>
+            <div className="flex-none w-[200px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Customer
+            </div>
+            <div className="flex-none w-[120px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Status
+            </div>
+            <div className="flex-none w-[160px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Frequency
+            </div>
+            <div className="flex-none w-[120px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
+              Amount
+            </div>
+            <div className="flex-none w-[140px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Next Bill
+            </div>
+            <div className="flex-none w-[140px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Start Date
+            </div>
+            <div className="flex-none w-[100px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center">
+              Actions
+            </div>
+          </div>
+
+          {/* Rows */}
           {contracts.map((contract) => (
-            <TableRow key={contract.id} className="h-7">
-              <TableCell className="font-mono text-xs py-1">
-                {contract.mx_contract_id}
-              </TableCell>
-              <TableCell className="font-semibold py-1 text-xs">
-                {contract.contract_name}
-              </TableCell>
-              <TableCell className="py-1">
-                <div className="flex flex-col">
-                  <span className="font-medium text-xs">{contract.customer_name}</span>
-                </div>
-              </TableCell>
-              <TableCell className="py-1">
-                <Badge
-                  variant="outline"
-                  className={`text-xs px-1 py-0 ${getStatusColor(contract.status)}`}
-                >
+            <div
+              key={contract.id}
+              className="flex min-h-16 border-b border-border hover:bg-accent/5 transition-colors"
+            >
+              {/* Contract ID */}
+              <div className="flex-none w-[140px] px-4 py-3 flex items-center">
+                <span className="text-sm font-mono text-muted-foreground">
+                  {contract.mx_contract_id}
+                </span>
+              </div>
+
+              {/* Contract # */}
+              <div className="flex-none w-[140px] px-4 py-3 flex items-center">
+                <span className="text-sm font-semibold text-foreground">
+                  {contract.contract_name}
+                </span>
+              </div>
+
+              {/* Customer */}
+              <div className="flex-none w-[200px] px-4 py-3 flex items-center">
+                <span className="text-sm font-medium text-foreground truncate">
+                  {contract.customer_name}
+                </span>
+              </div>
+
+              {/* Status */}
+              <div className="flex-none w-[120px] px-4 py-3 flex items-center">
+                <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(contract.status)}`}>
                   {contract.status}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-xs py-1">
-                {contract.billing_interval} - {contract.billing_frequency}
-              </TableCell>
-              <TableCell className="text-right font-medium py-1 text-xs">
-                {formatCurrency(contract.amount, contract.currency_code || 'USD')}
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground py-1">
-                {contract.next_bill_date ? formatDate(contract.next_bill_date) : 'N/A'}
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground py-1">
-                {contract.start_date ? formatDate(contract.start_date) : 'N/A'}
-              </TableCell>
-              <TableCell className="py-1">
+                </span>
+              </div>
+
+              {/* Frequency */}
+              <div className="flex-none w-[160px] px-4 py-3 flex items-center">
+                <span className="text-sm text-foreground">
+                  {contract.billing_interval} - {contract.billing_frequency}
+                </span>
+              </div>
+
+              {/* Amount */}
+              <div className="flex-none w-[120px] px-4 py-3 flex items-center justify-end">
+                <span className="text-sm font-semibold text-foreground">
+                  {formatCurrency(contract.amount, contract.currency_code || 'USD')}
+                </span>
+              </div>
+
+              {/* Next Bill Date */}
+              <div className="flex-none w-[140px] px-4 py-3 flex items-center">
+                <span className="text-sm text-muted-foreground">
+                  {contract.next_bill_date ? formatDate(contract.next_bill_date) : 'N/A'}
+                </span>
+              </div>
+
+              {/* Start Date */}
+              <div className="flex-none w-[140px] px-4 py-3 flex items-center">
+                <span className="text-sm text-muted-foreground">
+                  {contract.start_date ? formatDate(contract.start_date) : 'N/A'}
+                </span>
+              </div>
+
+              {/* Actions */}
+              <div className="flex-none w-[100px] px-4 py-3 flex items-center justify-center">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onViewContract(contract.mx_contract_id)}
-                  className="h-5 w-5 p-0"
+                  className="h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground"
+                  title="View contract details"
                 >
-                  <Eye className="h-3 w-3" />
+                  <Eye className="h-4 w-4" />
                   <span className="sr-only">View contract</span>
                 </Button>
-              </TableCell>
-            </TableRow>
+              </div>
+            </div>
           ))}
-        </TableBody>
-      </Table>
+        </div>
+      </div>
     </div>
   );
 }

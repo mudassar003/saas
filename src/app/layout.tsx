@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth";
-import { AuthenticatedHeader } from "@/components/layout/authenticated-header";
+import { AppShell } from "@/components/layout/app-shell";
 import { getCurrentUser } from "@/lib/auth/server-utils";
 import "./globals.css";
 
@@ -38,12 +38,13 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider>
           <AuthProvider initialUser={initialUser}>
-            <AuthenticatedHeader />
-            {children}
+            <AppShell>
+              {children}
+            </AppShell>
           </AuthProvider>
         </ThemeProvider>
       </body>

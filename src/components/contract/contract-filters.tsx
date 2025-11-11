@@ -36,7 +36,7 @@ export function ContractFilters({
   };
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+    <div className="flex items-center gap-3 p-3 bg-muted/30 dark:bg-muted/10 rounded-lg border border-border">
       {/* Search */}
       <div className="relative flex-1">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />

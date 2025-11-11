@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CreditCard, Users, CheckCircle, XCircle } from 'lucide-react';
 import { TransactionTable } from '@/components/transaction/transaction-table';
 import { TransactionFilters } from '@/components/transaction/transaction-filters';
 import { SyncDialog } from '@/components/sync/sync-dialog';
 import { Pagination } from '@/components/ui/pagination';
+import { PageHeader } from '@/components/ui/page-header';
+import { MetricCard, MetricsGrid } from '@/components/ui/metric-card';
 import { DataSentUpdate } from '@/types/invoice';
 import { getDateRange } from '@/lib/date-filters';
 
@@ -122,12 +125,12 @@ export default function TransactionsPage() {
     { key: 'ed', label: 'ED', description: 'Erectile dysfunction patients' },
     { key: 'cancellations', label: 'Cancellations', description: 'Canceled or paused memberships' }
   ];
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [totalPages, setTotalPages] = useState(0);
-  
+
   // Statistics state for transactions
   const [statistics, setStatistics] = useState({
     total: 0,
@@ -159,7 +162,6 @@ export default function TransactionsPage() {
     }
   });
 
-
   // Load transactions from API
   useEffect(() => {
     const loadTransactions = async () => {
@@ -169,7 +171,7 @@ export default function TransactionsPage() {
         const params = new URLSearchParams();
         params.append('limit', pageSize.toString());
         params.append('offset', ((currentPage - 1) * pageSize).toString());
-        
+
         if (filters.search) {
           params.append('search', filters.search);
         }
@@ -194,7 +196,7 @@ export default function TransactionsPage() {
         if (filters.fulfillmentType !== 'all') {
           params.append('fulfillmentType', filters.fulfillmentType);
         }
-        
+
         // Add date range filtering
         const dateRange = getDateRange(filters.dateRange);
         if (dateRange.start) {
@@ -206,16 +208,16 @@ export default function TransactionsPage() {
 
         // Add active tab filtering
         params.append('activeTab', filters.activeTab);
-        
+
         // Make API call to transactions endpoint
         const response = await fetch(`/api/transactions?${params.toString()}`);
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch transactions');
         }
-        
+
         const result: ApiResponse = await response.json();
-        
+
         if (result.success) {
           setTransactions(result.data.records);
           setTotalCount(result.data.recordCount);
@@ -226,7 +228,6 @@ export default function TransactionsPage() {
         }
       } catch (error) {
         console.error('Error loading transactions:', error);
-        // Fallback to empty array on error
         setTransactions([]);
       } finally {
         setLoading(false);
@@ -234,13 +235,12 @@ export default function TransactionsPage() {
     };
 
     loadTransactions();
-  }, [filters, currentPage, pageSize]); // Reload when filters or pagination change
+  }, [filters, currentPage, pageSize]);
 
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filters]);
-
 
   const handleUpdateDataSent = async (update: DataSentUpdate) => {
     try {
@@ -268,7 +268,7 @@ export default function TransactionsPage() {
   const handleSyncComplete = () => {
     // Refresh the transaction data after sync
     const currentFilters = filters;
-    setFilters({ ...currentFilters }); // This will trigger the useEffect to reload data
+    setFilters({ ...currentFilters });
   };
 
   const handleTabChange = (tabKey: TabKey) => {
@@ -276,7 +276,7 @@ export default function TransactionsPage() {
       ...prevFilters,
       activeTab: tabKey,
       // Reset certain filters when switching tabs
-      category: tabKey === 'all' || tabKey === 'cancellations' ? 'all' : 
+      category: tabKey === 'all' || tabKey === 'cancellations' ? 'all' :
                tabKey === 'trt' ? 'TRT' :
                tabKey === 'weight_loss' ? 'Weight Loss' :
                tabKey === 'peptides' ? 'Peptides' :
@@ -286,78 +286,84 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="w-full">
-      <div className="container mx-auto py-3 px-4 sm:px-6">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-400 bg-clip-text text-transparent">
-                Patient Census Dashboard
-              </h1>
-            </div>
-            <div className="hidden md:flex items-center gap-3 text-xs">
-              <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 dark:bg-slate-800 rounded">
-                <span className="text-slate-600 dark:text-slate-400">Total:</span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100">{statistics.total}</span>
-              </div>
-              <div className="flex items-center gap-1 px-2 py-1 bg-emerald-50 dark:bg-emerald-900/20 rounded">
-                <span className="text-emerald-700 dark:text-emerald-400">With Invoices:</span>
-                <span className="font-semibold text-emerald-900 dark:text-emerald-300">
-                  {statistics.withInvoices}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 px-2 py-1 bg-sky-50 dark:bg-sky-900/20 rounded">
-                <span className="text-sky-700 dark:text-sky-400">Approved:</span>
-                <span className="font-semibold text-sky-900 dark:text-sky-300">
-                  {statistics.approved}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <SyncDialog onSyncComplete={handleSyncComplete} />
-          </div>
-        </div>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        title="Patient Census Dashboard"
+        description="Monitor patient transactions and treatment categories across all payment channels"
+        actions={<SyncDialog onSyncComplete={handleSyncComplete} />}
+      />
 
-        {/* Tab Navigation - Google Sheets Style */}
-        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 mb-4">
-          <div className="flex items-center">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => handleTabChange(tab.key)}
-                className={`
-                  px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200
-                  ${filters.activeTab === tab.key 
-                    ? 'border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400' 
-                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300'
-                  }
-                `}
-                title={tab.description}
-              >
-                {tab.label}
-                {statistics.tabCounts[tab.key] > 0 && (
-                  <span className="ml-2 px-2 py-1 text-xs rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                    {statistics.tabCounts[tab.key]}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* KPI Metrics */}
+      <MetricsGrid>
+        <MetricCard
+          label="Total Transactions"
+          value={statistics.total.toLocaleString()}
+          icon={CreditCard}
+          variant="default"
+        />
+        <MetricCard
+          label="With Invoices"
+          value={statistics.withInvoices.toLocaleString()}
+          icon={Users}
+          variant="info"
+        />
+        <MetricCard
+          label="Approved"
+          value={statistics.approved.toLocaleString()}
+          icon={CheckCircle}
+          variant="success"
+        />
+        <MetricCard
+          label="Declined"
+          value={statistics.declined.toLocaleString()}
+          icon={XCircle}
+          variant="error"
+        />
+      </MetricsGrid>
 
-        <div className="space-y-2">
-          <TransactionFilters
-            onFiltersChange={setFilters}
-            resultsCount={transactions.length}
-            totalCount={totalCount}
-            statistics={statistics}
-            activeTab={filters.activeTab}
-          />
+      {/* Tab Navigation */}
+      <div className="bg-card dark:bg-card border border-border rounded-lg p-1 shadow-sm">
+        <div className="flex items-center gap-1 overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => handleTabChange(tab.key)}
+              className={`
+                flex-shrink-0 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200
+                ${filters.activeTab === tab.key
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:hover:bg-muted/20'
+                }
+              `}
+              title={tab.description}
+            >
+              {tab.label}
+              {statistics.tabCounts[tab.key] > 0 && (
+                <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                  filters.activeTab === tab.key
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-muted/80 dark:bg-muted/40 text-muted-foreground'
+                }`}>
+                  {statistics.tabCounts[tab.key]}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="w-full overflow-x-auto">
+      {/* Filters */}
+      <TransactionFilters
+        onFiltersChange={setFilters}
+        resultsCount={transactions.length}
+        totalCount={totalCount}
+        statistics={statistics}
+        activeTab={filters.activeTab}
+      />
+
+      {/* Transaction Table */}
+      <div className="bg-card border rounded-lg shadow-sm">
         <TransactionTable
           transactions={transactions}
           onUpdateDataSent={handleUpdateDataSent}
@@ -365,17 +371,15 @@ export default function TransactionsPage() {
         />
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6">
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          pageSize={pageSize}
-          totalCount={totalCount}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={setPageSize}
-          className="mt-4"
-        />
-      </div>
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   );
 }

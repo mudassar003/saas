@@ -176,7 +176,7 @@ export function TransactionFilters({
       </div>
 
       {/* Compact Filters - Reduced for Tab-based Navigation */}
-      <div className="bg-slate-50/50 dark:bg-slate-900/20 rounded-lg p-3 border border-slate-200 dark:border-slate-800">
+      <div className="bg-muted/30 dark:bg-muted/10 rounded-lg p-3 border border-border">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
           {/* Only show relevant filters based on active tab */}
           {activeTab !== 'cancellations' && (
@@ -338,7 +338,7 @@ export function TransactionFilters({
       </div>
 
       {/* Compact Statistics */}
-      <div className="bg-slate-50/50 dark:bg-slate-900/20 rounded-lg p-2 border border-slate-200 dark:border-slate-800">
+      <div className="bg-muted/30 dark:bg-muted/10 rounded-lg p-2 border border-border">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <div className="flex items-center gap-1 px-2 py-1 bg-sky-100 dark:bg-sky-900/30 rounded text-sky-700 dark:text-sky-300">
             <span>Total:</span> <span className="font-bold">{statistics.total}</span>

@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { FileText, CheckCircle, XCircle, Loader, Clock } from 'lucide-react';
 import { ContractTable } from '@/components/contract/contract-table';
 import { ContractFilters } from '@/components/contract/contract-filters';
 import { Pagination } from '@/components/ui/pagination';
+import { PageHeader } from '@/components/ui/page-header';
+import { MetricCard, MetricsGrid } from '@/components/ui/metric-card';
 import { Contract } from '@/types/contract';
 
 interface FilterState {
@@ -104,62 +107,72 @@ export default function ContractsPage() {
   };
 
   return (
-    <div className="container mx-auto py-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-8">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Contract Management</h1>
-          </div>
-          <div className="flex items-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Total:</span>
-              <span className="font-semibold">{totalCount}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Active:</span>
-              <span className="font-semibold text-green-600">
-                {statistics.active}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Completed:</span>
-              <span className="font-semibold text-blue-600">
-                {statistics.completed}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Cancelled:</span>
-              <span className="font-semibold text-red-600">
-                {statistics.cancelled}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        title="Contract Management"
+        description="Monitor and manage recurring payment contracts and subscriptions"
+      />
 
-      <div className="space-y-3">
-        <ContractFilters
-          onFiltersChange={setFilters}
-          resultsCount={contracts.length}
-          totalCount={totalCount}
+      {/* KPI Metrics */}
+      <MetricsGrid>
+        <MetricCard
+          label="Total Contracts"
+          value={statistics.total.toLocaleString()}
+          icon={FileText}
+          variant="default"
         />
+        <MetricCard
+          label="Active"
+          value={statistics.active.toLocaleString()}
+          icon={CheckCircle}
+          variant="success"
+        />
+        <MetricCard
+          label="Completed"
+          value={statistics.completed.toLocaleString()}
+          icon={Clock}
+          variant="info"
+        />
+        <MetricCard
+          label="Cancelled"
+          value={statistics.cancelled.toLocaleString()}
+          icon={XCircle}
+          variant="error"
+        />
+        <MetricCard
+          label="Inactive"
+          value={statistics.inactive.toLocaleString()}
+          icon={Loader}
+          variant="warning"
+        />
+      </MetricsGrid>
 
+      {/* Filters */}
+      <ContractFilters
+        onFiltersChange={setFilters}
+        resultsCount={contracts.length}
+        totalCount={totalCount}
+      />
+
+      {/* Contract Table */}
+      <div className="bg-card border border-border rounded-lg shadow-sm">
         <ContractTable
           contracts={contracts}
           onViewContract={handleViewContract}
           loading={loading}
         />
-
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          pageSize={pageSize}
-          totalCount={totalCount}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={setPageSize}
-          className="mt-4"
-        />
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   );
 }
