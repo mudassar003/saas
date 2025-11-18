@@ -8,10 +8,12 @@ import { Pagination } from '@/components/ui/pagination';
 import { PageHeader } from '@/components/ui/page-header';
 import { MetricCard, MetricsGrid } from '@/components/ui/metric-card';
 import { Contract } from '@/types/contract';
+import { getDateRange } from '@/lib/date-filters';
 
 interface FilterState {
   search: string;
   status: string;
+  dateRange: string;
 }
 
 interface ApiResponse {
@@ -35,7 +37,8 @@ export default function ContractsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
-    status: 'all'
+    status: 'all',
+    dateRange: 'all'
   });
 
   // Pagination state
@@ -67,6 +70,15 @@ export default function ContractsPage() {
         }
         if (filters.status !== 'all') {
           params.append('status', filters.status);
+        }
+
+        // Add date range filtering
+        const dateRange = getDateRange(filters.dateRange);
+        if (dateRange.start) {
+          params.append('dateStart', dateRange.start);
+        }
+        if (dateRange.end) {
+          params.append('dateEnd', dateRange.end);
         }
 
         // Make API call

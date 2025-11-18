@@ -142,12 +142,13 @@ export async function GET(request: NextRequest) {
         q = q.eq('fulfillment_type', fulfillmentType)
       }
 
-      // Date range filtering
+      // Date range filtering - FIXED: Use PostgreSQL date casting for accurate date-only comparison
+      // This ensures '2025-11-17T15:30:00Z' matches when filtering by '2025-11-17'
       if (dateStart) {
-        q = q.gte('transaction_date', dateStart)
+        q = q.gte('transaction_date::date', dateStart)
       }
       if (dateEnd) {
-        q = q.lte('transaction_date', dateEnd)
+        q = q.lte('transaction_date::date', dateEnd)
       }
 
       // Tab-based filtering (Patient Census Dashboard)

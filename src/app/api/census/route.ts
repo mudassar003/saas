@@ -111,12 +111,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<CensusApiR
       baseQuery = baseQuery.eq('fulfillment_type', fulfillmentType)
     }
 
-    // Date range filtering using indexed date column
+    // Date range filtering - FIXED: Use PostgreSQL date casting for accurate date-only comparison
+    // This ensures '2025-11-17T15:30:00Z' matches when filtering by '2025-11-17'
     if (dateStart) {
-      baseQuery = baseQuery.gte('transaction_date', dateStart)
+      baseQuery = baseQuery.gte('transaction_date::date', dateStart)
     }
     if (dateEnd) {
-      baseQuery = baseQuery.lte('transaction_date', dateEnd)
+      baseQuery = baseQuery.lte('transaction_date::date', dateEnd)
     }
 
     // Tab-based filtering using optimized membership view indexes

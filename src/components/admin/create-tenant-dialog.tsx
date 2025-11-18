@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const createTenantSchema = z.object({
   tenant_name: z.string().min(1, 'Tenant name is required').max(255, 'Tenant name too long'),
@@ -29,6 +30,7 @@ const createTenantSchema = z.object({
   consumer_secret: z.string().min(1, 'Consumer secret is required'),
   environment: z.enum(['production', 'sandbox']),
   webhook_secret: z.string().optional(),
+  setup_webhooks: z.boolean().optional().default(false),
 });
 
 type CreateTenantFormData = z.infer<typeof createTenantSchema>;
@@ -55,6 +57,13 @@ interface CreateTenantDialogProps {
 interface CreateTenantApiResponse {
   success: boolean;
   tenant?: TenantData;
+  webhookSetup?: {
+    attempted: boolean;
+    results?: {
+      eventType: string;
+      success: boolean;
+    }[];
+  };
   error?: string;
 }
 
@@ -65,6 +74,7 @@ export function CreateTenantDialog({
 }: CreateTenantDialogProps): React.JSX.Element {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [webhookSuccess, setWebhookSuccess] = useState<string | null>(null);
 
   const {
     register,
@@ -77,10 +87,12 @@ export function CreateTenantDialog({
     resolver: zodResolver(createTenantSchema),
     defaultValues: {
       environment: 'production',
+      setup_webhooks: true,
     },
   });
 
   const selectedEnvironment = watch('environment');
+  const setupWebhooks = watch('setup_webhooks');
 
   const onSubmit = async (data: CreateTenantFormData): Promise<void> => {
     try {
@@ -113,8 +125,21 @@ export function CreateTenantDialog({
         throw new Error(result.error || 'Failed to create tenant');
       }
 
+      // Show webhook setup results if attempted
+      if (result.webhookSetup?.attempted) {
+        const successCount = result.webhookSetup.results?.filter(r => r.success).length || 0;
+        const totalCount = result.webhookSetup.results?.length || 0;
+        setWebhookSuccess(`Webhooks configured: ${successCount}/${totalCount} successful`);
+      }
+
       onTenantCreated(result.tenant);
-      reset();
+
+      // Auto-close after showing success for 2 seconds
+      setTimeout(() => {
+        reset();
+        setWebhookSuccess(null);
+        onOpenChange(false);
+      }, 2000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
@@ -127,6 +152,7 @@ export function CreateTenantDialog({
   const handleClose = (): void => {
     reset();
     setError(null);
+    setWebhookSuccess(null);
     onOpenChange(false);
   };
 
@@ -144,6 +170,12 @@ export function CreateTenantDialog({
           {error && (
             <Alert variant="destructive">
               {error}
+            </Alert>
+          )}
+
+          {webhookSuccess && (
+            <Alert className="bg-green-50 border-green-200 text-green-800">
+              {webhookSuccess}
             </Alert>
           )}
 
@@ -254,13 +286,36 @@ export function CreateTenantDialog({
             </p>
           </div>
 
+          <div className="space-y-2">
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                id="setup_webhooks"
+                checked={setupWebhooks}
+                onCheckedChange={(checked) => setValue('setup_webhooks', checked as boolean)}
+                disabled={isSubmitting}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="setup_webhooks"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Setup Webhooks Automatically (Recommended)
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Configures 5 webhook subscriptions for real-time transaction processing:
+                  PaymentSuccess, PaymentFail, RefundCreated, Chargeback, and Deposit
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 mb-2">Important Notes:</h4>
+            <h4 className="font-medium text-blue-900 mb-2">Streamlined Onboarding:</h4>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Each tenant is completely isolated with their own data</li>
-              <li>• API credentials will be used to sync transaction and invoice data</li>
-              <li>• Merchant ID must be unique and match your MX Merchant account</li>
-              <li>• Production environment should only be used for live medical practices</li>
+              <li>✅ Tenant created with isolated data environment</li>
+              <li>✅ API credentials configured for data sync</li>
+              <li>✅ Webhooks setup for real-time transaction processing</li>
+              <li>💡 Next: Create admin user and configure product categories</li>
             </ul>
           </div>
 

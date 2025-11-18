@@ -38,6 +38,8 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const status = searchParams.get('status') || 'all';
     const search = searchParams.get('search') || '';
+    const dateStart = searchParams.get('dateStart') || undefined;
+    const dateEnd = searchParams.get('dateEnd') || undefined;
 
     // Build query
     let query = supabaseAdmin
@@ -57,6 +59,15 @@ export async function GET(request: NextRequest) {
     // Apply search filter
     if (search) {
       query = query.or(`customer_name.ilike.%${search}%,contract_name.ilike.%${search}%`);
+    }
+
+    // Date range filtering - FIXED: Use PostgreSQL date casting for accurate date-only comparison
+    // Filter by next_bill_date (when the contract will bill next)
+    if (dateStart) {
+      query = query.gte('next_bill_date::date', dateStart);
+    }
+    if (dateEnd) {
+      query = query.lte('next_bill_date::date', dateEnd);
     }
 
     // Apply pagination

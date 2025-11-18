@@ -201,7 +201,7 @@ CREATE TABLE contracts (
     REFERENCES mx_merchant_configs(merchant_id) ON DELETE CASCADE
 );
 
--- Performance Indexes
+-- Performance Incan ydexes
 CREATE INDEX idx_contracts_merchant ON contracts(merchant_id);
 CREATE INDEX idx_contracts_status ON contracts(merchant_id, status);
 CREATE INDEX idx_contracts_customer ON contracts(merchant_id, customer_name);

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 
 interface ContractFiltersProps {
-  onFiltersChange: (filters: { search: string; status: string }) => void;
+  onFiltersChange: (filters: { search: string; status: string; dateRange: string }) => void;
   resultsCount: number;
   totalCount: number;
 }
@@ -24,15 +24,21 @@ export function ContractFilters({
 }: ContractFiltersProps) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
+  const [dateRange, setDateRange] = useState('all');
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
-    onFiltersChange({ search: value, status });
+    onFiltersChange({ search: value, status, dateRange });
   };
 
   const handleStatusChange = (value: string) => {
     setStatus(value);
-    onFiltersChange({ search, status: value });
+    onFiltersChange({ search, status: value, dateRange });
+  };
+
+  const handleDateRangeChange = (value: string) => {
+    setDateRange(value);
+    onFiltersChange({ search, status, dateRange: value });
   };
 
   return (
@@ -59,6 +65,20 @@ export function ContractFilters({
           <SelectItem value="Completed">Completed</SelectItem>
           <SelectItem value="Cancelled">Cancelled</SelectItem>
           <SelectItem value="Inactive">Inactive</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {/* Date Range Filter */}
+      <Select value={dateRange} onValueChange={handleDateRangeChange}>
+        <SelectTrigger className="w-[150px] h-9">
+          <SelectValue placeholder="All Dates" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Dates</SelectItem>
+          <SelectItem value="today">Today</SelectItem>
+          <SelectItem value="week">This Week</SelectItem>
+          <SelectItem value="month">This Month</SelectItem>
+          <SelectItem value="year">This Year</SelectItem>
         </SelectContent>
       </Select>
 

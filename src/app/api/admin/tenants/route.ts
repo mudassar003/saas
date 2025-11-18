@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireSuperAdmin } from '@/lib/auth/server-utils';
 import { createServerClient } from '@/lib/supabase-server';
+import { setupRecommendedWebhooks } from '@/lib/mx-merchant-webhooks';
 
 interface TenantData {
   id: string;
@@ -25,6 +26,13 @@ interface TenantsApiResponse {
 interface CreateTenantApiResponse {
   success: boolean;
   tenant?: TenantData;
+  webhookSetup?: {
+    attempted: boolean;
+    results?: {
+      eventType: string;
+      success: boolean;
+    }[];
+  };
   error?: string;
 }
 
@@ -36,6 +44,7 @@ const createTenantSchema = z.object({
   consumer_secret: z.string().min(1, 'Consumer secret is required'),
   environment: z.enum(['production', 'sandbox']),
   webhook_secret: z.string().optional(),
+  setup_webhooks: z.boolean().optional().default(false),
 });
 
 export async function GET(): Promise<NextResponse<TenantsApiResponse>> {
@@ -127,9 +136,36 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateTen
       throw new Error(`Failed to create tenant: ${createError.message}`);
     }
 
+    // Setup webhooks if requested
+    let webhookSetup;
+    if (tenantData.setup_webhooks) {
+      try {
+        console.log(`[Tenant Creation] Setting up webhooks for merchant ${tenantData.merchant_id}`);
+        const webhookResults = await setupRecommendedWebhooks(tenantData.merchant_id);
+
+        webhookSetup = {
+          attempted: true,
+          results: webhookResults.map(r => ({
+            eventType: r.eventType,
+            success: r.success,
+          })),
+        };
+
+        const successCount = webhookResults.filter(r => r.success).length;
+        console.log(`[Tenant Creation] Webhook setup: ${successCount}/${webhookResults.length} successful`);
+      } catch (webhookError) {
+        console.error('[Tenant Creation] Webhook setup failed:', webhookError);
+        webhookSetup = {
+          attempted: true,
+          results: [],
+        };
+      }
+    }
+
     return NextResponse.json({
       success: true,
       tenant: newTenant,
+      webhookSetup,
     });
 
   } catch (error) {
