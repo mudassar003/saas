@@ -13,7 +13,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 
-type TabKey = 'all' | 'trt' | 'weight_loss' | 'peptides' | 'ed' | 'cancellations';
+type TabKey = 'all' | 'recurring' | 'trt' | 'weight_loss' | 'peptides' | 'ed' | 'cancellations';
 
 interface FilterState {
   search: string;
@@ -297,7 +297,7 @@ export function TransactionFilters({
           </Select>
 
           {/* Hide category filter on specific tabs since they're already filtered */}
-          {activeTab === 'all' && (
+          {(activeTab === 'all' || activeTab === 'recurring') && (
             <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
               <SelectTrigger className="w-full h-8 text-xs">
                 <SelectValue>
