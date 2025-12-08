@@ -225,30 +225,30 @@ export default function CensusPage() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-400 bg-clip-text text-transparent">
+              <h1 className="text-xl font-bold tracking-tight text-foreground">
                 Patient Census Dashboard
               </h1>
             </div>
             <div className="hidden md:flex items-center gap-3 text-xs">
-              <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 dark:bg-slate-800 rounded">
-                <span className="text-slate-600 dark:text-slate-400">Total Patients:</span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100">{statistics.total}</span>
+              <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded">
+                <span className="text-muted-foreground">Total Patients:</span>
+                <span className="font-semibold text-foreground">{statistics.total}</span>
               </div>
-              <div className="flex items-center gap-1 px-2 py-1 bg-emerald-50 dark:bg-emerald-900/20 rounded">
-                <span className="text-emerald-700 dark:text-emerald-400">Active:</span>
-                <span className="font-semibold text-emerald-900 dark:text-emerald-300">
+              <div className="flex items-center gap-1 px-2 py-1 bg-success/10 rounded border border-success/20">
+                <span className="text-success">Active:</span>
+                <span className="font-semibold text-success">
                   {statistics.byMembershipStatus.active}
                 </span>
               </div>
-              <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 rounded">
-                <span className="text-amber-700 dark:text-amber-400">Paused:</span>
-                <span className="font-semibold text-amber-900 dark:text-amber-300">
+              <div className="flex items-center gap-1 px-2 py-1 bg-warning/10 rounded border border-warning/20">
+                <span className="text-warning">Paused:</span>
+                <span className="font-semibold text-warning">
                   {statistics.byMembershipStatus.paused}
                 </span>
               </div>
-              <div className="flex items-center gap-1 px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded">
-                <span className="text-red-700 dark:text-red-400">Canceled:</span>
-                <span className="font-semibold text-red-900 dark:text-red-300">
+              <div className="flex items-center gap-1 px-2 py-1 bg-error/10 rounded border border-error/20">
+                <span className="text-error">Canceled:</span>
+                <span className="font-semibold text-error">
                   {statistics.byMembershipStatus.canceled}
                 </span>
               </div>
@@ -260,7 +260,7 @@ export default function CensusPage() {
         </div>
 
         {/* Tab Navigation - Following transaction page pattern */}
-        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 mb-4">
+        <div className="bg-card border-b border-border mb-4">
           <div className="flex items-center">
             {tabs.map((tab) => (
               <button
@@ -268,16 +268,16 @@ export default function CensusPage() {
                 onClick={() => handleTabChange(tab.key)}
                 className={`
                   px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200
-                  ${filters.activeTab === tab.key 
-                    ? 'border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400' 
-                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300'
+                  ${filters.activeTab === tab.key
+                    ? 'border-primary text-primary bg-primary/5'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                   }
                 `}
                 title={tab.description}
               >
                 {tab.label}
                 {statistics.tabCounts[tab.key] > 0 && (
-                  <span className="ml-2 px-2 py-1 text-xs rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                  <span className="ml-2 px-2 py-1 text-xs rounded-full bg-muted text-muted-foreground">
                     {statistics.tabCounts[tab.key]}
                   </span>
                 )}
