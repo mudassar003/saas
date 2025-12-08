@@ -1,12 +1,25 @@
 'use client';
 
-import { Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Contract } from '@/types/contract';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  formatCurrency,
-  formatDate
-} from '@/lib/utils';
+  useReactTable,
+  getCoreRowModel,
+  ColumnDef,
+  flexRender,
+} from '@tanstack/react-table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Eye, Settings2, GripVertical, FileText } from 'lucide-react';
+import { Contract } from '@/types/contract';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 interface ContractTableProps {
   contracts: Contract[];
@@ -14,11 +27,83 @@ interface ContractTableProps {
   loading?: boolean;
 }
 
+// localStorage key for table preferences
+const STORAGE_KEY = 'contract-table-preferences';
+
 export function ContractTable({
   contracts,
   onViewContract,
   loading = false
 }: ContractTableProps) {
+  // TanStack Table state
+  const [columnVisibility, setColumnVisibility] = useState({});
+  const [columnSizing, setColumnSizing] = useState({});
+
+  // Scroll state for indicators
+  const [showLeftShadow, setShowLeftShadow] = useState(false);
+  const [showRightShadow, setShowRightShadow] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Load preferences from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const { visibility, sizing } = JSON.parse(saved);
+        if (visibility) setColumnVisibility(visibility);
+        if (sizing) setColumnSizing(sizing);
+      } catch (e) {
+        console.error('Failed to parse saved table preferences:', e);
+      }
+    }
+  }, []);
+
+  // Save preferences to localStorage
+  useEffect(() => {
+    if (Object.keys(columnVisibility).length > 0 || Object.keys(columnSizing).length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        visibility: columnVisibility,
+        sizing: columnSizing,
+      }));
+    }
+  }, [columnVisibility, columnSizing]);
+
+  // Handle scroll for indicators
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    setShowLeftShadow(scrollLeft > 0);
+    setShowRightShadow(scrollLeft < scrollWidth - clientWidth - 1);
+  };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      handleScroll();
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [contracts]);
+
+  // Keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const scrollAmount = 200;
+
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      container.scrollLeft -= scrollAmount;
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      container.scrollLeft += scrollAmount;
+    }
+  };
+
+  // Status color helper
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
@@ -34,6 +119,176 @@ export function ContractTable({
     }
   };
 
+  // Column definitions
+  const columns = useMemo<ColumnDef<Contract>[]>(
+    () => [
+      {
+        id: 'contract_id',
+        accessorKey: 'mx_contract_id',
+        header: 'Contract ID',
+        size: 140,
+        minSize: 100,
+        maxSize: 180,
+        cell: ({ getValue }) => (
+          <span className="text-sm font-mono text-muted-foreground">
+            {getValue() as number}
+          </span>
+        ),
+      },
+      {
+        id: 'contract_number',
+        accessorKey: 'contract_name',
+        header: 'Contract #',
+        size: 140,
+        minSize: 100,
+        maxSize: 200,
+        cell: ({ getValue }) => (
+          <span className="text-sm font-semibold text-foreground">
+            {getValue() as string}
+          </span>
+        ),
+      },
+      {
+        id: 'customer',
+        accessorKey: 'customer_name',
+        header: 'Customer',
+        size: 200,
+        minSize: 150,
+        maxSize: 300,
+        cell: ({ getValue }) => {
+          const value = getValue() as string;
+          return (
+            <span
+              className="text-sm font-medium text-foreground truncate block"
+              title={value}
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: '100%'
+              }}
+            >
+              {value}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'status',
+        accessorKey: 'status',
+        header: 'Status',
+        size: 120,
+        minSize: 100,
+        maxSize: 150,
+        cell: ({ getValue }) => {
+          const status = getValue() as string;
+          return (
+            <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(status)}`}>
+              {status}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'frequency',
+        accessorKey: 'billing_interval',
+        header: 'Frequency',
+        size: 160,
+        minSize: 130,
+        maxSize: 200,
+        cell: ({ row }) => (
+          <span className="text-sm text-foreground">
+            {row.original.billing_interval} - {row.original.billing_frequency}
+          </span>
+        ),
+      },
+      {
+        id: 'amount',
+        accessorKey: 'amount',
+        header: 'Amount',
+        size: 120,
+        minSize: 100,
+        maxSize: 150,
+        cell: ({ getValue, row }) => (
+          <div className="text-right">
+            <span className="text-sm font-semibold text-foreground">
+              {formatCurrency(getValue() as number, row.original.currency_code || 'USD')}
+            </span>
+          </div>
+        ),
+      },
+      {
+        id: 'next_bill',
+        accessorKey: 'next_bill_date',
+        header: 'Next Bill',
+        size: 140,
+        minSize: 120,
+        maxSize: 180,
+        cell: ({ getValue }) => {
+          const date = getValue() as string | null;
+          return (
+            <span className="text-sm text-muted-foreground">
+              {date ? formatDate(date) : 'N/A'}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'start_date',
+        accessorKey: 'start_date',
+        header: 'Start Date',
+        size: 140,
+        minSize: 120,
+        maxSize: 180,
+        cell: ({ getValue }) => {
+          const date = getValue() as string | null;
+          return (
+            <span className="text-sm text-muted-foreground">
+              {date ? formatDate(date) : 'N/A'}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        size: 100,
+        minSize: 80,
+        maxSize: 120,
+        cell: ({ row }) => (
+          <div className="flex items-center justify-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onViewContract(row.original.mx_contract_id)}
+              className="h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground"
+              title="View contract details"
+            >
+              <Eye className="h-4 w-4" />
+              <span className="sr-only">View contract</span>
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [onViewContract]
+  );
+
+  // Create table instance
+  const table = useReactTable({
+    data: contracts,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
+    state: {
+      columnVisibility,
+      columnSizing,
+    },
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
+  });
+
   if (loading) {
     return (
       <div className="space-y-3 p-4">
@@ -46,126 +301,148 @@ export function ContractTable({
 
   if (contracts.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground text-sm">No contracts found</p>
+      <div className="border border-border rounded-lg">
+        <div className="p-8 text-center">
+          <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-2 text-sm font-medium text-foreground">No contracts found</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            No contracts match the current filters. Try adjusting your search criteria.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full">
-      {/* Modern scrollable container */}
-      <div className="overflow-x-auto scrollbar-thin">
-        <div className="min-w-[1400px]">
-          {/* Header */}
-          <div className="flex bg-muted/50 sticky top-0 z-10 backdrop-blur-sm border-b border-border">
-            <div className="flex-none w-[140px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Contract ID
-            </div>
-            <div className="flex-none w-[140px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Contract #
-            </div>
-            <div className="flex-none w-[200px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Customer
-            </div>
-            <div className="flex-none w-[120px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Status
-            </div>
-            <div className="flex-none w-[160px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Frequency
-            </div>
-            <div className="flex-none w-[120px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
-              Amount
-            </div>
-            <div className="flex-none w-[140px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Next Bill
-            </div>
-            <div className="flex-none w-[140px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Start Date
-            </div>
-            <div className="flex-none w-[100px] px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center">
-              Actions
-            </div>
-          </div>
-
-          {/* Rows */}
-          {contracts.map((contract) => (
-            <div
-              key={contract.id}
-              className="flex min-h-16 border-b border-border hover:bg-accent/5 transition-colors"
-            >
-              {/* Contract ID */}
-              <div className="flex-none w-[140px] px-4 py-3 flex items-center">
-                <span className="text-sm font-mono text-muted-foreground">
-                  {contract.mx_contract_id}
-                </span>
-              </div>
-
-              {/* Contract # */}
-              <div className="flex-none w-[140px] px-4 py-3 flex items-center">
-                <span className="text-sm font-semibold text-foreground">
-                  {contract.contract_name}
-                </span>
-              </div>
-
-              {/* Customer */}
-              <div className="flex-none w-[200px] px-4 py-3 flex items-center">
-                <span className="text-sm font-medium text-foreground truncate">
-                  {contract.customer_name}
-                </span>
-              </div>
-
-              {/* Status */}
-              <div className="flex-none w-[120px] px-4 py-3 flex items-center">
-                <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(contract.status)}`}>
-                  {contract.status}
-                </span>
-              </div>
-
-              {/* Frequency */}
-              <div className="flex-none w-[160px] px-4 py-3 flex items-center">
-                <span className="text-sm text-foreground">
-                  {contract.billing_interval} - {contract.billing_frequency}
-                </span>
-              </div>
-
-              {/* Amount */}
-              <div className="flex-none w-[120px] px-4 py-3 flex items-center justify-end">
-                <span className="text-sm font-semibold text-foreground">
-                  {formatCurrency(contract.amount, contract.currency_code || 'USD')}
-                </span>
-              </div>
-
-              {/* Next Bill Date */}
-              <div className="flex-none w-[140px] px-4 py-3 flex items-center">
-                <span className="text-sm text-muted-foreground">
-                  {contract.next_bill_date ? formatDate(contract.next_bill_date) : 'N/A'}
-                </span>
-              </div>
-
-              {/* Start Date */}
-              <div className="flex-none w-[140px] px-4 py-3 flex items-center">
-                <span className="text-sm text-muted-foreground">
-                  {contract.start_date ? formatDate(contract.start_date) : 'N/A'}
-                </span>
-              </div>
-
-              {/* Actions */}
-              <div className="flex-none w-[100px] px-4 py-3 flex items-center justify-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onViewContract(contract.mx_contract_id)}
-                  className="h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground"
-                  title="View contract details"
-                >
-                  <Eye className="h-4 w-4" />
-                  <span className="sr-only">View contract</span>
-                </Button>
-              </div>
-            </div>
-          ))}
+    <div className="space-y-4">
+      {/* Column Visibility Controls */}
+      <div className="flex items-center justify-between px-2">
+        <div className="text-sm text-muted-foreground">
+          Showing {contracts.length} contract{contracts.length !== 1 ? 's' : ''}
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              Columns
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {table.getAllLeafColumns().map((column) => {
+              return (
+                <DropdownMenuCheckboxItem
+                  key={column.id}
+                  checked={column.getIsVisible()}
+                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                >
+                  {column.columnDef.header as string}
+                </DropdownMenuCheckboxItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Table Container with Scroll Indicators */}
+      <div className="relative border border-border rounded-lg overflow-hidden">
+        {showLeftShadow && (
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background/80 to-transparent z-10 pointer-events-none" />
+        )}
+        {showRightShadow && (
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background/80 to-transparent z-10 pointer-events-none" />
+        )}
+
+        <div
+          ref={scrollContainerRef}
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+          className="overflow-x-auto focus:outline-none"
+          style={{
+            maxHeight: '70vh',
+            overflowY: 'auto',
+            willChange: 'scroll-position',
+          }}
+        >
+          <Table>
+            <TableHeader
+              className="sticky top-0 z-20 bg-muted shadow-sm"
+              style={{
+                willChange: 'transform',
+                transform: 'translateZ(0)',
+                contain: 'layout style paint',
+              }}
+            >
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      className="relative font-semibold text-foreground border-r border-border/50 last:border-r-0"
+                      style={{
+                        width: header.getSize(),
+                        position: 'relative',
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </div>
+
+                      {/* Resize Handle */}
+                      {header.column.getCanResize() && (
+                        <div
+                          onMouseDown={header.getResizeHandler()}
+                          onTouchStart={header.getResizeHandler()}
+                          className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none touch-none hover:bg-primary/50 ${
+                            header.column.getIsResizing() ? 'bg-primary' : ''
+                          }`}
+                          style={{
+                            userSelect: 'none',
+                          }}
+                        >
+                          {header.column.getIsResizing() && (
+                            <GripVertical className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
+                          )}
+                        </div>
+                      )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody style={{ contain: 'layout style paint' }}>
+              {table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className="hover:bg-muted/50 transition-colors"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className="border-r border-border/30 last:border-r-0"
+                      style={{
+                        width: cell.column.getSize(),
+                      }}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* Keyboard Navigation Hint */}
+      <div className="text-xs text-muted-foreground text-center">
+        Use arrow keys (← →) to scroll horizontally • Drag column borders to resize
       </div>
     </div>
   );

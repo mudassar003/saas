@@ -1,10 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  ColumnDef,
+  flexRender,
+} from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Calendar, Hash, Package, Users, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Eye, Users, CheckCircle2, XCircle, Clock, Settings2, GripVertical } from 'lucide-react';
 import { format } from 'date-fns';
 
 // Patient census record type - enterprise-grade typing
@@ -31,29 +45,32 @@ interface CensusTableProps {
   loading: boolean;
 }
 
-// Status badge configuration - following UI design system
+// localStorage key for table preferences
+const STORAGE_KEY = 'census-table-preferences';
+
+// Status badge configuration
 const getStatusBadge = (status: string): { variant: 'default' | 'secondary' | 'destructive' | 'outline', icon: React.ReactElement } => {
   switch (status.toLowerCase()) {
     case 'active':
-      return { 
-        variant: 'default' as const, 
-        icon: <CheckCircle2 className="w-3 h-3" /> 
+      return {
+        variant: 'default' as const,
+        icon: <CheckCircle2 className="w-3 h-3" />
       };
     case 'paused':
-      return { 
-        variant: 'secondary' as const, 
-        icon: <Clock className="w-3 h-3" /> 
+      return {
+        variant: 'secondary' as const,
+        icon: <Clock className="w-3 h-3" />
       };
     case 'canceled':
     case 'cancelled':
-      return { 
-        variant: 'destructive' as const, 
-        icon: <XCircle className="w-3 h-3" /> 
+      return {
+        variant: 'destructive' as const,
+        icon: <XCircle className="w-3 h-3" />
       };
     default:
-      return { 
-        variant: 'outline' as const, 
-        icon: <Clock className="w-3 h-3" /> 
+      return {
+        variant: 'outline' as const,
+        icon: <Clock className="w-3 h-3" />
       };
   }
 };
@@ -84,7 +101,75 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
   const [updatingGoogleReview, setUpdatingGoogleReview] = useState<Set<string>>(new Set());
   const [updatingReferralSource, setUpdatingReferralSource] = useState<Set<string>>(new Set());
 
-  // Handle category updates following transaction table pattern
+  // TanStack Table state
+  const [columnVisibility, setColumnVisibility] = useState({});
+  const [columnSizing, setColumnSizing] = useState({});
+
+  // Scroll state for indicators
+  const [showLeftShadow, setShowLeftShadow] = useState(false);
+  const [showRightShadow, setShowRightShadow] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Load preferences from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const { visibility, sizing } = JSON.parse(saved);
+        if (visibility) setColumnVisibility(visibility);
+        if (sizing) setColumnSizing(sizing);
+      } catch (e) {
+        console.error('Failed to parse saved table preferences:', e);
+      }
+    }
+  }, []);
+
+  // Save preferences to localStorage
+  useEffect(() => {
+    if (Object.keys(columnVisibility).length > 0 || Object.keys(columnSizing).length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        visibility: columnVisibility,
+        sizing: columnSizing,
+      }));
+    }
+  }, [columnVisibility, columnSizing]);
+
+  // Handle scroll for indicators
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    setShowLeftShadow(scrollLeft > 0);
+    setShowRightShadow(scrollLeft < scrollWidth - clientWidth - 1);
+  };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      handleScroll();
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [patients]);
+
+  // Keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const scrollAmount = 200;
+
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      container.scrollLeft -= scrollAmount;
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      container.scrollLeft += scrollAmount;
+    }
+  };
+
+  // Update handlers
   const handleCategoryUpdate = async (patientId: string, newCategory: string): Promise<void> => {
     setUpdatingCategory(prev => new Set([...prev, patientId]));
     try {
@@ -93,7 +178,7 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ product_category: newCategory })
       });
-      
+
       if (response.ok) {
         window.location.reload();
       }
@@ -108,7 +193,6 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
     }
   };
 
-  // Handle membership status updates following transaction table pattern
   const handleMembershipUpdate = async (patientId: string, newStatus: string): Promise<void> => {
     setUpdatingMembership(prev => new Set([...prev, patientId]));
     try {
@@ -117,7 +201,7 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ membership_status: newStatus })
       });
-      
+
       if (response.ok) {
         window.location.reload();
       }
@@ -132,7 +216,6 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
     }
   };
 
-  // Handle Google review updates
   const handleGoogleReviewUpdate = async (patientId: string, newValue: boolean): Promise<void> => {
     setUpdatingGoogleReview(prev => new Set([...prev, patientId]));
     try {
@@ -141,7 +224,7 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ google_review_submitted: newValue })
       });
-      
+
       if (response.ok) {
         window.location.reload();
       }
@@ -156,7 +239,6 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
     }
   };
 
-  // Handle referral source updates
   const handleReferralSourceUpdate = async (patientId: string, newSource: string): Promise<void> => {
     setUpdatingReferralSource(prev => new Set([...prev, patientId]));
     try {
@@ -165,7 +247,7 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ referral_source: newSource })
       });
-      
+
       if (response.ok) {
         window.location.reload();
       }
@@ -179,6 +261,277 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
       });
     }
   };
+
+  // Column definitions
+  const columns = useMemo<ColumnDef<PatientCensusRecord>[]>(
+    () => [
+      {
+        id: 'patient',
+        accessorKey: 'customer_name',
+        header: 'Patient',
+        size: 200,
+        minSize: 150,
+        maxSize: 350,
+        cell: ({ getValue, row }) => (
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm text-foreground font-medium truncate" title={getValue() as string}>
+              {getValue() as string}
+            </span>
+            {row.original.referral_source && (
+              <span className="text-xs text-muted-foreground truncate">
+                via {(row.original.referral_source as string).replace('_', ' ')}
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        id: 'product',
+        accessorKey: 'product_name',
+        header: 'Product/Medication',
+        size: 220,
+        minSize: 150,
+        maxSize: 400,
+        cell: ({ getValue, row }) => {
+          const value = (getValue() as string) || 'No Product';
+          return (
+            <div className="flex flex-col min-w-0">
+              <span
+                className="text-sm text-foreground truncate block"
+                title={value}
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '100%'
+                }}
+              >
+                {value}
+              </span>
+              {row.original.fulfillment_type && (
+                <span className="text-xs text-muted-foreground truncate">
+                  {(row.original.fulfillment_type as string).replace('_', ' ')}
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'category',
+        accessorKey: 'product_category',
+        header: 'Category',
+        size: 160,
+        minSize: 130,
+        maxSize: 200,
+        cell: ({ getValue, row }) => {
+          const category = getValue() as string | null;
+          const categoryColor = getCategoryColor(category);
+          const isCategoryUpdating = updatingCategory.has(row.original.id);
+
+          return (
+            <select
+              value={category || 'Uncategorized'}
+              onChange={(e) => handleCategoryUpdate(row.original.id, e.target.value)}
+              disabled={isCategoryUpdating}
+              className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded-full cursor-pointer disabled:opacity-50 ${categoryColor}`}
+            >
+              <option value="TRT" className="text-foreground bg-background">TRT</option>
+              <option value="Weight Loss" className="text-foreground bg-background">Weight Loss</option>
+              <option value="Peptides" className="text-foreground bg-background">Peptides</option>
+              <option value="ED" className="text-foreground bg-background">ED</option>
+              <option value="Other" className="text-foreground bg-background">Other</option>
+              <option value="Uncategorized" className="text-foreground bg-background">Uncategorized</option>
+            </select>
+          );
+        },
+      },
+      {
+        id: 'status',
+        accessorKey: 'membership_status',
+        header: 'Status',
+        size: 140,
+        minSize: 120,
+        maxSize: 180,
+        cell: ({ getValue, row }) => {
+          const status = getValue() as string;
+          const statusBadge = getStatusBadge(status);
+          const isMembershipUpdating = updatingMembership.has(row.original.id);
+
+          return (
+            <div className="flex flex-col gap-1">
+              <select
+                value={status}
+                onChange={(e) => handleMembershipUpdate(row.original.id, e.target.value)}
+                disabled={isMembershipUpdating}
+                className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded cursor-pointer disabled:opacity-50 ${
+                  statusBadge.variant === 'default'
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                    : statusBadge.variant === 'secondary'
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                }`}
+              >
+                <option value="active" className="text-foreground bg-background">Active</option>
+                <option value="paused" className="text-foreground bg-background">Paused</option>
+                <option value="canceled" className="text-foreground bg-background">Canceled</option>
+              </select>
+              {row.original.google_review_submitted && (
+                <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                  ✓ Google Review
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'amount',
+        accessorKey: 'amount',
+        header: 'Amount',
+        size: 120,
+        minSize: 100,
+        maxSize: 150,
+        cell: ({ getValue }) => (
+          <div className="text-right font-medium text-foreground">
+            ${(getValue() as number).toFixed(2)}
+          </div>
+        ),
+      },
+      {
+        id: 'last_payment',
+        accessorKey: 'last_payment_date',
+        header: 'Last Payment',
+        size: 160,
+        minSize: 140,
+        maxSize: 200,
+        cell: ({ getValue }) => {
+          const date = new Date(getValue() as string);
+          return (
+            <div className="flex flex-col">
+              <span className="text-sm text-foreground">
+                {format(date, 'MMM d, yyyy')}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {format(date, 'h:mm a')}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'transaction_count',
+        accessorKey: 'transaction_count',
+        header: 'Transactions',
+        size: 120,
+        minSize: 100,
+        maxSize: 150,
+        cell: ({ getValue }) => (
+          <div className="text-center">
+            <Badge variant="outline" className="font-mono">
+              {getValue() as number}
+            </Badge>
+          </div>
+        ),
+      },
+      {
+        id: 'referral_source',
+        accessorKey: 'referral_source',
+        header: 'Referral Source',
+        size: 160,
+        minSize: 130,
+        maxSize: 200,
+        cell: ({ getValue, row }) => {
+          const referralSource = getValue() as string | null;
+          const isReferralSourceUpdating = updatingReferralSource.has(row.original.id);
+
+          return (
+            <select
+              value={referralSource || 'other'}
+              onChange={(e) => handleReferralSourceUpdate(row.original.id, e.target.value)}
+              disabled={isReferralSourceUpdating}
+              className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded cursor-pointer disabled:opacity-50 ${
+                referralSource === 'online'
+                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                  : referralSource === 'refer_a_friend'
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              <option value="online" className="text-foreground bg-background">Online</option>
+              <option value="refer_a_friend" className="text-foreground bg-background">Refer a Friend</option>
+              <option value="other" className="text-foreground bg-background">Other</option>
+            </select>
+          );
+        },
+      },
+      {
+        id: 'google_review',
+        accessorKey: 'google_review_submitted',
+        header: 'Google Review',
+        size: 140,
+        minSize: 120,
+        maxSize: 180,
+        cell: ({ getValue, row }) => {
+          const googleReview = getValue() as boolean | null;
+          const isGoogleReviewUpdating = updatingGoogleReview.has(row.original.id);
+
+          return (
+            <div className="text-center">
+              <select
+                value={googleReview ? 'true' : 'false'}
+                onChange={(e) => handleGoogleReviewUpdate(row.original.id, e.target.value === 'true')}
+                disabled={isGoogleReviewUpdating}
+                className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded cursor-pointer disabled:opacity-50 ${
+                  googleReview
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                }`}
+              >
+                <option value="true" className="text-foreground bg-background">✓ Yes</option>
+                <option value="false" className="text-foreground bg-background">✗ No</option>
+              </select>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        size: 100,
+        minSize: 80,
+        maxSize: 120,
+        cell: () => (
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="View patient transactions"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [updatingCategory, updatingMembership, updatingGoogleReview, updatingReferralSource]
+  );
+
+  // Create table instance
+  const table = useReactTable({
+    data: patients,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
+    state: {
+      columnVisibility,
+      columnSizing,
+    },
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
+  });
 
   if (loading) {
     return (
@@ -206,233 +559,136 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
   }
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/50">
-            <TableHead className="font-semibold text-foreground">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Patient
-              </div>
-            </TableHead>
-            <TableHead className="font-semibold text-foreground">
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                Product/Medication
-              </div>
-            </TableHead>
-            <TableHead className="font-semibold text-foreground">
-              Category
-            </TableHead>
-            <TableHead className="font-semibold text-foreground">
-              Status
-            </TableHead>
-            <TableHead className="font-semibold text-foreground text-right">
-              Amount
-            </TableHead>
-            <TableHead className="font-semibold text-foreground">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Last Payment
-              </div>
-            </TableHead>
-            <TableHead className="font-semibold text-foreground text-center">
-              <div className="flex items-center gap-2 justify-center">
-                <Hash className="w-4 h-4" />
-                Transactions
-              </div>
-            </TableHead>
-            <TableHead className="font-semibold text-foreground">
-              Referral Source
-            </TableHead>
-            <TableHead className="font-semibold text-foreground text-center">
-              Google Review
-            </TableHead>
-            <TableHead className="font-semibold text-foreground text-center">
-              Actions
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {patients.map((patient) => {
-            const patientKey = `${patient.customer_name}|${patient.product_name || 'No Product'}`;
-            const statusBadge = getStatusBadge(patient.membership_status);
-            const categoryColor = getCategoryColor(patient.product_category);
-            const isCategoryUpdating = updatingCategory.has(patient.id);
-            const isMembershipUpdating = updatingMembership.has(patient.id);
-            const isGoogleReviewUpdating = updatingGoogleReview.has(patient.id);
-            const isReferralSourceUpdating = updatingReferralSource.has(patient.id);
+    <div className="space-y-4">
+      {/* Column Visibility Controls */}
+      <div className="flex items-center justify-between px-2">
+        <div className="text-sm text-muted-foreground">
+          Showing {patients.length} patient{patients.length !== 1 ? 's' : ''}
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              Columns
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {table.getAllLeafColumns().map((column) => {
+              return (
+                <DropdownMenuCheckboxItem
+                  key={column.id}
+                  checked={column.getIsVisible()}
+                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                >
+                  {column.columnDef.header as string}
+                </DropdownMenuCheckboxItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
-            return (
-              <TableRow
-                key={patientKey}
-                className="hover:bg-muted/50 transition-colors"
-              >
-                {/* Patient Name */}
-                <TableCell className="font-medium">
-                  <div className="flex flex-col">
-                    <span className="text-foreground">
-                      {patient.customer_name}
-                    </span>
-                    {patient.referral_source && (
-                      <span className="text-xs text-muted-foreground">
-                        via {patient.referral_source.replace('_', ' ')}
-                      </span>
-                    )}
-                  </div>
-                </TableCell>
+      {/* Table Container with Scroll Indicators */}
+      <div className="relative border border-border rounded-lg overflow-hidden">
+        {showLeftShadow && (
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background/80 to-transparent z-10 pointer-events-none" />
+        )}
+        {showRightShadow && (
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background/80 to-transparent z-10 pointer-events-none" />
+        )}
 
-                {/* Product/Medication */}
-                <TableCell>
-                  <div className="flex flex-col max-w-xs">
-                    <span className="text-sm text-foreground truncate">
-                      {patient.product_name || 'No Product'}
-                    </span>
-                    {patient.fulfillment_type && (
-                      <span className="text-xs text-muted-foreground">
-                        {patient.fulfillment_type.replace('_', ' ')}
-                      </span>
-                    )}
-                  </div>
-                </TableCell>
-
-                {/* Category - Editable */}
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    {patient.product_category ? (
-                      <select
-                        value={patient.product_category}
-                        onChange={(e) => handleCategoryUpdate(patient.id, e.target.value)}
-                        disabled={isCategoryUpdating}
-                        className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded-full cursor-pointer disabled:opacity-50 ${categoryColor}`}
-                      >
-                        <option value="TRT" className="text-foreground bg-background">TRT</option>
-                        <option value="Weight Loss" className="text-foreground bg-background">Weight Loss</option>
-                        <option value="Peptides" className="text-foreground bg-background">Peptides</option>
-                        <option value="ED" className="text-foreground bg-background">ED</option>
-                        <option value="Other" className="text-foreground bg-background">Other</option>
-                        <option value="Uncategorized" className="text-foreground bg-background">Uncategorized</option>
-                      </select>
-                    ) : (
-                      <select
-                        value="Uncategorized"
-                        onChange={(e) => handleCategoryUpdate(patient.id, e.target.value)}
-                        disabled={isCategoryUpdating}
-                        className="w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded-full bg-muted text-muted-foreground cursor-pointer disabled:opacity-50"
-                      >
-                        <option value="TRT" className="text-foreground bg-background">TRT</option>
-                        <option value="Weight Loss" className="text-foreground bg-background">Weight Loss</option>
-                        <option value="Peptides" className="text-foreground bg-background">Peptides</option>
-                        <option value="ED" className="text-foreground bg-background">ED</option>
-                        <option value="Other" className="text-foreground bg-background">Other</option>
-                        <option value="Uncategorized" className="text-foreground bg-background">Uncategorized</option>
-                      </select>
-                    )}
-                  </div>
-                </TableCell>
-
-                {/* Membership Status - Editable */}
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <select
-                      value={patient.membership_status}
-                      onChange={(e) => handleMembershipUpdate(patient.id, e.target.value)}
-                      disabled={isMembershipUpdating}
-                      className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded cursor-pointer disabled:opacity-50 inline-flex items-center gap-1 ${statusBadge.variant === 'default' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' : statusBadge.variant === 'secondary' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'}`}
+        <div
+          ref={scrollContainerRef}
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+          className="overflow-x-auto focus:outline-none"
+          style={{
+            maxHeight: '70vh',
+            overflowY: 'auto',
+            willChange: 'scroll-position',
+          }}
+        >
+          <Table>
+            <TableHeader
+              className="sticky top-0 z-20 bg-muted shadow-sm"
+              style={{
+                willChange: 'transform',
+                transform: 'translateZ(0)',
+                contain: 'layout style paint',
+              }}
+            >
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      className="relative font-semibold text-foreground border-r border-border/50 last:border-r-0"
+                      style={{
+                        width: header.getSize(),
+                        position: 'relative',
+                      }}
                     >
-                      <option value="active" className="text-foreground bg-background">Active</option>
-                      <option value="paused" className="text-foreground bg-background">Paused</option>
-                      <option value="canceled" className="text-foreground bg-background">Canceled</option>
-                    </select>
-                    {patient.google_review_submitted && (
-                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                        ✓ Google Review
-                      </span>
-                    )}
-                  </div>
-                </TableCell>
+                      <div className="flex items-center gap-2">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </div>
 
-                {/* Amount */}
-                <TableCell className="text-right font-medium text-foreground">
-                  ${patient.amount.toFixed(2)}
-                </TableCell>
-
-                {/* Last Payment Date */}
-                <TableCell>
-                  <div className="flex flex-col">
-                    <span className="text-sm text-foreground">
-                      {format(new Date(patient.last_payment_date), 'MMM d, yyyy')}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(patient.last_payment_date), 'h:mm a')}
-                    </span>
-                  </div>
-                </TableCell>
-
-                {/* Transaction Count */}
-                <TableCell className="text-center">
-                  <Badge variant="outline" className="font-mono">
-                    {patient.transaction_count}
-                  </Badge>
-                </TableCell>
-
-                {/* Referral Source - Editable */}
-                <TableCell>
-                  <select
-                    value={patient.referral_source || 'other'}
-                    onChange={(e) => handleReferralSourceUpdate(patient.id, e.target.value)}
-                    disabled={isReferralSourceUpdating}
-                    className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded cursor-pointer disabled:opacity-50 ${
-                      patient.referral_source === 'online'
-                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
-                        : patient.referral_source === 'refer_a_friend'
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    <option value="online" className="text-foreground bg-background">Online</option>
-                    <option value="refer_a_friend" className="text-foreground bg-background">Refer a Friend</option>
-                    <option value="other" className="text-foreground bg-background">Other</option>
-                  </select>
-                </TableCell>
-
-                {/* Google Review - Editable */}
-                <TableCell className="text-center">
-                  <select
-                    value={patient.google_review_submitted ? 'true' : 'false'}
-                    onChange={(e) => handleGoogleReviewUpdate(patient.id, e.target.value === 'true')}
-                    disabled={isGoogleReviewUpdating}
-                    className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded cursor-pointer disabled:opacity-50 ${
-                      patient.google_review_submitted
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                    }`}
-                  >
-                    <option value="true" className="text-foreground bg-background">✓ Yes</option>
-                    <option value="false" className="text-foreground bg-background">✗ No</option>
-                  </select>
-                </TableCell>
-
-                {/* Actions */}
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {/* View Details Button */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      title="View patient transactions"
+                      {/* Resize Handle */}
+                      {header.column.getCanResize() && (
+                        <div
+                          onMouseDown={header.getResizeHandler()}
+                          onTouchStart={header.getResizeHandler()}
+                          className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none touch-none hover:bg-primary/50 ${
+                            header.column.getIsResizing() ? 'bg-primary' : ''
+                          }`}
+                          style={{
+                            userSelect: 'none',
+                          }}
+                        >
+                          {header.column.getIsResizing() && (
+                            <GripVertical className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
+                          )}
+                        </div>
+                      )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody style={{ contain: 'layout style paint' }}>
+              {table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className="hover:bg-muted/50 transition-colors"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className="border-r border-border/30 last:border-r-0"
+                      style={{
+                        width: cell.column.getSize(),
+                      }}
                     >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* Keyboard Navigation Hint */}
+      <div className="text-xs text-muted-foreground text-center">
+        Use arrow keys (← →) to scroll horizontally • Drag column borders to resize
+      </div>
     </div>
   );
 }
