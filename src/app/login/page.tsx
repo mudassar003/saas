@@ -100,7 +100,7 @@ function LoginForm() {
                   disabled={isLoading}
                 />
                 {errors.email && (
-                  <p className="text-sm text-red-600">{errors.email.message}</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
                 )}
               </div>
 
@@ -133,7 +133,7 @@ function LoginForm() {
                   </Button>
                 </div>
                 {errors.password && (
-                  <p className="text-sm text-red-600">{errors.password.message}</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">{errors.password.message}</p>
                 )}
               </div>
 
@@ -161,8 +161,8 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div>Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-gray-900 dark:text-gray-100">Loading...</div>
       </div>
     }>
       <LoginForm />

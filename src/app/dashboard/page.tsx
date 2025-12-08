@@ -205,19 +205,19 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Not Selected:</span>
-              <span className="font-semibold text-gray-600">
+              <span className="font-semibold text-gray-600 dark:text-gray-400">
                 {statistics.pending}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Data Sent:</span>
-              <span className="font-semibold text-green-600">
+              <span className="font-semibold text-green-600 dark:text-green-400">
                 {statistics.dataSent}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Not Sent:</span>
-              <span className="font-semibold text-red-600">
+              <span className="font-semibold text-red-600 dark:text-red-400">
                 {statistics.dataNotSent}
               </span>
             </div>

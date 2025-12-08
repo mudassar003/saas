@@ -30,7 +30,7 @@ const createTenantSchema = z.object({
   consumer_secret: z.string().min(1, 'Consumer secret is required'),
   environment: z.enum(['production', 'sandbox']),
   webhook_secret: z.string().optional(),
-  setup_webhooks: z.boolean().optional().default(false),
+  setup_webhooks: z.boolean(),
 });
 
 type CreateTenantFormData = z.infer<typeof createTenantSchema>;
@@ -174,7 +174,7 @@ export function CreateTenantDialog({
           )}
 
           {webhookSuccess && (
-            <Alert className="bg-green-50 border-green-200 text-green-800">
+            <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-400">
               {webhookSuccess}
             </Alert>
           )}
@@ -190,7 +190,7 @@ export function CreateTenantDialog({
               disabled={isSubmitting}
             />
             {errors.tenant_name && (
-              <p className="text-sm text-red-600">{errors.tenant_name.message}</p>
+              <p className="text-sm text-red-600 dark:text-red-400">{errors.tenant_name.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
               A friendly display name for this tenant/medical practice
@@ -210,7 +210,7 @@ export function CreateTenantDialog({
                 disabled={isSubmitting}
               />
               {errors.merchant_id && (
-                <p className="text-sm text-red-600">{errors.merchant_id.message}</p>
+                <p className="text-sm text-red-600 dark:text-red-400">{errors.merchant_id.message}</p>
               )}
             </div>
 
@@ -232,7 +232,7 @@ export function CreateTenantDialog({
                 </SelectContent>
               </Select>
               {errors.environment && (
-                <p className="text-sm text-red-600">{errors.environment.message}</p>
+                <p className="text-sm text-red-600 dark:text-red-400">{errors.environment.message}</p>
               )}
             </div>
           </div>
@@ -248,7 +248,7 @@ export function CreateTenantDialog({
               disabled={isSubmitting}
             />
             {errors.consumer_key && (
-              <p className="text-sm text-red-600">{errors.consumer_key.message}</p>
+              <p className="text-sm text-red-600 dark:text-red-400">{errors.consumer_key.message}</p>
             )}
           </div>
 
@@ -264,7 +264,7 @@ export function CreateTenantDialog({
               disabled={isSubmitting}
             />
             {errors.consumer_secret && (
-              <p className="text-sm text-red-600">{errors.consumer_secret.message}</p>
+              <p className="text-sm text-red-600 dark:text-red-400">{errors.consumer_secret.message}</p>
             )}
           </div>
 
@@ -279,7 +279,7 @@ export function CreateTenantDialog({
               disabled={isSubmitting}
             />
             {errors.webhook_secret && (
-              <p className="text-sm text-red-600">{errors.webhook_secret.message}</p>
+              <p className="text-sm text-red-600 dark:text-red-400">{errors.webhook_secret.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
               Used for webhook signature validation. Leave empty if not using webhooks.
@@ -309,9 +309,9 @@ export function CreateTenantDialog({
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 mb-2">Streamlined Onboarding:</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2">Streamlined Onboarding:</h4>
+            <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
               <li>✅ Tenant created with isolated data environment</li>
               <li>✅ API credentials configured for data sync</li>
               <li>✅ Webhooks setup for real-time transaction processing</li>

@@ -76,21 +76,21 @@ export function ContractPaymentHistory({ contractId }: ContractPaymentHistoryPro
     const statusLower = status.toLowerCase();
     if (statusLower === 'settled' || statusLower === 'approved') {
       return (
-        <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50">
+        <Badge variant="outline" className="text-green-600 dark:text-green-400 border-green-600 dark:border-green-500 bg-green-50 dark:bg-green-900/20">
           <CheckCircle className="h-3 w-3 mr-1" />
           {status}
         </Badge>
       );
     } else if (statusLower === 'declined') {
       return (
-        <Badge variant="outline" className="text-red-600 border-red-600 bg-red-50">
+        <Badge variant="outline" className="text-red-600 dark:text-red-400 border-red-600 dark:border-red-500 bg-red-50 dark:bg-red-900/20">
           <XCircle className="h-3 w-3 mr-1" />
           {status}
         </Badge>
       );
     }
     return (
-      <Badge variant="outline" className="text-gray-600 border-gray-600 bg-gray-50">
+      <Badge variant="outline" className="text-gray-600 dark:text-gray-400 border-gray-600 dark:border-gray-500 bg-gray-50 dark:bg-gray-800">
         <Clock className="h-3 w-3 mr-1" />
         {status}
       </Badge>

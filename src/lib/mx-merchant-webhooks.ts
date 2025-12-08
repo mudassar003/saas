@@ -83,7 +83,7 @@ export async function setupWebhooksForMerchant(
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Basic ${Buffer.from(
-            `${mxClient.consumerKey}:${mxClient.consumerSecret}`
+            `${mxClient.getConsumerKey()}:${mxClient.getConsumerSecret()}`
           ).toString('base64')}`,
         },
         body: JSON.stringify(payload),
@@ -166,7 +166,7 @@ export async function deleteWebhookSubscription(
         method: 'DELETE',
         headers: {
           'Authorization': `Basic ${Buffer.from(
-            `${mxClient.consumerKey}:${mxClient.consumerSecret}`
+            `${mxClient.getConsumerKey()}:${mxClient.getConsumerSecret()}`
           ).toString('base64')}`,
         },
       }
@@ -239,7 +239,7 @@ export async function getWebhookSubscriptions(merchantId: number): Promise<unkno
       headers: {
         'Accept': 'application/json',
         'Authorization': `Basic ${Buffer.from(
-          `${mxClient.consumerKey}:${mxClient.consumerSecret}`
+          `${mxClient.getConsumerKey()}:${mxClient.getConsumerSecret()}`
         ).toString('base64')}`,
       },
     });

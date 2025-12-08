@@ -27,11 +27,20 @@ export class MXMerchantClient {
     consumerSecret: string,
     environment: 'sandbox' | 'production' = 'sandbox'
   ) {
-    this.baseUrl = environment === 'sandbox' 
-      ? 'https://sandbox.api.mxmerchant.com' 
+    this.baseUrl = environment === 'sandbox'
+      ? 'https://sandbox.api.mxmerchant.com'
       : 'https://api.mxmerchant.com';
     this.consumerKey = consumerKey;
     this.consumerSecret = consumerSecret;
+  }
+
+  // Public getters for credentials (needed for webhook setup)
+  public getConsumerKey(): string {
+    return this.consumerKey;
+  }
+
+  public getConsumerSecret(): string {
+    return this.consumerSecret;
   }
 
   private getAuthHeaders(): Record<string, string> {

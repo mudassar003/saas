@@ -122,15 +122,15 @@ export default function TransactionDetailsPage() {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'approved':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800';
       case 'settled':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400 border-blue-200 dark:border-blue-800';
       case 'declined':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700';
     }
   };
 
@@ -157,8 +157,8 @@ export default function TransactionDetailsPage() {
     return (
       <div className="container mx-auto py-8">
         <div className="text-center min-h-[400px] flex flex-col items-center justify-center">
-          <XCircle className="h-16 w-16 text-red-500 mb-4" />
-          <h1 className="text-2xl font-bold text-red-600 mb-2">Transaction Not Found</h1>
+          <XCircle className="h-16 w-16 text-red-500 dark:text-red-400 mb-4" />
+          <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">Transaction Not Found</h1>
           <p className="text-muted-foreground mb-6">{error}</p>
           <Button onClick={handleBack} variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -301,7 +301,7 @@ export default function TransactionDetailsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
                         <div>
                           <label className="text-sm font-medium text-muted-foreground">Invoice #</label>
-                          <p className="font-mono text-blue-600 font-bold">#{invoice.invoice_number}</p>
+                          <p className="font-mono text-blue-600 dark:text-blue-400 font-bold">#{invoice.invoice_number}</p>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-muted-foreground">Amount</label>
@@ -315,12 +315,12 @@ export default function TransactionDetailsPage() {
                         </div>
                         <div>
                           <label className="text-sm font-medium text-muted-foreground">Status</label>
-                          <Badge 
-                            variant="outline" 
+                          <Badge
+                            variant="outline"
                             className={
-                              invoice.data_sent_status === 'yes' 
-                                ? 'bg-green-50 text-green-700 border-green-200' 
-                                : 'bg-orange-50 text-orange-700 border-orange-200'
+                              invoice.data_sent_status === 'yes'
+                                ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800'
+                                : 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800'
                             }
                           >
                             {invoice.data_sent_status === 'yes' ? 'Data Sent' : 'Pending'}
@@ -356,29 +356,29 @@ export default function TransactionDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-sm font-medium text-green-600">Transaction Amount</p>
-                <p className="text-2xl font-bold text-green-800">{formatCurrency(transaction.amount)}</p>
+              <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">Transaction Amount</p>
+                <p className="text-2xl font-bold text-green-800 dark:text-green-300">{formatCurrency(transaction.amount)}</p>
               </div>
-              
+
               {transaction.tax_amount && transaction.tax_amount > 0 && (
-                <div className="text-center p-3 bg-blue-50 rounded-lg border">
-                  <p className="text-sm font-medium text-blue-600">Tax</p>
-                  <p className="text-lg font-bold text-blue-800">{formatCurrency(transaction.tax_amount)}</p>
+                <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Tax</p>
+                  <p className="text-lg font-bold text-blue-800 dark:text-blue-300">{formatCurrency(transaction.tax_amount)}</p>
                 </div>
               )}
-              
+
               {transaction.surcharge_amount && transaction.surcharge_amount > 0 && (
-                <div className="text-center p-3 bg-orange-50 rounded-lg border">
-                  <p className="text-sm font-medium text-orange-600">{transaction.surcharge_label || 'Surcharge'}</p>
-                  <p className="text-lg font-bold text-orange-800">{formatCurrency(transaction.surcharge_amount)}</p>
+                <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                  <p className="text-sm font-medium text-orange-600 dark:text-orange-400">{transaction.surcharge_label || 'Surcharge'}</p>
+                  <p className="text-lg font-bold text-orange-800 dark:text-orange-300">{formatCurrency(transaction.surcharge_amount)}</p>
                 </div>
               )}
-              
+
               {transaction.refunded_amount && transaction.refunded_amount > 0 && (
-                <div className="text-center p-3 bg-red-50 rounded-lg border">
-                  <p className="text-sm font-medium text-red-600">Refunded</p>
-                  <p className="text-lg font-bold text-red-800">{formatCurrency(transaction.refunded_amount)}</p>
+                <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                  <p className="text-sm font-medium text-red-600 dark:text-red-400">Refunded</p>
+                  <p className="text-lg font-bold text-red-800 dark:text-red-300">{formatCurrency(transaction.refunded_amount)}</p>
                 </div>
               )}
             </CardContent>

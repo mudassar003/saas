@@ -173,7 +173,7 @@ export default function RevenueProjectionPage() {
       />
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded">
           <p className="font-medium">Error</p>
           <p className="text-sm">{error}</p>
         </div>
@@ -201,7 +201,7 @@ export default function RevenueProjectionPage() {
       )}
 
       {!projectionData && !loading && !error && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded text-center">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-4 py-3 rounded text-center">
           <p className="font-medium">No data available</p>
           <p className="text-sm mt-1">
             Click &quot;Fetch New Data&quot; to sync contracts from MX Merchant API, then the report will be generated automatically

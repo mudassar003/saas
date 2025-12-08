@@ -224,18 +224,18 @@ export function SyncDialog({ onSyncComplete }: SyncDialogProps) {
                   {result.success && result.stats && (
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="bg-blue-50 p-3 rounded border">
-                          <p className="font-medium text-blue-800">💳 Transactions</p>
-                          <p className="text-xl font-bold text-blue-900">{result.stats.transactionsSynced}</p>
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded border border-blue-200 dark:border-blue-800">
+                          <p className="font-medium text-blue-800 dark:text-blue-300">💳 Transactions</p>
+                          <p className="text-xl font-bold text-blue-900 dark:text-blue-300">{result.stats.transactionsSynced}</p>
                         </div>
-                        <div className="bg-green-50 p-3 rounded border">
-                          <p className="font-medium text-green-800">🔗 Invoices Linked</p>
-                          <p className="text-xl font-bold text-green-900">{result.stats.invoicesLinked}</p>
+                        <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded border border-green-200 dark:border-green-800">
+                          <p className="font-medium text-green-800 dark:text-green-300">🔗 Invoices Linked</p>
+                          <p className="text-xl font-bold text-green-900 dark:text-green-300">{result.stats.invoicesLinked}</p>
                         </div>
                       </div>
-                      <div className="bg-gray-50 p-3 rounded border text-center">
-                        <p className="text-sm text-gray-600">⚡ API Efficiency</p>
-                        <p className="text-lg font-semibold text-gray-800">
+                      <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 text-center">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">⚡ API Efficiency</p>
+                        <p className="text-lg font-semibold text-gray-800 dark:text-gray-300">
                           {result.stats.apiCalls} calls • {result.stats.efficiency}
                         </p>
                       </div>
