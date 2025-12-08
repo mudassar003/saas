@@ -137,14 +137,14 @@ export function CensusFilters({
             <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories ({statistics.total})</SelectItem>
-              <SelectItem value="TRT">TRT ({statistics.byCategory.TRT || 0})</SelectItem>
-              <SelectItem value="Weight Loss">Weight Loss ({statistics.byCategory['Weight Loss'] || 0})</SelectItem>
-              <SelectItem value="Peptides">Peptides ({statistics.byCategory.Peptides || 0})</SelectItem>
-              <SelectItem value="ED">ED ({statistics.byCategory.ED || 0})</SelectItem>
-              <SelectItem value="Other">Other ({statistics.byCategory.Other || 0})</SelectItem>
-              <SelectItem value="Uncategorized">Uncategorized ({statistics.byCategory.Uncategorized || 0})</SelectItem>
+            <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
+              <SelectItem value="all" className="text-slate-900 dark:text-slate-100">All Categories ({statistics.total})</SelectItem>
+              <SelectItem value="TRT" className="text-slate-900 dark:text-slate-100">TRT ({statistics.byCategory.TRT || 0})</SelectItem>
+              <SelectItem value="Weight Loss" className="text-slate-900 dark:text-slate-100">Weight Loss ({statistics.byCategory['Weight Loss'] || 0})</SelectItem>
+              <SelectItem value="Peptides" className="text-slate-900 dark:text-slate-100">Peptides ({statistics.byCategory.Peptides || 0})</SelectItem>
+              <SelectItem value="ED" className="text-slate-900 dark:text-slate-100">ED ({statistics.byCategory.ED || 0})</SelectItem>
+              <SelectItem value="Other" className="text-slate-900 dark:text-slate-100">Other ({statistics.byCategory.Other || 0})</SelectItem>
+              <SelectItem value="Uncategorized" className="text-slate-900 dark:text-slate-100">Uncategorized ({statistics.byCategory.Uncategorized || 0})</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -161,15 +161,15 @@ export function CensusFilters({
             <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">
+            <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
+              <SelectItem value="all" className="text-slate-900 dark:text-slate-100">All Status</SelectItem>
+              <SelectItem value="active" className="text-slate-900 dark:text-slate-100">
                 Active ({statistics.byMembershipStatus.active || 0})
               </SelectItem>
-              <SelectItem value="paused">
+              <SelectItem value="paused" className="text-slate-900 dark:text-slate-100">
                 Paused ({statistics.byMembershipStatus.paused || 0})
               </SelectItem>
-              <SelectItem value="canceled">
+              <SelectItem value="canceled" className="text-slate-900 dark:text-slate-100">
                 Canceled ({statistics.byMembershipStatus.canceled || 0})
               </SelectItem>
             </SelectContent>
@@ -188,10 +188,10 @@ export function CensusFilters({
             <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="true">Submitted</SelectItem>
-              <SelectItem value="false">Not Submitted</SelectItem>
+            <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
+              <SelectItem value="all" className="text-slate-900 dark:text-slate-100">All</SelectItem>
+              <SelectItem value="true" className="text-slate-900 dark:text-slate-100">Submitted</SelectItem>
+              <SelectItem value="false" className="text-slate-900 dark:text-slate-100">Not Submitted</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -208,11 +208,11 @@ export function CensusFilters({
             <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Sources</SelectItem>
-              <SelectItem value="online">Online</SelectItem>
-              <SelectItem value="refer_a_friend">Refer a Friend</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
+            <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
+              <SelectItem value="all" className="text-slate-900 dark:text-slate-100">All Sources</SelectItem>
+              <SelectItem value="online" className="text-slate-900 dark:text-slate-100">Online</SelectItem>
+              <SelectItem value="refer_a_friend" className="text-slate-900 dark:text-slate-100">Refer a Friend</SelectItem>
+              <SelectItem value="other" className="text-slate-900 dark:text-slate-100">Other</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -229,10 +229,10 @@ export function CensusFilters({
             <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="in_office">In Office</SelectItem>
-              <SelectItem value="mail_out">Mail Out</SelectItem>
+            <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
+              <SelectItem value="all" className="text-slate-900 dark:text-slate-100">All Types</SelectItem>
+              <SelectItem value="in_office" className="text-slate-900 dark:text-slate-100">In Office</SelectItem>
+              <SelectItem value="mail_out" className="text-slate-900 dark:text-slate-100">Mail Out</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -249,12 +249,12 @@ export function CensusFilters({
             <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
+            <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
+              <SelectItem value="all" className="text-slate-900 dark:text-slate-100">All Time</SelectItem>
+              <SelectItem value="today" className="text-slate-900 dark:text-slate-100">Today</SelectItem>
+              <SelectItem value="week" className="text-slate-900 dark:text-slate-100">This Week</SelectItem>
+              <SelectItem value="month" className="text-slate-900 dark:text-slate-100">This Month</SelectItem>
+              <SelectItem value="year" className="text-slate-900 dark:text-slate-100">This Year</SelectItem>
             </SelectContent>
           </Select>
         </div>

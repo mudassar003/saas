@@ -301,32 +301,32 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
                 <TableCell>
                   <div className="flex flex-col gap-1">
                     {patient.product_category ? (
-                      <select 
+                      <select
                         value={patient.product_category}
                         onChange={(e) => handleCategoryUpdate(patient.id, e.target.value)}
                         disabled={isCategoryUpdating}
                         className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded-full cursor-pointer disabled:opacity-50 ${categoryColor}`}
                       >
-                        <option value="TRT">TRT</option>
-                        <option value="Weight Loss">Weight Loss</option>
-                        <option value="Peptides">Peptides</option>
-                        <option value="ED">ED</option>
-                        <option value="Other">Other</option>
-                        <option value="Uncategorized">Uncategorized</option>
+                        <option value="TRT" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">TRT</option>
+                        <option value="Weight Loss" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Weight Loss</option>
+                        <option value="Peptides" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Peptides</option>
+                        <option value="ED" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">ED</option>
+                        <option value="Other" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Other</option>
+                        <option value="Uncategorized" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Uncategorized</option>
                       </select>
                     ) : (
-                      <select 
+                      <select
                         value="Uncategorized"
                         onChange={(e) => handleCategoryUpdate(patient.id, e.target.value)}
                         disabled={isCategoryUpdating}
                         className="w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer disabled:opacity-50"
                       >
-                        <option value="TRT">TRT</option>
-                        <option value="Weight Loss">Weight Loss</option>
-                        <option value="Peptides">Peptides</option>
-                        <option value="ED">ED</option>
-                        <option value="Other">Other</option>
-                        <option value="Uncategorized">Uncategorized</option>
+                        <option value="TRT" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">TRT</option>
+                        <option value="Weight Loss" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Weight Loss</option>
+                        <option value="Peptides" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Peptides</option>
+                        <option value="ED" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">ED</option>
+                        <option value="Other" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Other</option>
+                        <option value="Uncategorized" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Uncategorized</option>
                       </select>
                     )}
                   </div>
@@ -335,15 +335,15 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
                 {/* Membership Status - Editable */}
                 <TableCell>
                   <div className="flex flex-col gap-1">
-                    <select 
+                    <select
                       value={patient.membership_status}
                       onChange={(e) => handleMembershipUpdate(patient.id, e.target.value)}
                       disabled={isMembershipUpdating}
                       className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded cursor-pointer disabled:opacity-50 inline-flex items-center gap-1 ${statusBadge.variant === 'default' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' : statusBadge.variant === 'secondary' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'}`}
                     >
-                      <option value="active">Active</option>
-                      <option value="paused">Paused</option>
-                      <option value="canceled">Canceled</option>
+                      <option value="active" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Active</option>
+                      <option value="paused" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Paused</option>
+                      <option value="canceled" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Canceled</option>
                     </select>
                     {patient.google_review_submitted && (
                       <span className="text-xs text-green-600 dark:text-green-400 font-medium">
@@ -379,38 +379,38 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
 
                 {/* Referral Source - Editable */}
                 <TableCell>
-                  <select 
+                  <select
                     value={patient.referral_source || 'other'}
                     onChange={(e) => handleReferralSourceUpdate(patient.id, e.target.value)}
                     disabled={isReferralSourceUpdating}
                     className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded cursor-pointer disabled:opacity-50 ${
-                      patient.referral_source === 'online' 
+                      patient.referral_source === 'online'
                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                         : patient.referral_source === 'refer_a_friend'
                         ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
                         : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                     }`}
                   >
-                    <option value="online">Online</option>
-                    <option value="refer_a_friend">Refer a Friend</option>
-                    <option value="other">Other</option>
+                    <option value="online" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Online</option>
+                    <option value="refer_a_friend" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Refer a Friend</option>
+                    <option value="other" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Other</option>
                   </select>
                 </TableCell>
 
                 {/* Google Review - Editable */}
                 <TableCell className="text-center">
-                  <select 
+                  <select
                     value={patient.google_review_submitted ? 'true' : 'false'}
                     onChange={(e) => handleGoogleReviewUpdate(patient.id, e.target.value === 'true')}
                     disabled={isGoogleReviewUpdating}
                     className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded cursor-pointer disabled:opacity-50 ${
-                      patient.google_review_submitted 
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' 
+                      patient.google_review_submitted
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
                         : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
                     }`}
                   >
-                    <option value="true">✓ Yes</option>
-                    <option value="false">✗ No</option>
+                    <option value="true" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">✓ Yes</option>
+                    <option value="false" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">✗ No</option>
                   </select>
                 </TableCell>
 
