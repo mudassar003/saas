@@ -60,8 +60,8 @@ const getStatusBadge = (status: string): { variant: 'default' | 'secondary' | 'd
 
 // Category badge color mapping
 const getCategoryColor = (category: string | null): string => {
-  if (!category) return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
-  
+  if (!category) return 'bg-muted text-muted-foreground';
+
   switch (category) {
     case 'TRT':
       return 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400';
@@ -74,7 +74,7 @@ const getCategoryColor = (category: string | null): string => {
     case 'Other':
       return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400';
     default:
-      return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+      return 'bg-muted text-muted-foreground';
   }
 };
 
@@ -182,10 +182,10 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
 
   if (loading) {
     return (
-      <div className="border border-slate-200 dark:border-slate-800 rounded-lg">
+      <div className="border border-border rounded-lg">
         <div className="p-8 text-center">
-          <div className="animate-spin inline-block w-6 h-6 border-2 border-slate-300 border-t-blue-600 rounded-full"></div>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Loading patient census...</p>
+          <div className="animate-spin inline-block w-6 h-6 border-2 border-muted-foreground border-t-primary rounded-full"></div>
+          <p className="mt-2 text-sm text-muted-foreground">Loading patient census...</p>
         </div>
       </div>
     );
@@ -193,11 +193,11 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
 
   if (patients.length === 0) {
     return (
-      <div className="border border-slate-200 dark:border-slate-800 rounded-lg">
+      <div className="border border-border rounded-lg">
         <div className="p-8 text-center">
-          <Users className="mx-auto h-12 w-12 text-slate-400" />
-          <h3 className="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100">No patients found</h3>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-2 text-sm font-medium text-foreground">No patients found</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             No patients match the current filters. Try adjusting your search criteria.
           </p>
         </div>
@@ -206,50 +206,50 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
   }
 
   return (
-    <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+    <div className="border border-border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="bg-slate-50 dark:bg-slate-800/50">
-            <TableHead className="font-semibold text-slate-900 dark:text-slate-100">
+          <TableRow className="bg-muted/50">
+            <TableHead className="font-semibold text-foreground">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 Patient
               </div>
             </TableHead>
-            <TableHead className="font-semibold text-slate-900 dark:text-slate-100">
+            <TableHead className="font-semibold text-foreground">
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4" />
                 Product/Medication
               </div>
             </TableHead>
-            <TableHead className="font-semibold text-slate-900 dark:text-slate-100">
+            <TableHead className="font-semibold text-foreground">
               Category
             </TableHead>
-            <TableHead className="font-semibold text-slate-900 dark:text-slate-100">
+            <TableHead className="font-semibold text-foreground">
               Status
             </TableHead>
-            <TableHead className="font-semibold text-slate-900 dark:text-slate-100 text-right">
+            <TableHead className="font-semibold text-foreground text-right">
               Amount
             </TableHead>
-            <TableHead className="font-semibold text-slate-900 dark:text-slate-100">
+            <TableHead className="font-semibold text-foreground">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 Last Payment
               </div>
             </TableHead>
-            <TableHead className="font-semibold text-slate-900 dark:text-slate-100 text-center">
+            <TableHead className="font-semibold text-foreground text-center">
               <div className="flex items-center gap-2 justify-center">
                 <Hash className="w-4 h-4" />
                 Transactions
               </div>
             </TableHead>
-            <TableHead className="font-semibold text-slate-900 dark:text-slate-100">
+            <TableHead className="font-semibold text-foreground">
               Referral Source
             </TableHead>
-            <TableHead className="font-semibold text-slate-900 dark:text-slate-100 text-center">
+            <TableHead className="font-semibold text-foreground text-center">
               Google Review
             </TableHead>
-            <TableHead className="font-semibold text-slate-900 dark:text-slate-100 text-center">
+            <TableHead className="font-semibold text-foreground text-center">
               Actions
             </TableHead>
           </TableRow>
@@ -265,18 +265,18 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
             const isReferralSourceUpdating = updatingReferralSource.has(patient.id);
 
             return (
-              <TableRow 
+              <TableRow
                 key={patientKey}
-                className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                className="hover:bg-muted/50 transition-colors"
               >
                 {/* Patient Name */}
                 <TableCell className="font-medium">
                   <div className="flex flex-col">
-                    <span className="text-slate-900 dark:text-slate-100">
+                    <span className="text-foreground">
                       {patient.customer_name}
                     </span>
                     {patient.referral_source && (
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         via {patient.referral_source.replace('_', ' ')}
                       </span>
                     )}
@@ -286,11 +286,11 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
                 {/* Product/Medication */}
                 <TableCell>
                   <div className="flex flex-col max-w-xs">
-                    <span className="text-sm text-slate-900 dark:text-slate-100 truncate">
+                    <span className="text-sm text-foreground truncate">
                       {patient.product_name || 'No Product'}
                     </span>
                     {patient.fulfillment_type && (
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         {patient.fulfillment_type.replace('_', ' ')}
                       </span>
                     )}
@@ -307,26 +307,26 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
                         disabled={isCategoryUpdating}
                         className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded-full cursor-pointer disabled:opacity-50 ${categoryColor}`}
                       >
-                        <option value="TRT" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">TRT</option>
-                        <option value="Weight Loss" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Weight Loss</option>
-                        <option value="Peptides" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Peptides</option>
-                        <option value="ED" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">ED</option>
-                        <option value="Other" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Other</option>
-                        <option value="Uncategorized" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Uncategorized</option>
+                        <option value="TRT" className="text-foreground bg-background">TRT</option>
+                        <option value="Weight Loss" className="text-foreground bg-background">Weight Loss</option>
+                        <option value="Peptides" className="text-foreground bg-background">Peptides</option>
+                        <option value="ED" className="text-foreground bg-background">ED</option>
+                        <option value="Other" className="text-foreground bg-background">Other</option>
+                        <option value="Uncategorized" className="text-foreground bg-background">Uncategorized</option>
                       </select>
                     ) : (
                       <select
                         value="Uncategorized"
                         onChange={(e) => handleCategoryUpdate(patient.id, e.target.value)}
                         disabled={isCategoryUpdating}
-                        className="w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer disabled:opacity-50"
+                        className="w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded-full bg-muted text-muted-foreground cursor-pointer disabled:opacity-50"
                       >
-                        <option value="TRT" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">TRT</option>
-                        <option value="Weight Loss" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Weight Loss</option>
-                        <option value="Peptides" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Peptides</option>
-                        <option value="ED" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">ED</option>
-                        <option value="Other" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Other</option>
-                        <option value="Uncategorized" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Uncategorized</option>
+                        <option value="TRT" className="text-foreground bg-background">TRT</option>
+                        <option value="Weight Loss" className="text-foreground bg-background">Weight Loss</option>
+                        <option value="Peptides" className="text-foreground bg-background">Peptides</option>
+                        <option value="ED" className="text-foreground bg-background">ED</option>
+                        <option value="Other" className="text-foreground bg-background">Other</option>
+                        <option value="Uncategorized" className="text-foreground bg-background">Uncategorized</option>
                       </select>
                     )}
                   </div>
@@ -341,9 +341,9 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
                       disabled={isMembershipUpdating}
                       className={`w-full text-xs border-none bg-transparent outline-none px-2 py-1 rounded cursor-pointer disabled:opacity-50 inline-flex items-center gap-1 ${statusBadge.variant === 'default' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' : statusBadge.variant === 'secondary' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'}`}
                     >
-                      <option value="active" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Active</option>
-                      <option value="paused" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Paused</option>
-                      <option value="canceled" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Canceled</option>
+                      <option value="active" className="text-foreground bg-background">Active</option>
+                      <option value="paused" className="text-foreground bg-background">Paused</option>
+                      <option value="canceled" className="text-foreground bg-background">Canceled</option>
                     </select>
                     {patient.google_review_submitted && (
                       <span className="text-xs text-green-600 dark:text-green-400 font-medium">
@@ -354,17 +354,17 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
                 </TableCell>
 
                 {/* Amount */}
-                <TableCell className="text-right font-medium text-slate-900 dark:text-slate-100">
+                <TableCell className="text-right font-medium text-foreground">
                   ${patient.amount.toFixed(2)}
                 </TableCell>
 
                 {/* Last Payment Date */}
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="text-sm text-slate-900 dark:text-slate-100">
+                    <span className="text-sm text-foreground">
                       {format(new Date(patient.last_payment_date), 'MMM d, yyyy')}
                     </span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                    <span className="text-xs text-muted-foreground">
                       {format(new Date(patient.last_payment_date), 'h:mm a')}
                     </span>
                   </div>
@@ -388,12 +388,12 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                         : patient.referral_source === 'refer_a_friend'
                         ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                        : 'bg-muted text-muted-foreground'
                     }`}
                   >
-                    <option value="online" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Online</option>
-                    <option value="refer_a_friend" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Refer a Friend</option>
-                    <option value="other" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Other</option>
+                    <option value="online" className="text-foreground bg-background">Online</option>
+                    <option value="refer_a_friend" className="text-foreground bg-background">Refer a Friend</option>
+                    <option value="other" className="text-foreground bg-background">Other</option>
                   </select>
                 </TableCell>
 
@@ -409,8 +409,8 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
                         : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
                     }`}
                   >
-                    <option value="true" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">✓ Yes</option>
-                    <option value="false" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">✗ No</option>
+                    <option value="true" className="text-foreground bg-background">✓ Yes</option>
+                    <option value="false" className="text-foreground bg-background">✗ No</option>
                   </select>
                 </TableCell>
 

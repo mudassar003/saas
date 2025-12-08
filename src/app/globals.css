@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
 /* ================================================
+   Tailwind CSS v4 Dark Mode Configuration
+   ================================================ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ================================================
    Modern Design System - Light Mode
    ================================================ */
 :root {
