@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Sidebar } from './sidebar';
 import { AppBar } from './app-bar';
@@ -12,6 +13,12 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const { isAuthenticated, isLoading } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure component is mounted on client before rendering auth-dependent UI
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Pages that should not have the app shell (sidebar + app bar)
   const publicPages = ['/login', '/signup', '/forgot-password'];
@@ -22,8 +29,10 @@ export function AppShell({ children }: AppShellProps) {
     return <>{children}</>;
   }
 
-  // Show loading state while auth is being checked
-  if (isLoading) {
+  // Show loading state while:
+  // 1. Component hasn't mounted on client yet (prevents hydration mismatch)
+  // 2. Auth is being checked
+  if (!mounted || isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

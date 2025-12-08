@@ -27,12 +27,16 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
   const [isLoading, setIsLoading] = useState(!initialUser);
   const router = useRouter();
 
-  // Fetch current user on mount (client-side)
+  // Fetch current user on mount (client-side) only if no initial user provided
   useEffect(() => {
     if (!initialUser) {
       refreshUser();
+    } else {
+      // If we have an initial user, we're not loading
+      setIsLoading(false);
     }
-  }, [initialUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const refreshUser = async () => {
     try {
