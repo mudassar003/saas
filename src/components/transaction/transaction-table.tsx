@@ -1,8 +1,24 @@
 'use client';
 
-import { useState } from 'react';
-import { Eye, ExternalLink } from 'lucide-react';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  ColumnDef,
+  flexRender,
+  ColumnResizeMode,
+  VisibilityState,
+} from '@tanstack/react-table';
+import { Eye, ExternalLink, Settings2, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { DataSentButtons } from '@/components/invoice/data-sent-buttons';
 import { DataSentUpdate } from '@/types/invoice';
 import {
@@ -52,6 +68,8 @@ interface TransactionTableProps {
   loading?: boolean;
 }
 
+const STORAGE_KEY = 'transaction-table-preferences';
+
 export function TransactionTable({
   transactions,
   onUpdateDataSent,
@@ -61,6 +79,76 @@ export function TransactionTable({
   const [updatingMembership, setUpdatingMembership] = useState<Set<string>>(new Set());
   const [updatingCategory, setUpdatingCategory] = useState<Set<string>>(new Set());
   const [updatingFulfillment, setUpdatingFulfillment] = useState<Set<string>>(new Set());
+  const [columnResizeMode] = useState<ColumnResizeMode>('onChange');
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnSizing, setColumnSizing] = useState({});
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showLeftShadow, setShowLeftShadow] = useState(false);
+  const [showRightShadow, setShowRightShadow] = useState(false);
+
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const { visibility, sizing } = JSON.parse(saved);
+        if (visibility) setColumnVisibility(visibility);
+        if (sizing) setColumnSizing(sizing);
+      } catch (error) {
+        console.error('Failed to load table preferences:', error);
+      }
+    }
+  }, []);
+
+  // Save preferences to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      visibility: columnVisibility,
+      sizing: columnSizing,
+    }));
+  }, [columnVisibility, columnSizing]);
+
+  // Handle scroll to show/hide shadows
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    setShowLeftShadow(scrollLeft > 0);
+    setShowRightShadow(scrollLeft < scrollWidth - clientWidth - 1);
+  };
+
+  // Check scroll on mount and when data changes
+  useEffect(() => {
+    handleScroll();
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [transactions]);
+
+  // Keyboard navigation for horizontal scrolling
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const scrollAmount = 200; // pixels to scroll
+
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      container.scrollLeft -= scrollAmount;
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      container.scrollLeft += scrollAmount;
+    } else if (e.key === 'Home' && e.ctrlKey) {
+      e.preventDefault();
+      container.scrollLeft = 0;
+    } else if (e.key === 'End' && e.ctrlKey) {
+      e.preventDefault();
+      container.scrollLeft = container.scrollWidth;
+    }
+  };
 
   const handleUpdateDataSent = async (update: DataSentUpdate) => {
     if (!onUpdateDataSent) return;
@@ -209,6 +297,313 @@ export function TransactionTable({
     }
   };
 
+  // Define columns with TanStack Table
+  const columns = useMemo<ColumnDef<Transaction>[]>(
+    () => [
+      {
+        id: 'transaction_id',
+        accessorKey: 'mx_payment_id',
+        header: 'Transaction ID',
+        size: 160,
+        minSize: 100,
+        maxSize: 300,
+        cell: ({ getValue }) => (
+          <span className="text-sm font-mono text-muted-foreground">
+            {getValue() as number}
+          </span>
+        ),
+      },
+      {
+        id: 'patient_name',
+        accessorFn: (row) => row.customer_name || row.invoice?.customer_name || 'N/A',
+        header: 'Patient Name',
+        size: 180,
+        minSize: 120,
+        maxSize: 300,
+        cell: ({ getValue }) => (
+          <span className="text-sm font-medium text-foreground truncate">
+            {getValue() as string}
+          </span>
+        ),
+      },
+      {
+        id: 'product',
+        accessorKey: 'product_name',
+        header: 'Product/Service',
+        size: 220,
+        minSize: 150,
+        maxSize: 400,
+        cell: ({ getValue }) => {
+          const value = (getValue() as string) || 'N/A';
+          return (
+            <div className="flex items-center min-w-0">
+              <span
+                className="text-sm text-foreground truncate block"
+                title={value}
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '100%'
+                }}
+              >
+                {value}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'category',
+        accessorKey: 'product_category',
+        header: 'Category',
+        size: 130,
+        minSize: 110,
+        maxSize: 200,
+        cell: ({ row, getValue }) => {
+          const value = getValue() as string;
+          const transaction = row.original;
+          return value ? (
+            <select
+              value={value}
+              onChange={(e) => handleCategoryUpdate(transaction.id, e.target.value)}
+              disabled={updatingCategory.has(transaction.id)}
+              className={`w-full text-xs font-medium border rounded-md px-2 py-1.5 cursor-pointer disabled:opacity-50 transition-colors dark:bg-background ${getCategoryColor(value)}`}
+            >
+              <option value="TRT">TRT</option>
+              <option value="Weight Loss">Weight Loss</option>
+              <option value="Peptides">Peptides</option>
+              <option value="ED">ED</option>
+              <option value="Other">Other</option>
+              <option value="Uncategorized">Uncategorized</option>
+            </select>
+          ) : (
+            <select
+              value="Uncategorized"
+              onChange={(e) => handleCategoryUpdate(transaction.id, e.target.value)}
+              disabled={updatingCategory.has(transaction.id)}
+              className={`w-full text-xs font-medium border rounded-md px-2 py-1.5 cursor-pointer disabled:opacity-50 transition-colors dark:bg-background ${getCategoryColor('Uncategorized')}`}
+            >
+              <option value="TRT">TRT</option>
+              <option value="Weight Loss">Weight Loss</option>
+              <option value="Peptides">Peptides</option>
+              <option value="ED">ED</option>
+              <option value="Other">Other</option>
+              <option value="Uncategorized">Uncategorized</option>
+            </select>
+          );
+        },
+      },
+      {
+        id: 'amount',
+        accessorKey: 'amount',
+        header: 'Amount',
+        size: 100,
+        minSize: 80,
+        maxSize: 150,
+        cell: ({ getValue }) => (
+          <span className="text-sm font-semibold text-foreground">
+            {formatCurrency(getValue() as number)}
+          </span>
+        ),
+      },
+      {
+        id: 'status',
+        accessorKey: 'status',
+        header: 'Status',
+        size: 100,
+        minSize: 90,
+        maxSize: 150,
+        cell: ({ getValue }) => {
+          const status = getValue() as string;
+          return (
+            <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(status)}`}>
+              {status}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'membership',
+        accessorKey: 'membership_status',
+        header: 'Membership',
+        size: 110,
+        minSize: 100,
+        maxSize: 150,
+        cell: ({ row, getValue }) => {
+          const value = getValue() as string;
+          const transaction = row.original;
+          return value ? (
+            <select
+              value={value}
+              onChange={(e) => handleMembershipUpdate(transaction.id, e.target.value)}
+              disabled={updatingMembership.has(transaction.id)}
+              className={`w-full text-xs font-medium border rounded-md px-2 py-1.5 cursor-pointer disabled:opacity-50 transition-colors dark:bg-background ${getMembershipStatusColor(value)}`}
+            >
+              <option value="active">Active</option>
+              <option value="canceled">Canceled</option>
+              <option value="paused">Paused</option>
+            </select>
+          ) : (
+            <span className="text-sm text-muted-foreground">N/A</span>
+          );
+        },
+      },
+      {
+        id: 'fulfillment',
+        accessorKey: 'fulfillment_type',
+        header: 'Fulfillment',
+        size: 110,
+        minSize: 100,
+        maxSize: 150,
+        cell: ({ row, getValue }) => {
+          const value = (getValue() as string) || 'in_office';
+          const transaction = row.original;
+          return (
+            <select
+              value={value}
+              onChange={(e) => handleFulfillmentUpdate(transaction.id, e.target.value)}
+              disabled={updatingFulfillment.has(transaction.id)}
+              className={`w-full text-xs font-medium border rounded-md px-2 py-1.5 cursor-pointer disabled:opacity-50 transition-colors dark:bg-background ${getFulfillmentColor(value)}`}
+            >
+              <option value="in_office">In Office</option>
+              <option value="mail_out">Mail Out</option>
+            </select>
+          );
+        },
+      },
+      {
+        id: 'source',
+        accessorKey: 'source',
+        header: 'Source',
+        size: 100,
+        minSize: 80,
+        maxSize: 150,
+        cell: ({ getValue }) => (
+          <span className="text-xs font-medium text-muted-foreground">
+            {(getValue() as string) || 'N/A'}
+          </span>
+        ),
+      },
+      {
+        id: 'date',
+        accessorKey: 'transaction_date',
+        header: 'Date',
+        size: 100,
+        minSize: 90,
+        maxSize: 150,
+        cell: ({ getValue }) => (
+          <span className="text-sm text-muted-foreground">
+            {formatDate(getValue() as string)}
+          </span>
+        ),
+      },
+      {
+        id: 'provider',
+        header: 'Provider',
+        size: 100,
+        minSize: 90,
+        maxSize: 150,
+        cell: ({ row }) => {
+          const transaction = row.original;
+          return onUpdateDataSent ? (
+            transaction.invoice ? (
+              <DataSentButtons
+                invoiceId={transaction.invoice.id}
+                currentStatus={transaction.invoice.data_sent_status as 'pending' | 'yes' | 'no'}
+                onUpdateStatus={handleUpdateDataSent}
+                disabled={updatingRecords.has(transaction.invoice.id)}
+              />
+            ) : (
+              <DataSentButtons
+                transactionId={transaction.id}
+                currentStatus={transaction.ordered_by_provider ? 'yes' : 'pending'}
+                onUpdateStatus={handleUpdateDataSent}
+                disabled={updatingRecords.has(transaction.id)}
+              />
+            )
+          ) : (
+            <span className="text-sm text-muted-foreground">N/A</span>
+          );
+        },
+      },
+      {
+        id: 'ordered_date',
+        header: 'Date/Time Ordered',
+        size: 160,
+        minSize: 140,
+        maxSize: 200,
+        cell: ({ row }) => {
+          const transaction = row.original;
+          return (
+            <span className="text-xs text-muted-foreground">
+              {transaction.invoice?.ordered_by_provider_at
+                ? formatDateTime(transaction.invoice.ordered_by_provider_at)
+                : transaction.ordered_by_provider_at
+                ? formatDateTime(transaction.ordered_by_provider_at)
+                : 'N/A'
+              }
+            </span>
+          );
+        },
+      },
+      {
+        id: 'invoice',
+        header: 'Invoice',
+        size: 90,
+        minSize: 70,
+        maxSize: 120,
+        cell: ({ row }) => {
+          const transaction = row.original;
+          return transaction.invoice?.mx_invoice_id ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.location.href = `/dashboard/invoices/${transaction.invoice!.mx_invoice_id}`}
+              className="h-8 w-8 p-0 hover:bg-accent"
+              title="View Invoice Details"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          ) : null;
+        },
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        size: 90,
+        minSize: 70,
+        maxSize: 120,
+        cell: ({ row }) => (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleViewTransaction(row.original.id)}
+            className="h-8 w-8 p-0 hover:bg-accent"
+            title="View Transaction Details"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        ),
+      },
+    ],
+    [onUpdateDataSent, updatingRecords, updatingMembership, updatingCategory, updatingFulfillment]
+  );
+
+  const table = useReactTable({
+    data: transactions,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    enableColumnResizing: true,
+    columnResizeMode,
+    state: {
+      columnVisibility,
+      columnSizing,
+    },
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
+  });
+
   if (loading) {
     return (
       <div className="space-y-3 p-4">
@@ -228,241 +623,155 @@ export function TransactionTable({
   }
 
   return (
-    <div className="w-full">
-      {/* Modern scrollable container */}
-      <div className="overflow-x-auto scrollbar-thin">
-        <div className="min-w-[1800px]">
-          {/* Modern Header - Sticky with gradient */}
-          <div className="flex bg-muted/50 sticky top-0 z-10 backdrop-blur-sm border-b border-border">
-            <div className="flex-none w-[160px] px-4 py-3 text-xs font-semibold text-foreground">
-              Transaction ID
-            </div>
-            <div className="flex-none w-[180px] px-4 py-3 text-xs font-semibold text-foreground">
-              Patient Name
-            </div>
-            <div className="flex-none w-[180px] px-4 py-3 text-xs font-semibold text-foreground">
-              Product/Service
-            </div>
-            <div className="flex-none w-[130px] px-4 py-3 text-xs font-semibold text-foreground">
-              Category
-            </div>
-            <div className="flex-none w-[100px] px-4 py-3 text-xs font-semibold text-foreground text-right">
-              Amount
-            </div>
-            <div className="flex-none w-[100px] px-4 py-3 text-xs font-semibold text-foreground">
-              Status
-            </div>
-            <div className="flex-none w-[110px] px-4 py-3 text-xs font-semibold text-foreground">
-              Membership
-            </div>
-            <div className="flex-none w-[110px] px-4 py-3 text-xs font-semibold text-foreground">
-              Fulfillment
-            </div>
-            <div className="flex-none w-[100px] px-4 py-3 text-xs font-semibold text-foreground">
-              Source
-            </div>
-            <div className="flex-none w-[100px] px-4 py-3 text-xs font-semibold text-foreground">
-              Date
-            </div>
-            <div className="flex-none w-[100px] px-4 py-3 text-xs font-semibold text-foreground">
-              Provider
-            </div>
-            <div className="flex-none w-[160px] px-4 py-3 text-xs font-semibold text-foreground">
-              Date/Time Ordered
-            </div>
-            <div className="flex-none w-[90px] px-4 py-3 text-xs font-semibold text-foreground text-center">
-              Invoice
-            </div>
-            <div className="flex-none w-[90px] px-4 py-3 text-xs font-semibold text-foreground text-center">
-              Actions
-            </div>
-          </div>
-
-          {/* Modern Data Rows */}
-          <div>
-            {transactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="flex min-h-16 border-b border-border hover:bg-accent/5 transition-colors group"
-              >
-                {/* Transaction ID */}
-                <div className="flex-none w-[160px] px-4 py-3 flex items-center">
-                  <span className="text-sm font-mono text-muted-foreground">
-                    {transaction.mx_payment_id}
-                  </span>
-                </div>
-
-                {/* Patient Name */}
-                <div className="flex-none w-[180px] px-4 py-3 flex items-center">
-                  <span className="text-sm font-medium text-foreground truncate">
-                    {transaction.customer_name || transaction.invoice?.customer_name || 'N/A'}
-                  </span>
-                </div>
-
-                {/* Product */}
-                <div className="flex-none w-[180px] px-4 py-3 flex items-center">
-                  <span className="text-sm text-foreground truncate" title={transaction.product_name || 'N/A'}>
-                    {transaction.product_name || 'N/A'}
-                  </span>
-                </div>
-
-                {/* Category */}
-                <div className="flex-none w-[130px] px-4 py-3 flex items-center">
-                  {transaction.product_category ? (
-                    <select
-                      value={transaction.product_category}
-                      onChange={(e) => handleCategoryUpdate(transaction.id, e.target.value)}
-                      disabled={updatingCategory.has(transaction.id)}
-                      className={`w-full text-xs font-medium border rounded-md px-2 py-1.5 cursor-pointer disabled:opacity-50 transition-colors dark:bg-background ${getCategoryColor(transaction.product_category)}`}
-                    >
-                      <option value="TRT">TRT</option>
-                      <option value="Weight Loss">Weight Loss</option>
-                      <option value="Peptides">Peptides</option>
-                      <option value="ED">ED</option>
-                      <option value="Other">Other</option>
-                      <option value="Uncategorized">Uncategorized</option>
-                    </select>
-                  ) : (
-                    <select
-                      value="Uncategorized"
-                      onChange={(e) => handleCategoryUpdate(transaction.id, e.target.value)}
-                      disabled={updatingCategory.has(transaction.id)}
-                      className={`w-full text-xs font-medium border rounded-md px-2 py-1.5 cursor-pointer disabled:opacity-50 transition-colors dark:bg-background ${getCategoryColor('Uncategorized')}`}
-                    >
-                      <option value="TRT">TRT</option>
-                      <option value="Weight Loss">Weight Loss</option>
-                      <option value="Peptides">Peptides</option>
-                      <option value="ED">ED</option>
-                      <option value="Other">Other</option>
-                      <option value="Uncategorized">Uncategorized</option>
-                    </select>
-                  )}
-                </div>
-
-                {/* Amount */}
-                <div className="flex-none w-[100px] px-4 py-3 flex items-center justify-end">
-                  <span className="text-sm font-semibold text-foreground">
-                    {formatCurrency(transaction.amount)}
-                  </span>
-                </div>
-
-                {/* Status */}
-                <div className="flex-none w-[100px] px-4 py-3 flex items-center">
-                  <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(transaction.status)}`}>
-                    {transaction.status}
-                  </span>
-                </div>
-
-                {/* Membership Status */}
-                <div className="flex-none w-[110px] px-4 py-3 flex items-center">
-                  {transaction.membership_status ? (
-                    <select
-                      value={transaction.membership_status}
-                      onChange={(e) => handleMembershipUpdate(transaction.id, e.target.value)}
-                      disabled={updatingMembership.has(transaction.id)}
-                      className={`w-full text-xs font-medium border rounded-md px-2 py-1.5 cursor-pointer disabled:opacity-50 transition-colors dark:bg-background ${getMembershipStatusColor(transaction.membership_status)}`}
-                    >
-                      <option value="active">Active</option>
-                      <option value="canceled">Canceled</option>
-                      <option value="paused">Paused</option>
-                    </select>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">N/A</span>
-                  )}
-                </div>
-
-                {/* Fulfillment */}
-                <div className="flex-none w-[110px] px-4 py-3 flex items-center">
-                  <select
-                    value={transaction.fulfillment_type || 'in_office'}
-                    onChange={(e) => handleFulfillmentUpdate(transaction.id, e.target.value)}
-                    disabled={updatingFulfillment.has(transaction.id)}
-                    className={`w-full text-xs font-medium border rounded-md px-2 py-1.5 cursor-pointer disabled:opacity-50 transition-colors dark:bg-background ${getFulfillmentColor(transaction.fulfillment_type || 'in_office')}`}
+    <div className="w-full space-y-4">
+      {/* Column Visibility Toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings2 className="h-4 w-4" />
+                Columns
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {table.getAllLeafColumns().map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
                   >
-                    <option value="in_office">In Office</option>
-                    <option value="mail_out">Mail Out</option>
-                  </select>
-                </div>
+                    {column.columnDef.header as string}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setColumnVisibility({});
+              setColumnSizing({});
+              localStorage.removeItem(STORAGE_KEY);
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            Reset Columns
+          </Button>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {table.getVisibleLeafColumns().length} of {table.getAllLeafColumns().length} columns visible
+        </div>
+      </div>
 
-                {/* Source */}
-                <div className="flex-none w-[100px] px-4 py-3 flex items-center">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {transaction.source || 'N/A'}
-                  </span>
-                </div>
+      {/* Table */}
+      <div className="border border-border rounded-lg overflow-hidden relative">
+        {/* Scroll Indicators */}
+        {showLeftShadow && (
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background/80 to-transparent z-10 pointer-events-none" />
+        )}
+        {showRightShadow && (
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background/80 to-transparent z-10 pointer-events-none" />
+        )}
 
-                {/* Date */}
-                <div className="flex-none w-[100px] px-4 py-3 flex items-center">
-                  <span className="text-sm text-muted-foreground">
-                    {formatDate(transaction.transaction_date)}
-                  </span>
-                </div>
-
-                {/* Provider Status */}
-                <div className="flex-none w-[100px] px-4 py-3 flex items-center">
-                  {onUpdateDataSent ? (
-                    transaction.invoice ? (
-                      <DataSentButtons
-                        invoiceId={transaction.invoice.id}
-                        currentStatus={transaction.invoice.data_sent_status as 'pending' | 'yes' | 'no'}
-                        onUpdateStatus={handleUpdateDataSent}
-                        disabled={updatingRecords.has(transaction.invoice.id)}
-                      />
-                    ) : (
-                      <DataSentButtons
-                        transactionId={transaction.id}
-                        currentStatus={transaction.ordered_by_provider ? 'yes' : 'pending'}
-                        onUpdateStatus={handleUpdateDataSent}
-                        disabled={updatingRecords.has(transaction.id)}
-                      />
-                    )
-                  ) : (
-                    <span className="text-sm text-muted-foreground">N/A</span>
-                  )}
-                </div>
-
-                {/* Date/Time Ordered */}
-                <div className="flex-none w-[160px] px-4 py-3 flex items-center">
-                  <span className="text-xs text-muted-foreground">
-                    {transaction.invoice?.ordered_by_provider_at
-                      ? formatDateTime(transaction.invoice.ordered_by_provider_at)
-                      : transaction.ordered_by_provider_at
-                      ? formatDateTime(transaction.ordered_by_provider_at)
-                      : 'N/A'
-                    }
-                  </span>
-                </div>
-
-                {/* View Invoice */}
-                <div className="flex-none w-[90px] px-4 py-3 flex items-center justify-center">
-                  {transaction.invoice?.mx_invoice_id && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => window.location.href = `/dashboard/invoices/${transaction.invoice!.mx_invoice_id}`}
-                      className="h-8 w-8 p-0 hover:bg-accent"
-                      title="View Invoice Details"
+        <div
+          ref={scrollContainerRef}
+          className="overflow-x-auto scrollbar-thin"
+          style={{
+            maxHeight: '70vh',
+            willChange: 'scroll-position',
+            overflowY: 'auto',
+          }}
+          tabIndex={0}
+          role="region"
+          aria-label="Transaction table"
+          onKeyDown={handleKeyDown}
+        >
+          <table className="w-full" style={{ tableLayout: 'fixed', width: table.getTotalSize() }}>
+            <thead
+              className="sticky top-0 z-20 bg-muted shadow-sm"
+              style={{
+                willChange: 'transform',
+                transform: 'translateZ(0)',
+                contain: 'layout style paint',
+              }}
+            >
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id} className="border-b-2 border-border">
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      style={{
+                        width: header.getSize(),
+                        position: 'relative',
+                      }}
+                      className="px-4 py-3 text-left text-xs font-semibold text-foreground border-r border-border/50 last:border-r-0"
                     >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                      {/* Resize Handle - More Visible */}
+                      <div
+                        onMouseDown={header.getResizeHandler()}
+                        onTouchStart={header.getResizeHandler()}
+                        className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none touch-none transition-all ${
+                          header.column.getIsResizing()
+                            ? 'bg-primary w-2 opacity-100'
+                            : 'bg-transparent hover:bg-primary/30 hover:w-2'
+                        }`}
+                        style={{
+                          userSelect: 'none',
+                          touchAction: 'none',
+                        }}
+                      >
+                        {header.column.getIsResizing() && (
+                          <GripVertical className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary-foreground" />
+                        )}
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody style={{ contain: 'layout style paint' }}>
+              {table.getRowModel().rows.map((row) => (
+                <tr
+                  key={row.id}
+                  className="border-b border-border hover:bg-accent/5 transition-colors"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      style={{
+                        width: cell.column.getSize(),
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      className="px-4 py-3 border-r border-border/30 last:border-r-0"
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-                {/* Actions */}
-                <div className="flex-none w-[90px] px-4 py-3 flex items-center justify-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleViewTransaction(transaction.id)}
-                    className="h-8 w-8 p-0 hover:bg-accent"
-                    title="View Transaction Details"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Scroll Hint */}
+        <div className="px-4 py-2 bg-muted/30 border-t border-border">
+          <p className="text-xs text-muted-foreground flex items-center gap-2">
+            <span>💡 Tip:</span>
+            <span>Use arrow keys (← →) or drag to scroll horizontally. Header stays visible when scrolling down.</span>
+          </p>
         </div>
       </div>
     </div>

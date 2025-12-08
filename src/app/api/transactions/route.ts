@@ -153,7 +153,11 @@ export async function GET(request: NextRequest) {
 
       // Tab-based filtering (Patient Census Dashboard)
       if (activeTab !== 'all') {
-        if (activeTab === 'trt') {
+        if (activeTab === 'recurring') {
+          // Recurring tab - active recurring patients
+          q = q.eq('source', 'Recurring')
+          q = q.eq('membership_status', 'active')
+        } else if (activeTab === 'trt') {
           q = q.eq('product_category', 'TRT')
           q = q.eq('source', 'Recurring')
           q = q.eq('membership_status', 'active')
@@ -172,11 +176,8 @@ export async function GET(request: NextRequest) {
         } else if (activeTab === 'cancellations') {
           q = q.eq('source', 'Recurring')
           q = q.in('membership_status', ['canceled', 'paused'])
-        } else {
-          // All tab - active recurring patients
-          q = q.eq('source', 'Recurring')
-          q = q.eq('membership_status', 'active')
         }
+        // Note: 'all' tab has no filters - shows truly ALL transactions
       }
 
       return q
@@ -262,6 +263,7 @@ export async function GET(request: NextRequest) {
       },
       tabCounts: {
         all: 0,
+        recurring: 0,
         trt: 0,
         weight_loss: 0,
         peptides: 0,
@@ -303,9 +305,10 @@ export async function GET(request: NextRequest) {
       }
 
       // Calculate tab counts for patient census dashboard
-      const recurringTransactions = allTransactions?.filter(t => t.status !== 'Declined') || []
+      const recurringTransactions = allTransactions?.filter(t => t.source === 'Recurring') || []
       const tabCounts = {
-        all: recurringTransactions.filter(t => t.membership_status === 'active').length || 0,
+        all: allTransactions?.length || 0, // All tab shows ALL transactions
+        recurring: recurringTransactions.filter(t => t.membership_status === 'active').length || 0,
         trt: recurringTransactions.filter(t => t.product_category === 'TRT' && t.membership_status === 'active').length || 0,
         weight_loss: recurringTransactions.filter(t => t.product_category === 'Weight Loss' && t.membership_status === 'active').length || 0,
         peptides: recurringTransactions.filter(t => t.product_category === 'Peptides' && t.membership_status === 'active').length || 0,

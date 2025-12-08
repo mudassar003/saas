@@ -11,7 +11,7 @@ import { MetricCard, MetricsGrid } from '@/components/ui/metric-card';
 import { DataSentUpdate } from '@/types/invoice';
 import { getDateRange } from '@/lib/date-filters';
 
-type TabKey = 'all' | 'trt' | 'weight_loss' | 'peptides' | 'ed' | 'cancellations';
+type TabKey = 'all' | 'recurring' | 'trt' | 'weight_loss' | 'peptides' | 'ed' | 'cancellations';
 
 interface TabConfig {
   key: TabKey;
@@ -118,7 +118,8 @@ export default function TransactionsPage() {
 
   // Tab configuration
   const tabs: TabConfig[] = [
-    { key: 'all', label: 'All', description: 'All active recurring patients' },
+    { key: 'all', label: 'All', description: 'All transactions (no filters)' },
+    { key: 'recurring', label: 'Recurring', description: 'Active recurring patients' },
     { key: 'trt', label: 'TRT', description: 'Testosterone therapy patients' },
     { key: 'weight_loss', label: 'Weight Loss', description: 'Weight management patients' },
     { key: 'peptides', label: 'Peptides', description: 'Peptide therapy patients' },
@@ -149,6 +150,7 @@ export default function TransactionsPage() {
     },
     tabCounts: {
       all: 0,
+      recurring: 0,
       trt: 0,
       weight_loss: 0,
       peptides: 0,
@@ -275,13 +277,9 @@ export default function TransactionsPage() {
     setFilters(prevFilters => ({
       ...prevFilters,
       activeTab: tabKey,
-      // Reset certain filters when switching tabs
-      category: tabKey === 'all' || tabKey === 'cancellations' ? 'all' :
-               tabKey === 'trt' ? 'TRT' :
-               tabKey === 'weight_loss' ? 'Weight Loss' :
-               tabKey === 'peptides' ? 'Peptides' :
-               tabKey === 'ed' ? 'ED' : 'all',
-      membershipStatus: tabKey === 'cancellations' ? 'all' : 'active'
+      // Let the backend API handle filtering based on activeTab
+      category: 'all',
+      membershipStatus: 'all'
     }));
   };
 
