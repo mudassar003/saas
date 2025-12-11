@@ -6,8 +6,9 @@ import {
   getCoreRowModel,
   ColumnDef,
   flexRender,
+  ColumnResizeMode,
 } from '@tanstack/react-table';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -102,6 +103,7 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
   const [updatingReferralSource, setUpdatingReferralSource] = useState<Set<string>>(new Set());
 
   // TanStack Table state
+  const [columnResizeMode] = useState<ColumnResizeMode>('onChange');
   const [columnVisibility, setColumnVisibility] = useState({});
   const [columnSizing, setColumnSizing] = useState({});
 
@@ -124,14 +126,12 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
     }
   }, []);
 
-  // Save preferences to localStorage
+  // Save preferences to localStorage when they change
   useEffect(() => {
-    if (Object.keys(columnVisibility).length > 0 || Object.keys(columnSizing).length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        visibility: columnVisibility,
-        sizing: columnSizing,
-      }));
-    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      visibility: columnVisibility,
+      sizing: columnSizing,
+    }));
   }, [columnVisibility, columnSizing]);
 
   // Handle scroll for indicators
@@ -525,7 +525,7 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
     columns,
     getCoreRowModel: getCoreRowModel(),
     enableColumnResizing: true,
-    columnResizeMode: 'onChange',
+    columnResizeMode,
     state: {
       columnVisibility,
       columnSizing,
@@ -563,55 +563,51 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
     <div className="space-y-4">
       {/* Column Visibility Controls */}
       <div className="flex items-center justify-between px-2">
-        <div className="text-sm text-muted-foreground">
-          Showing {patients.length} patient{patients.length !== 1 ? 's' : ''}
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings2 className="h-4 w-4" />
+                Columns
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {table.getAllLeafColumns().map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                  >
+                    {column.columnDef.header as string}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setColumnVisibility({});
+              setColumnSizing({});
+              localStorage.removeItem(STORAGE_KEY);
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            Reset Columns
+          </Button>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Settings2 className="h-4 w-4" />
-                  Columns
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {table.getAllLeafColumns().map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                    >
-                      {column.columnDef.header as string}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setColumnVisibility({});
-                setColumnSizing({});
-                localStorage.removeItem(STORAGE_KEY);
-              }}
-              className="text-xs text-muted-foreground hover:text-foreground"
-            >
-              Reset Columns
-            </Button>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {table.getVisibleLeafColumns().length} of {table.getAllLeafColumns().length} columns visible
-          </div>
+        <div className="text-xs text-muted-foreground">
+          {table.getVisibleLeafColumns().length} of {table.getAllLeafColumns().length} columns visible
         </div>
       </div>
 
       {/* Table Container with Scroll Indicators */}
-      <div className="relative border border-border rounded-lg overflow-hidden">
+      <div className="border border-border rounded-lg overflow-hidden relative">
+        {/* Scroll Indicators */}
         {showLeftShadow && (
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background/80 to-transparent z-10 pointer-events-none" />
         )}
@@ -621,17 +617,19 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
 
         <div
           ref={scrollContainerRef}
-          onKeyDown={handleKeyDown}
-          tabIndex={0}
-          className="overflow-x-auto focus:outline-none"
+          className="overflow-x-auto scrollbar-thin"
           style={{
             maxHeight: '70vh',
-            overflowY: 'auto',
             willChange: 'scroll-position',
+            overflowY: 'auto',
           }}
+          tabIndex={0}
+          role="region"
+          aria-label="Patient census table"
+          onKeyDown={handleKeyDown}
         >
-          <Table>
-            <TableHeader
+          <table className="w-full" style={{ tableLayout: 'fixed', width: table.getTotalSize() }}>
+            <thead
               className="sticky top-0 z-20 bg-muted shadow-sm"
               style={{
                 willChange: 'transform',
@@ -640,74 +638,77 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
               }}
             >
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
+                <tr key={headerGroup.id} className="border-b-2 border-border">
                   {headerGroup.headers.map((header) => (
-                    <TableHead
+                    <th
                       key={header.id}
-                      className="relative font-semibold text-foreground border-r border-border/50 last:border-r-0"
                       style={{
                         width: header.getSize(),
                         position: 'relative',
                       }}
+                      className="px-4 py-3 text-left text-xs font-semibold text-foreground border-r border-border/50 last:border-r-0"
                     >
-                      <div className="flex items-center gap-2">
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </div>
-
-                      {/* Resize Handle */}
-                      {header.column.getCanResize() && (
-                        <div
-                          onMouseDown={header.getResizeHandler()}
-                          onTouchStart={header.getResizeHandler()}
-                          className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none touch-none hover:bg-primary/50 ${
-                            header.column.getIsResizing() ? 'bg-primary' : ''
-                          }`}
-                          style={{
-                            userSelect: 'none',
-                          }}
-                        >
-                          {header.column.getIsResizing() && (
-                            <GripVertical className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
                           )}
-                        </div>
-                      )}
-                    </TableHead>
+                      {/* Resize Handle - More Visible */}
+                      <div
+                        onMouseDown={header.getResizeHandler()}
+                        onTouchStart={header.getResizeHandler()}
+                        className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none touch-none transition-all ${
+                          header.column.getIsResizing()
+                            ? 'bg-primary w-2 opacity-100'
+                            : 'bg-transparent hover:bg-primary/30 hover:w-2'
+                        }`}
+                        style={{
+                          userSelect: 'none',
+                          touchAction: 'none',
+                        }}
+                      >
+                        {header.column.getIsResizing() && (
+                          <GripVertical className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary-foreground" />
+                        )}
+                      </div>
+                    </th>
                   ))}
-                </TableRow>
+                </tr>
               ))}
-            </TableHeader>
-            <TableBody style={{ contain: 'layout style paint' }}>
+            </thead>
+            <tbody style={{ contain: 'layout style paint' }}>
               {table.getRowModel().rows.map((row) => (
-                <TableRow
+                <tr
                   key={row.id}
-                  className="hover:bg-muted/50 transition-colors"
+                  className="border-b border-border hover:bg-accent/5 transition-colors"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell
+                    <td
                       key={cell.id}
-                      className="border-r border-border/30 last:border-r-0"
                       style={{
                         width: cell.column.getSize(),
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
                       }}
+                      className="px-4 py-3 border-r border-border/30 last:border-r-0"
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+                    </td>
                   ))}
-                </TableRow>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
-      </div>
 
-      {/* Keyboard Navigation Hint */}
-      <div className="text-xs text-muted-foreground text-center">
-        Use arrow keys (← →) to scroll horizontally • Drag column borders to resize
+        {/* Scroll Hint */}
+        <div className="px-4 py-2 bg-muted/30 border-t border-border">
+          <p className="text-xs text-muted-foreground flex items-center gap-2">
+            <span>💡 Tip:</span>
+            <span>Use arrow keys (← →) or drag to scroll horizontally. Header stays visible when scrolling down.</span>
+          </p>
+        </div>
       </div>
     </div>
   );
