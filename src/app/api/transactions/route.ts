@@ -142,13 +142,16 @@ export async function GET(request: NextRequest) {
         q = q.eq('fulfillment_type', fulfillmentType)
       }
 
-      // Date range filtering - FIXED: Use PostgreSQL date casting for accurate date-only comparison
-      // This ensures '2025-11-17T15:30:00Z' matches when filtering by '2025-11-17'
+      // Date range filtering - TIMEZONE FIX: Use UTC timestamp boundaries
+      // The getDateRange() function converts Texas timezone dates to UTC timestamp ranges
+      // Example: "Today" in Texas (Dec 11) becomes:
+      //   start: "2025-12-11T06:00:00.000Z" (Dec 11 00:00:00 CST)
+      //   end:   "2025-12-12T05:59:59.999Z" (Dec 11 23:59:59 CST)
       if (dateStart) {
-        q = q.gte('transaction_date::date', dateStart)
+        q = q.gte('transaction_date', dateStart)
       }
       if (dateEnd) {
-        q = q.lte('transaction_date::date', dateEnd)
+        q = q.lte('transaction_date', dateEnd)
       }
 
       // Tab-based filtering (Patient Census Dashboard)

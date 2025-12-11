@@ -489,14 +489,22 @@ export function TransactionTable({
         id: 'date',
         accessorKey: 'transaction_date',
         header: 'Date',
-        size: 100,
-        minSize: 90,
-        maxSize: 150,
-        cell: ({ getValue }) => (
-          <span className="text-sm text-muted-foreground">
-            {formatDate(getValue() as string)}
-          </span>
-        ),
+        size: 140,
+        minSize: 120,
+        maxSize: 180,
+        cell: ({ getValue }) => {
+          const dateString = getValue() as string;
+          return (
+            <div className="flex flex-col">
+              <span className="text-sm text-foreground">
+                {formatDate(dateString)}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {formatDateTime(dateString).split(', ')[1]} CST
+              </span>
+            </div>
+          );
+        },
       },
       {
         id: 'provider',

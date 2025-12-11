@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { MXPaymentDetail, MXInvoiceDetail, MXWebhookPayload } from '@/types/invoice';
+import { toDate } from 'date-fns-tz';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -160,20 +161,53 @@ export async function logWebhookProcessing(
   }
 }
 
-// Helper function to parse MX Merchant date format "Aug 9 2018 6:21PM" to ISO string
-function parseMXMerchantDate(dateString: string): string {
+/**
+ * Parse MX Merchant date format "Aug 9 2018 6:21PM" to ISO string
+ * with explicit timezone context (America/Chicago for GameDay Men's Health)
+ *
+ * MX Merchant provides two date fields in webhooks:
+ * - transactionDate: Server/processing time (ambiguous timezone)
+ * - localDate: Merchant's configured local timezone (preferred)
+ *
+ * @param dateString - Date string from MX Merchant webhook
+ * @param timezone - IANA timezone identifier (default: America/Chicago)
+ * @returns ISO 8601 date string in UTC
+ */
+function parseMXMerchantLocalDate(
+  dateString: string,
+  timezone: string = 'America/Chicago'
+): string {
   if (!dateString) return new Date().toISOString();
-  
+
   try {
-    // MX Merchant format: "Aug 9 2018 6:21PM" 
+    // MX Merchant format: "Aug 9 2018 6:21PM"
+    // Parse date string first (JavaScript will use system timezone)
     const parsedDate = new Date(dateString);
+
     if (isNaN(parsedDate.getTime())) {
-      console.warn(`Failed to parse MX Merchant date: ${dateString}, using current time`);
+      console.warn(`[Webhook] Failed to parse MX Merchant date: ${dateString}`);
       return new Date().toISOString();
     }
-    return parsedDate.toISOString();
-  } catch {
-    console.warn(`Error parsing MX Merchant date: ${dateString}, using current time`);
+
+    // Format the parsed date to a timezone-naive string
+    // This represents the date/time as shown in MX Merchant (merchant's local time)
+    const year = parsedDate.getFullYear();
+    const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(parsedDate.getDate()).padStart(2, '0');
+    const hours = String(parsedDate.getHours()).padStart(2, '0');
+    const minutes = String(parsedDate.getMinutes()).padStart(2, '0');
+    const seconds = String(parsedDate.getSeconds()).padStart(2, '0');
+
+    // Create date string in format: "2018-08-09 18:21:00"
+    const dateTimeString = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+    // Convert from merchant's timezone (America/Chicago) to UTC
+    // toDate interprets the date string as being in the specified timezone
+    const utcDate = toDate(dateTimeString, { timeZone: timezone });
+
+    return utcDate.toISOString();
+  } catch (error) {
+    console.warn(`[Webhook] Error parsing MX Merchant date: ${dateString}`, error);
     return new Date().toISOString();
   }
 }
@@ -185,15 +219,41 @@ export function transformPaymentDetailToTransaction(
   productCategory: string | null = null,
   invoiceId: string | null = null
 ): WebhookTransactionData {
-  // Use webhook transactionDate for 100% authentic data from MX Merchant
-  const authenticTransactionDate = webhookPayload.transactionDate 
-    ? parseMXMerchantDate(webhookPayload.transactionDate)
-    : paymentDetail.created || new Date().toISOString();
+  // ✅ UPDATED: Prefer localDate (merchant's timezone), fallback to transactionDate
+  // MX Merchant provides localDate in the merchant's configured timezone (America/Chicago)
+  // This ensures consistent timezone handling regardless of server location
+  const merchantTimezone = 'America/Chicago';
+
+  let authenticTransactionDate: string;
+  let dateSource: string;
+
+  if (webhookPayload.localDate) {
+    // Preferred: Use merchant's local timezone date
+    authenticTransactionDate = parseMXMerchantLocalDate(webhookPayload.localDate, merchantTimezone);
+    dateSource = 'localDate';
+  } else if (webhookPayload.transactionDate) {
+    // Fallback: Use transaction date (assuming it's also in merchant's timezone)
+    authenticTransactionDate = parseMXMerchantLocalDate(webhookPayload.transactionDate, merchantTimezone);
+    dateSource = 'transactionDate';
+  } else if (paymentDetail.created) {
+    // Last resort: Use API created timestamp (already in ISO format)
+    authenticTransactionDate = paymentDetail.created;
+    dateSource = 'paymentDetail.created';
+  } else {
+    // Ultimate fallback: Current time
+    authenticTransactionDate = new Date().toISOString();
+    dateSource = 'current_time';
+  }
+
+  // Log date source for debugging
+  console.log(`[Webhook] Date source: ${dateSource}`);
+  console.log(`[Webhook] Original: ${webhookPayload.localDate || webhookPayload.transactionDate || paymentDetail.created}`);
+  console.log(`[Webhook] Converted to UTC: ${authenticTransactionDate}`);
 
   return {
     mx_payment_id: paymentDetail.id,
     amount: parseFloat(paymentDetail.amount || '0'),
-    transaction_date: authenticTransactionDate, // ⭐ Now uses webhook's exact transaction date
+    transaction_date: authenticTransactionDate, // ✅ Now correctly in UTC from merchant's local time
     status: paymentDetail.status || 'Unknown',
     customer_name: paymentDetail.customerName || webhookPayload.customer || null,
     card_type: paymentDetail.cardAccount?.cardType || webhookPayload.card || null,

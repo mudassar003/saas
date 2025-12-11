@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Eye, Users, CheckCircle2, XCircle, Clock, Settings2, GripVertical } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 // Patient census record type - enterprise-grade typing
 interface PatientCensusRecord {
@@ -406,14 +406,15 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
         minSize: 140,
         maxSize: 200,
         cell: ({ getValue }) => {
-          const date = new Date(getValue() as string);
+          const dateString = getValue() as string;
+          const timezone = 'America/Chicago';
           return (
             <div className="flex flex-col">
               <span className="text-sm text-foreground">
-                {format(date, 'MMM d, yyyy')}
+                {formatInTimeZone(dateString, timezone, 'MMM d, yyyy')}
               </span>
               <span className="text-xs text-muted-foreground">
-                {format(date, 'h:mm a')}
+                {formatInTimeZone(dateString, timezone, 'h:mm a')} CST
               </span>
             </div>
           );
@@ -565,29 +566,48 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
         <div className="text-sm text-muted-foreground">
           Showing {patients.length} patient{patients.length !== 1 ? 's' : ''}
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Settings2 className="h-4 w-4" />
-              Columns
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Settings2 className="h-4 w-4" />
+                  Columns
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {table.getAllLeafColumns().map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                    >
+                      {column.columnDef.header as string}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setColumnVisibility({});
+                setColumnSizing({});
+                localStorage.removeItem(STORAGE_KEY);
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Reset Columns
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {table.getAllLeafColumns().map((column) => {
-              return (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                >
-                  {column.columnDef.header as string}
-                </DropdownMenuCheckboxItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {table.getVisibleLeafColumns().length} of {table.getAllLeafColumns().length} columns visible
+          </div>
+        </div>
       </div>
 
       {/* Table Container with Scroll Indicators */}
