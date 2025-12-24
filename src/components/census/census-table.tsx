@@ -4,9 +4,12 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
+  getSortedRowModel,
   ColumnDef,
   flexRender,
   ColumnResizeMode,
+  VisibilityState,
+  SortingState,
 } from '@tanstack/react-table';
 
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Eye, Users, CheckCircle2, XCircle, Clock, Settings2, GripVertical } from 'lucide-react';
+import { Eye, Users, CheckCircle2, XCircle, Clock, Settings2, GripVertical, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 
 // Patient census record type - enterprise-grade typing
@@ -104,8 +107,9 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
 
   // TanStack Table state
   const [columnResizeMode] = useState<ColumnResizeMode>('onChange');
-  const [columnVisibility, setColumnVisibility] = useState({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnSizing, setColumnSizing] = useState({});
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   // Scroll state for indicators
   const [showLeftShadow, setShowLeftShadow] = useState(false);
@@ -117,9 +121,10 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        const { visibility, sizing } = JSON.parse(saved);
+        const { visibility, sizing, sorting: savedSorting } = JSON.parse(saved);
         if (visibility) setColumnVisibility(visibility);
         if (sizing) setColumnSizing(sizing);
+        if (savedSorting) setSorting(savedSorting);
       } catch (e) {
         console.error('Failed to parse saved table preferences:', e);
       }
@@ -131,8 +136,9 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       visibility: columnVisibility,
       sizing: columnSizing,
+      sorting: sorting,
     }));
-  }, [columnVisibility, columnSizing]);
+  }, [columnVisibility, columnSizing, sorting]);
 
   // Handle scroll for indicators
   const handleScroll = () => {
@@ -524,14 +530,18 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
     data: patients,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     enableColumnResizing: true,
+    enableSorting: true,
     columnResizeMode,
     state: {
       columnVisibility,
       columnSizing,
+      sorting,
     },
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
+    onSortingChange: setSorting,
   });
 
   if (loading) {
@@ -593,11 +603,12 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
             onClick={() => {
               setColumnVisibility({});
               setColumnSizing({});
+              setSorting([]);
               localStorage.removeItem(STORAGE_KEY);
             }}
             className="text-xs text-muted-foreground hover:text-foreground"
           >
-            Reset Columns
+            Reset All
           </Button>
         </div>
         <div className="text-xs text-muted-foreground">
@@ -648,12 +659,32 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
                       }}
                       className="px-4 py-3 text-left text-xs font-semibold text-foreground border-r border-border/50 last:border-r-0"
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={
+                            header.column.getCanSort()
+                              ? 'flex items-center gap-2 cursor-pointer select-none hover:text-primary transition-colors'
+                              : 'flex items-center gap-2'
+                          }
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(
                             header.column.columnDef.header,
                             header.getContext()
                           )}
+                          {header.column.getCanSort() && (
+                            <span className="inline-flex">
+                              {header.column.getIsSorted() === 'asc' ? (
+                                <ArrowUp className="h-3.5 w-3.5 text-primary" />
+                              ) : header.column.getIsSorted() === 'desc' ? (
+                                <ArrowDown className="h-3.5 w-3.5 text-primary" />
+                              ) : (
+                                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground opacity-50" />
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {/* Resize Handle - More Visible */}
                       <div
                         onMouseDown={header.getResizeHandler()}

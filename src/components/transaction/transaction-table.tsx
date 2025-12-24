@@ -4,12 +4,14 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
+  getSortedRowModel,
   ColumnDef,
   flexRender,
   ColumnResizeMode,
   VisibilityState,
+  SortingState,
 } from '@tanstack/react-table';
-import { Eye, ExternalLink, Settings2, GripVertical } from 'lucide-react';
+import { Eye, ExternalLink, Settings2, GripVertical, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -82,6 +84,7 @@ export function TransactionTable({
   const [columnResizeMode] = useState<ColumnResizeMode>('onChange');
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnSizing, setColumnSizing] = useState({});
+  const [sorting, setSorting] = useState<SortingState>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
@@ -91,9 +94,10 @@ export function TransactionTable({
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        const { visibility, sizing } = JSON.parse(saved);
+        const { visibility, sizing, sorting: savedSorting } = JSON.parse(saved);
         if (visibility) setColumnVisibility(visibility);
         if (sizing) setColumnSizing(sizing);
+        if (savedSorting) setSorting(savedSorting);
       } catch (error) {
         console.error('Failed to load table preferences:', error);
       }
@@ -105,8 +109,9 @@ export function TransactionTable({
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       visibility: columnVisibility,
       sizing: columnSizing,
+      sorting: sorting,
     }));
-  }, [columnVisibility, columnSizing]);
+  }, [columnVisibility, columnSizing, sorting]);
 
   // Handle scroll to show/hide shadows
   const handleScroll = () => {
@@ -602,14 +607,18 @@ export function TransactionTable({
     data: transactions,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     enableColumnResizing: true,
+    enableSorting: true,
     columnResizeMode,
     state: {
       columnVisibility,
       columnSizing,
+      sorting,
     },
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
+    onSortingChange: setSorting,
   });
 
   if (loading) {
@@ -665,11 +674,12 @@ export function TransactionTable({
             onClick={() => {
               setColumnVisibility({});
               setColumnSizing({});
+              setSorting([]);
               localStorage.removeItem(STORAGE_KEY);
             }}
             className="text-xs text-muted-foreground hover:text-foreground"
           >
-            Reset Columns
+            Reset All
           </Button>
         </div>
         <div className="text-xs text-muted-foreground">
@@ -720,12 +730,32 @@ export function TransactionTable({
                       }}
                       className="px-4 py-3 text-left text-xs font-semibold text-foreground border-r border-border/50 last:border-r-0"
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={
+                            header.column.getCanSort()
+                              ? 'flex items-center gap-2 cursor-pointer select-none hover:text-primary transition-colors'
+                              : 'flex items-center gap-2'
+                          }
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(
                             header.column.columnDef.header,
                             header.getContext()
                           )}
+                          {header.column.getCanSort() && (
+                            <span className="inline-flex">
+                              {header.column.getIsSorted() === 'asc' ? (
+                                <ArrowUp className="h-3.5 w-3.5 text-primary" />
+                              ) : header.column.getIsSorted() === 'desc' ? (
+                                <ArrowDown className="h-3.5 w-3.5 text-primary" />
+                              ) : (
+                                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground opacity-50" />
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {/* Resize Handle - More Visible */}
                       <div
                         onMouseDown={header.getResizeHandler()}
