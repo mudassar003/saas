@@ -1,4 +1,4 @@
-import { Contract, MRRCalculation } from '@/types/contract';
+import { Contract, MRRCalculation, DailyProjection, CategoryBreakdown } from '@/types/contract';
 
 /**
  * Calculate Monthly Recurring Revenue (MRR) for a single contract
@@ -150,6 +150,99 @@ export function getDailyProjections(
     .map(([date, data]) => ({
       date,
       ...data
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Get daily projection breakdown with product category breakdown
+ * Maps customers to their product categories from transaction history
+ *
+ * @param contracts - Array of contracts from database
+ * @param startDate - Start date of projection period
+ * @param endDate - End date of projection period
+ * @param customerCategoryMap - Map of customer names to their product categories
+ * @returns Array of daily projections with category breakdown
+ */
+export function getDailyProjectionsWithCategories(
+  contracts: Contract[],
+  startDate: Date,
+  endDate: Date,
+  customerCategoryMap: Map<string, string>
+): DailyProjection[] {
+  // Filter contracts billing within range
+  const upcomingContracts = contracts
+    .filter(c => c.status === 'Active')
+    .filter(c => {
+      if (!c.next_bill_date) return false;
+      const nextBill = new Date(c.next_bill_date);
+      return nextBill >= startDate && nextBill <= endDate;
+    });
+
+  // Group by date and category
+  type DayEntry = {
+    amount: number;
+    count: number;
+    customers: string[];
+    categoryMap: Map<string, {
+      amount: number;
+      count: number;
+      customers: string[];
+    }>;
+  };
+
+  const dailyMap = new Map<string, DayEntry>();
+
+  upcomingContracts.forEach(contract => {
+    if (!contract.next_bill_date) return;
+
+    const dateKey = contract.next_bill_date.split('T')[0]; // Get YYYY-MM-DD
+    const category = customerCategoryMap.get(contract.customer_name) || 'Uncategorized';
+
+    // Get or create day entry
+    const dayEntry: DayEntry = dailyMap.get(dateKey) || {
+      amount: 0,
+      count: 0,
+      customers: [],
+      categoryMap: new Map()
+    };
+
+    // Update day totals
+    dayEntry.amount += contract.amount;
+    dayEntry.count += 1;
+    dayEntry.customers.push(contract.customer_name);
+
+    // Get or create category entry
+    const categoryEntry = dayEntry.categoryMap.get(category) || {
+      amount: 0,
+      count: 0,
+      customers: []
+    };
+
+    // Update category totals
+    categoryEntry.amount += contract.amount;
+    categoryEntry.count += 1;
+    categoryEntry.customers.push(contract.customer_name);
+
+    dayEntry.categoryMap.set(category, categoryEntry);
+    dailyMap.set(dateKey, dayEntry);
+  });
+
+  // Convert to array with category breakdown
+  return Array.from(dailyMap.entries())
+    .map(([date, data]) => ({
+      date,
+      amount: data.amount,
+      count: data.count,
+      customers: data.customers,
+      categoryBreakdown: Array.from(data.categoryMap.entries())
+        .map(([category, categoryData]) => ({
+          category,
+          amount: categoryData.amount,
+          count: categoryData.count,
+          customers: categoryData.customers
+        }))
+        .sort((a, b) => b.amount - a.amount) // Sort by amount descending
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }

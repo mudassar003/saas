@@ -7,6 +7,7 @@ import {
   calculateTotalMRR,
   calculateProjectedRevenue,
   getDailyProjections,
+  getDailyProjectionsWithCategories,
   parseDateRange
 } from '@/lib/revenue-calculations';
 
@@ -97,9 +98,57 @@ export async function POST(request: NextRequest) {
     // Calculate MRR (Monthly Recurring Revenue)
     const monthlyRecurringRevenue = calculateTotalMRR(activeContracts);
 
+    // Build customer-to-category map from transaction history
+    // Query recent transactions to determine each customer's product category
+    let allTransactionsQuery = supabaseAdmin
+      .from('transactions')
+      .select('customer_name, product_category, transaction_date')
+      .eq('source', 'Recurring') // Only recurring transactions
+      .not('product_category', 'is', null)
+      .order('transaction_date', { ascending: false });
+
+    allTransactionsQuery = applyMerchantFilter(allTransactionsQuery, merchantId);
+
+    const { data: categoryTransactions } = await allTransactionsQuery;
+
+    // Map each customer to their most common product category
+    const customerCategoryMap = new Map<string, string>();
+    const customerCategoryCount = new Map<string, Map<string, number>>();
+
+    (categoryTransactions || []).forEach((tx: { customer_name: string; product_category: string }) => {
+      if (!tx.customer_name || !tx.product_category) return;
+
+      const categoryMap = customerCategoryCount.get(tx.customer_name) || new Map<string, number>();
+      const currentCount = categoryMap.get(tx.product_category) || 0;
+      categoryMap.set(tx.product_category, currentCount + 1);
+      customerCategoryCount.set(tx.customer_name, categoryMap);
+    });
+
+    // Determine most common category for each customer
+    customerCategoryCount.forEach((categoryMap, customerName) => {
+      let mostCommonCategory = 'Uncategorized';
+      let maxCount = 0;
+
+      categoryMap.forEach((count, category) => {
+        if (count > maxCount) {
+          maxCount = count;
+          mostCommonCategory = category;
+        }
+      });
+
+      customerCategoryMap.set(customerName, mostCommonCategory);
+    });
+
+    console.log(`[Revenue Projection] Mapped ${customerCategoryMap.size} customers to categories`);
+
     // Calculate projected revenue for selected date range
     const projectedTotal = calculateProjectedRevenue(allContracts, startDate, endDate);
-    const upcomingPayments = getDailyProjections(allContracts, startDate, endDate);
+    const upcomingPayments = getDailyProjectionsWithCategories(
+      allContracts,
+      startDate,
+      endDate,
+      customerCategoryMap
+    );
 
     console.log('[Revenue Projection] Projection calculated:', {
       projectedTotal,

@@ -113,6 +113,16 @@ export interface ProjectionResponse {
 }
 
 /**
+ * Category breakdown for daily projection
+ */
+export interface CategoryBreakdown {
+  category: string;
+  amount: number;
+  count: number;
+  customers: string[];
+}
+
+/**
  * Daily projection breakdown
  */
 export interface DailyProjection {
@@ -120,6 +130,7 @@ export interface DailyProjection {
   amount: number;
   count: number;
   customers: string[];
+  categoryBreakdown?: CategoryBreakdown[]; // Optional for backward compatibility
 }
 
 /**
