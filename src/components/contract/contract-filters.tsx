@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -15,12 +16,18 @@ interface ContractFiltersProps {
   onFiltersChange: (filters: { search: string; status: string; dateRange: string }) => void;
   resultsCount: number;
   totalCount: number;
+  syncing: boolean;
+  lastSyncMessage: string | null;
+  onSyncData: () => Promise<void>;
 }
 
 export function ContractFilters({
   onFiltersChange,
   resultsCount,
   totalCount,
+  syncing,
+  lastSyncMessage,
+  onSyncData,
 }: ContractFiltersProps) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
@@ -42,9 +49,10 @@ export function ContractFilters({
   };
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-muted/30 dark:bg-muted/10 rounded-lg border border-border">
-      {/* Search */}
-      <div className="relative flex-1">
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 p-3 bg-muted/30 dark:bg-muted/10 rounded-lg border border-border">
+        {/* Search */}
+        <div className="relative flex-1">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search by customer name or contract ID..."
@@ -82,9 +90,30 @@ export function ContractFilters({
         </SelectContent>
       </Select>
 
-      {/* Results Count */}
-      <div className="text-sm text-muted-foreground whitespace-nowrap">
-        Showing {resultsCount} of {totalCount}
+        {/* Results Count */}
+        <div className="text-sm text-muted-foreground whitespace-nowrap">
+          Showing {resultsCount} of {totalCount}
+        </div>
+      </div>
+
+      {/* Sync Button Row */}
+      <div className="flex items-center justify-between p-3 bg-muted/30 dark:bg-muted/10 rounded-lg border border-border">
+        <Button
+          variant="outline"
+          onClick={onSyncData}
+          disabled={syncing}
+          className="flex items-center gap-2"
+        >
+          {syncing && <RefreshCw className="h-4 w-4 animate-spin" />}
+          <RefreshCw className={syncing ? "hidden" : "h-4 w-4"} />
+          {syncing ? 'Syncing from MX Merchant...' : 'Fetch New Contracts'}
+        </Button>
+
+        {lastSyncMessage && (
+          <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+            {lastSyncMessage}
+          </p>
+        )}
       </div>
     </div>
   );

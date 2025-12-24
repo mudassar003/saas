@@ -31,9 +31,22 @@ interface ApiResponse {
   };
 }
 
+interface ContractSyncResponse {
+  success: boolean;
+  stats: {
+    totalFetched: number;
+    newRecords: number;
+    updatedRecords: number;
+    syncDuration: string;
+  };
+  error?: string;
+}
+
 export default function ContractsPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState<boolean>(false);
+  const [lastSyncMessage, setLastSyncMessage] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -114,7 +127,72 @@ export default function ContractsPage() {
     setCurrentPage(1);
   }, [filters]);
 
-  const handleViewContract = (contractId: number) => {
+  // Sync contracts from MX Merchant API
+  const handleSyncData = async (): Promise<void> => {
+    setSyncing(true);
+    setLastSyncMessage(null);
+
+    try {
+      const response = await fetch('/api/revenue/projection/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Active' })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to sync contracts');
+      }
+
+      const result: ContractSyncResponse = await response.json();
+
+      if (result.success) {
+        setLastSyncMessage(
+          `Synced ${result.stats.totalFetched} contracts (${result.stats.newRecords} new, ${result.stats.updatedRecords} updated) in ${result.stats.syncDuration}`
+        );
+        console.log('[Contracts] Sync completed:', result.stats);
+
+        // Reload contracts table after successful sync
+        const params = new URLSearchParams();
+        params.append('limit', pageSize.toString());
+        params.append('offset', ((currentPage - 1) * pageSize).toString());
+
+        if (filters.search) {
+          params.append('search', filters.search);
+        }
+        if (filters.status !== 'all') {
+          params.append('status', filters.status);
+        }
+
+        const dateRange = getDateRange(filters.dateRange);
+        if (dateRange.start) {
+          params.append('dateStart', dateRange.start);
+        }
+        if (dateRange.end) {
+          params.append('dateEnd', dateRange.end);
+        }
+
+        const refreshResponse = await fetch(`/api/contracts?${params.toString()}`);
+        if (refreshResponse.ok) {
+          const refreshResult: ApiResponse = await refreshResponse.json();
+          if (refreshResult.success) {
+            setContracts(refreshResult.data.records);
+            setTotalCount(refreshResult.data.recordCount);
+            setTotalPages(Math.ceil(refreshResult.data.recordCount / pageSize));
+            setStatistics(refreshResult.data.statistics);
+          }
+        }
+      } else {
+        throw new Error(result.error || 'Sync failed');
+      }
+    } catch (error) {
+      console.error('[Contracts] Error syncing data:', error);
+      setLastSyncMessage('Failed to sync contracts. Please try again.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleViewContract = (contractId: number): void => {
     window.location.href = `/contracts/${contractId}`;
   };
 
@@ -165,6 +243,9 @@ export default function ContractsPage() {
         onFiltersChange={setFilters}
         resultsCount={contracts.length}
         totalCount={totalCount}
+        syncing={syncing}
+        lastSyncMessage={lastSyncMessage}
+        onSyncData={handleSyncData}
       />
 
       {/* Contract Table */}
