@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RefreshCw, Download, TrendingUp } from 'lucide-react';
 
-type DatePreset = '7days' | '30days' | '90days' | 'custom';
+type DatePreset = 'thisMonth' | 'nextMonth' | 'next30days' | 'custom';
 
 interface FilterState {
   preset: DatePreset;
@@ -17,7 +17,7 @@ interface RevenueProjectionHeaderProps {
   loading: boolean;
   syncing: boolean;
   lastSyncMessage: string | null;
-  onPresetChange: (preset: '7days' | '30days' | '90days') => void;
+  onPresetChange: (preset: 'thisMonth' | 'nextMonth' | 'next30days') => void;
   onDateChange: (field: 'startDate' | 'endDate', value: string) => void;
   onGenerateReport: () => void;
   onSyncData: () => void;
@@ -54,28 +54,28 @@ export function RevenueProjectionHeader({
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Date Range</h2>
           <div className="flex gap-2">
             <Button
-              variant={filters.preset === '7days' ? 'default' : 'outline'}
+              variant={filters.preset === 'thisMonth' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => onPresetChange('7days')}
+              onClick={() => onPresetChange('thisMonth')}
               disabled={loading || syncing}
             >
-              7 Days
+              This Month
             </Button>
             <Button
-              variant={filters.preset === '30days' ? 'default' : 'outline'}
+              variant={filters.preset === 'nextMonth' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => onPresetChange('30days')}
+              onClick={() => onPresetChange('nextMonth')}
               disabled={loading || syncing}
             >
-              30 Days
+              Next Month
             </Button>
             <Button
-              variant={filters.preset === '90days' ? 'default' : 'outline'}
+              variant={filters.preset === 'next30days' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => onPresetChange('90days')}
+              onClick={() => onPresetChange('next30days')}
               disabled={loading || syncing}
             >
-              90 Days
+              Next 30 Days
             </Button>
           </div>
         </div>

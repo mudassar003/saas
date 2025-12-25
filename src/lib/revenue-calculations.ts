@@ -1,4 +1,12 @@
 import { Contract, MRRCalculation, DailyProjection, CategoryBreakdown } from '@/types/contract';
+import {
+  startOfMonth,
+  endOfMonth,
+  addMonths,
+  differenceInDays,
+  parseISO,
+  format
+} from 'date-fns';
 
 /**
  * Calculate Monthly Recurring Revenue (MRR) for a single contract
@@ -135,7 +143,8 @@ export function getDailyProjections(
   upcomingContracts.forEach(contract => {
     if (!contract.next_bill_date) return;
 
-    const dateKey = contract.next_bill_date.split('T')[0]; // Get YYYY-MM-DD
+    // Handle both ISO format (YYYY-MM-DDTHH:mm:ssZ) and PostgreSQL format (YYYY-MM-DD HH:mm:ss+00)
+    const dateKey = contract.next_bill_date.split('T')[0].split(' ')[0]; // Get YYYY-MM-DD
     const existing = dailyMap.get(dateKey) || { amount: 0, count: 0, customers: [] };
 
     existing.amount += contract.amount;
@@ -196,7 +205,8 @@ export function getDailyProjectionsWithCategories(
   upcomingContracts.forEach(contract => {
     if (!contract.next_bill_date) return;
 
-    const dateKey = contract.next_bill_date.split('T')[0]; // Get YYYY-MM-DD
+    // Handle both ISO format (YYYY-MM-DDTHH:mm:ssZ) and PostgreSQL format (YYYY-MM-DD HH:mm:ss+00)
+    const dateKey = contract.next_bill_date.split('T')[0].split(' ')[0]; // Get YYYY-MM-DD
     const category = customerCategoryMap.get(contract.customer_name) || 'Uncategorized';
 
     // Get or create day entry
@@ -285,47 +295,114 @@ export function calculateContractStatistics(contracts: Contract[]): {
 
 /**
  * Parse date range string to start and end dates
- * Handles common presets and custom ranges
+ * Handles business-focused presets and custom ranges
  *
- * @param preset - Preset value ('7days', '30days', '90days') or null for custom
+ * @param preset - Preset value ('thisMonth', 'nextMonth', 'next30days', etc.) or null for custom
  * @param customStart - Custom start date (optional)
  * @param customEnd - Custom end date (optional)
  * @returns Object with start and end dates
  */
 export function parseDateRange(
-  preset: '7days' | '30days' | '90days' | null,
+  preset: 'thisMonth' | 'nextMonth' | 'next7days' | 'next30days' | 'next90days' | null,
   customStart?: string,
   customEnd?: string
 ): { startDate: Date; endDate: Date; days: number } {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Use UTC dates for consistent behavior across timezones
+  const now = new Date();
+  const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
   let startDate: Date;
   let endDate: Date;
 
   if (preset) {
-    startDate = new Date(today);
-    endDate = new Date(today);
-
     switch (preset) {
-      case '7days':
-        endDate.setDate(endDate.getDate() + 7);
+      case 'thisMonth': {
+        // First day of current month to last day of current month
+        const firstDayOfMonth = startOfMonth(todayUTC);
+        const lastDayOfMonth = endOfMonth(todayUTC);
+        startDate = new Date(Date.UTC(
+          firstDayOfMonth.getUTCFullYear(),
+          firstDayOfMonth.getUTCMonth(),
+          firstDayOfMonth.getUTCDate()
+        ));
+        endDate = new Date(Date.UTC(
+          lastDayOfMonth.getUTCFullYear(),
+          lastDayOfMonth.getUTCMonth(),
+          lastDayOfMonth.getUTCDate()
+        ));
         break;
-      case '30days':
-        endDate.setDate(endDate.getDate() + 30);
+      }
+
+      case 'nextMonth': {
+        // First day of next month to last day of next month
+        const nextMonth = addMonths(todayUTC, 1);
+        const firstDayOfNextMonth = startOfMonth(nextMonth);
+        const lastDayOfNextMonth = endOfMonth(nextMonth);
+        startDate = new Date(Date.UTC(
+          firstDayOfNextMonth.getUTCFullYear(),
+          firstDayOfNextMonth.getUTCMonth(),
+          firstDayOfNextMonth.getUTCDate()
+        ));
+        endDate = new Date(Date.UTC(
+          lastDayOfNextMonth.getUTCFullYear(),
+          lastDayOfNextMonth.getUTCMonth(),
+          lastDayOfNextMonth.getUTCDate()
+        ));
         break;
-      case '90days':
-        endDate.setDate(endDate.getDate() + 90);
+      }
+
+      case 'next7days':
+        startDate = new Date(todayUTC);
+        endDate = new Date(todayUTC);
+        endDate.setUTCDate(endDate.getUTCDate() + 7);
         break;
+
+      case 'next30days':
+        startDate = new Date(todayUTC);
+        endDate = new Date(todayUTC);
+        endDate.setUTCDate(endDate.getUTCDate() + 30);
+        break;
+
+      case 'next90days':
+        startDate = new Date(todayUTC);
+        endDate = new Date(todayUTC);
+        endDate.setUTCDate(endDate.getUTCDate() + 90);
+        break;
+
+      default:
+        // Fallback to today + 30 days
+        startDate = new Date(todayUTC);
+        endDate = new Date(todayUTC);
+        endDate.setUTCDate(endDate.getUTCDate() + 30);
     }
   } else if (customStart && customEnd) {
-    startDate = new Date(customStart);
-    endDate = new Date(customEnd);
+    // Parse custom dates as UTC to avoid timezone shifts
+    const startParts = customStart.split('-');
+    const endParts = customEnd.split('-');
+    startDate = new Date(Date.UTC(
+      parseInt(startParts[0]),
+      parseInt(startParts[1]) - 1,
+      parseInt(startParts[2])
+    ));
+    endDate = new Date(Date.UTC(
+      parseInt(endParts[0]),
+      parseInt(endParts[1]) - 1,
+      parseInt(endParts[2])
+    ));
   } else {
-    // Default: next 30 days
-    startDate = new Date(today);
-    endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + 30);
+    // Default: thisMonth
+    const firstDayOfMonth = startOfMonth(todayUTC);
+    const lastDayOfMonth = endOfMonth(todayUTC);
+    startDate = new Date(Date.UTC(
+      firstDayOfMonth.getUTCFullYear(),
+      firstDayOfMonth.getUTCMonth(),
+      firstDayOfMonth.getUTCDate()
+    ));
+    endDate = new Date(Date.UTC(
+      lastDayOfMonth.getUTCFullYear(),
+      lastDayOfMonth.getUTCMonth(),
+      lastDayOfMonth.getUTCDate()
+    ));
   }
 
   const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));

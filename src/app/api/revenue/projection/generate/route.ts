@@ -10,16 +10,17 @@ import {
   getDailyProjectionsWithCategories,
   parseDateRange
 } from '@/lib/revenue-calculations';
+import { differenceInDays } from 'date-fns';
 
 /**
  * POST /api/revenue/projection/generate
- * Generate revenue projection report from database (instant, no API calls)
+ * Generate revenue projection report with actual vs projected split
  *
  * This endpoint:
- * 1. Queries contracts from local database (fast)
- * 2. Queries transactions for current revenue metrics
- * 3. Calculates projected revenue based on next_bill_date
- * 4. Returns comprehensive ProjectionResponse
+ * 1. Queries transactions from local database for actual revenue (past)
+ * 2. Queries contracts from local database for projected revenue (future)
+ * 3. Splits data based on cutoff date (today)
+ * 4. Returns comprehensive ProjectionResponse with actual and projected breakdown
  *
  * @security Requires authentication - uses getCurrentMerchantId for tenant isolation
  */
@@ -44,20 +45,158 @@ export async function POST(request: NextRequest) {
 
     // Parse request body for date range
     const body = await request.json().catch(() => ({}));
-    const preset = body.preset as '7days' | '30days' | '90days' | null;
+    const preset = body.preset as 'thisMonth' | 'nextMonth' | 'next7days' | 'next30days' | 'next90days' | null;
     const customStart = body.startDate as string | undefined;
     const customEnd = body.endDate as string | undefined;
 
-    // Parse date range (defaults to 30 days if not specified)
+    // Parse date range (defaults to thisMonth if not specified)
     const { startDate, endDate, days } = parseDateRange(preset, customStart, customEnd);
+
+    // Calculate cutoff date (today) for splitting actual vs projected
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const cutoffDate = todayUTC;
+
+    // Calculate days completed and days remaining
+    const daysCompleted = Math.max(0, differenceInDays(cutoffDate, startDate));
+    const daysRemaining = Math.max(0, differenceInDays(endDate, cutoffDate));
 
     console.log('[Revenue Projection] Date range:', {
       start: startDate.toISOString(),
       end: endDate.toISOString(),
-      days
+      cutoff: cutoffDate.toISOString(),
+      days,
+      daysCompleted,
+      daysRemaining
     });
 
-    // Fetch ALL active contracts from database
+    // ============================================
+    // PART 1: ACTUAL REVENUE (Historical Data)
+    // ============================================
+
+    // Fetch actual transactions from database (within date range, before cutoffDate)
+    let actualTransactionsQuery = supabaseAdmin
+      .from('transactions')
+      .select('amount, status, raw_data, transaction_date, customer_name, product_category')
+      .gte('transaction_date', startDate.toISOString())
+      .lt('transaction_date', cutoffDate.toISOString()); // BEFORE today
+
+    // Apply merchant filtering
+    actualTransactionsQuery = applyMerchantFilter(actualTransactionsQuery, merchantId);
+
+    const { data: actualTransactions, error: actualTransactionsError } = await actualTransactionsQuery;
+
+    if (actualTransactionsError) {
+      console.error('[Revenue Projection] Error fetching actual transactions:', actualTransactionsError);
+      // Continue without actual transaction data (non-critical)
+    }
+
+    const actualTransactionList = actualTransactions || [];
+
+    // Filter for revenue-generating transactions only (exclude Returns based on raw_data.type)
+    const approvedActualTransactions = actualTransactionList.filter(t => {
+      // Must be Approved or Settled
+      const isApproved = t.status === 'Approved' || t.status === 'Settled';
+
+      // Check raw_data.type to exclude Returns (most reliable method)
+      const transactionType = t.raw_data?.type as string | undefined;
+      const isNotReturn = transactionType !== 'Return';
+
+      return isApproved && isNotReturn;
+    });
+
+    // Get Return transactions separately (based on raw_data.type = 'Return')
+    const returnTransactions = actualTransactionList.filter(t => {
+      const isApproved = t.status === 'Approved' || t.status === 'Settled';
+      const transactionType = t.raw_data?.type as string | undefined;
+      const isReturn = transactionType === 'Return';
+      return isApproved && isReturn;
+    });
+
+    // Calculate actual revenue: Gross Sales - Returns = Net Revenue
+    const grossActualRevenue = approvedActualTransactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+    const returnsTotal = Math.abs(returnTransactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0));
+    const actualRevenueTotal = grossActualRevenue - returnsTotal;
+
+    const actualTransactionCount = approvedActualTransactions.length;
+    const averageActualTransaction = actualTransactionCount > 0 ? grossActualRevenue / actualTransactionCount : 0;
+
+    // Build daily breakdown for actual revenue (with product categories)
+    type DayEntry = {
+      amount: number;
+      count: number;
+      customers: string[];
+      categoryMap: Map<string, {
+        amount: number;
+        count: number;
+        customers: string[];
+      }>;
+    };
+
+    const actualDailyMap = new Map<string, DayEntry>();
+
+    approvedActualTransactions.forEach(tx => {
+      const txDate = new Date(tx.transaction_date);
+      const dateKey = txDate.toISOString().split('T')[0].split(' ')[0]; // YYYY-MM-DD
+      const category = tx.product_category || 'Uncategorized';
+      const customerName = tx.customer_name || 'Unknown';
+
+      let dayEntry = actualDailyMap.get(dateKey);
+      if (!dayEntry) {
+        dayEntry = {
+          amount: 0,
+          count: 0,
+          customers: [],
+          categoryMap: new Map()
+        };
+        actualDailyMap.set(dateKey, dayEntry);
+      }
+
+      dayEntry.amount += parseFloat(tx.amount.toString());
+      dayEntry.count += 1;
+      if (!dayEntry.customers.includes(customerName)) {
+        dayEntry.customers.push(customerName);
+      }
+
+      let categoryEntry = dayEntry.categoryMap.get(category);
+      if (!categoryEntry) {
+        categoryEntry = {
+          amount: 0,
+          count: 0,
+          customers: []
+        };
+        dayEntry.categoryMap.set(category, categoryEntry);
+      }
+
+      categoryEntry.amount += parseFloat(tx.amount.toString());
+      categoryEntry.count += 1;
+      if (!categoryEntry.customers.includes(customerName)) {
+        categoryEntry.customers.push(customerName);
+      }
+    });
+
+    const actualDailyBreakdown = Array.from(actualDailyMap.entries())
+      .map(([date, data]) => ({
+        date,
+        amount: data.amount,
+        count: data.count,
+        customers: data.customers,
+        categoryBreakdown: Array.from(data.categoryMap.entries())
+          .map(([category, categoryData]) => ({
+            category,
+            amount: categoryData.amount,
+            count: categoryData.count,
+            customers: categoryData.customers
+          }))
+          .sort((a, b) => b.amount - a.amount)
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // ============================================
+    // PART 2: PROJECTED REVENUE (Future Data)
+    // ============================================
+
+    // Fetch ALL contracts from database
     let contractsQuery = supabaseAdmin
       .from('contracts')
       .select('*')
@@ -99,7 +238,6 @@ export async function POST(request: NextRequest) {
     const monthlyRecurringRevenue = calculateTotalMRR(activeContracts);
 
     // Build customer-to-category map from transaction history
-    // Query recent transactions to determine each customer's product category
     let allTransactionsQuery = supabaseAdmin
       .from('transactions')
       .select('customer_name, product_category, transaction_date')
@@ -141,103 +279,79 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Revenue Projection] Mapped ${customerCategoryMap.size} customers to categories`);
 
-    // Calculate projected revenue for selected date range
-    const projectedTotal = calculateProjectedRevenue(allContracts, startDate, endDate);
+    // Calculate projected revenue for selected date range (FROM cutoffDate onwards)
+    const projectedTotal = calculateProjectedRevenue(allContracts, cutoffDate, endDate);
     const upcomingPayments = getDailyProjectionsWithCategories(
       allContracts,
-      startDate,
+      cutoffDate,
       endDate,
       customerCategoryMap
     );
 
     console.log('[Revenue Projection] Projection calculated:', {
+      actualTotal: actualRevenueTotal,
       projectedTotal,
       upcomingPaymentsCount: upcomingPayments.length,
       monthlyRecurringRevenue
     });
 
-    // Fetch current revenue from transactions table (within date range)
-    let transactionsQuery = supabaseAdmin
-      .from('transactions')
-      .select('amount, status, raw_data')
-      .gte('transaction_date', startDate.toISOString())
-      .lte('transaction_date', endDate.toISOString());
+    // ============================================
+    // PART 3: COMBINED METRICS
+    // ============================================
 
-    // Apply merchant filtering
-    transactionsQuery = applyMerchantFilter(transactionsQuery, merchantId);
+    const monthlyExpectedTotal = actualRevenueTotal + projectedTotal;
+    const actualPercentage = monthlyExpectedTotal > 0
+      ? (actualRevenueTotal / monthlyExpectedTotal) * 100
+      : 0;
+    const projectedPercentage = monthlyExpectedTotal > 0
+      ? (projectedTotal / monthlyExpectedTotal) * 100
+      : 0;
 
-    const { data: transactions, error: transactionsError } = await transactionsQuery;
-
-    if (transactionsError) {
-      console.error('[Revenue Projection] Error fetching transactions:', transactionsError);
-      // Continue without transaction data (non-critical)
-    }
-
-    // Calculate current revenue metrics
-    const transactionList = transactions || [];
-
-    // Filter for revenue-generating transactions only (exclude Returns based on raw_data.type)
-    const approvedTransactions = transactionList.filter(t => {
-      // Must be Approved or Settled
-      const isApproved = t.status === 'Approved' || t.status === 'Settled';
-
-      // Check raw_data.type to exclude Returns (most reliable method)
-      const transactionType = t.raw_data?.type as string | undefined;
-      const isNotReturn = transactionType !== 'Return';
-
-      return isApproved && isNotReturn;
-    });
-
-    // Get Return transactions separately (based on raw_data.type = 'Return')
-    const returnTransactions = transactionList.filter(t => {
-      const isApproved = t.status === 'Approved' || t.status === 'Settled';
-      const transactionType = t.raw_data?.type as string | undefined;
-      const isReturn = transactionType === 'Return';
-      return isApproved && isReturn;
-    });
-
-    const declinedTransactions = transactionList.filter(t => t.status === 'Declined');
-
-    // Calculate revenue: Gross Sales - Returns = Net Revenue
-    const grossRevenue = approvedTransactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
-    const returnsTotal = Math.abs(returnTransactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0));
-    const currentRevenueTotal = grossRevenue - returnsTotal;
-
-    const currentTransactionCount = approvedTransactions.length;
-    const averageTransaction = currentTransactionCount > 0 ? grossRevenue / currentTransactionCount : 0;
+    // Get declined transactions (for metrics)
+    const declinedTransactions = actualTransactionList.filter(t => t.status === 'Declined');
 
     const duration = (Date.now() - startTime) / 1000;
 
     console.log('[Revenue Projection] Report generated successfully:', {
       duration: `${duration.toFixed(2)}s`,
-      currentRevenue: currentRevenueTotal,
+      actualRevenue: actualRevenueTotal,
       projectedRevenue: projectedTotal,
+      monthlyTotal: monthlyExpectedTotal,
       totalContracts: allContracts.length,
       activeContracts: activeContracts.length
     });
 
-    // Return comprehensive projection response
+    // Return comprehensive projection response with actual vs projected split
     return NextResponse.json<ProjectionResponse>({
       success: true,
       data: {
         dateRange: {
           start: startDate.toISOString(),
           end: endDate.toISOString(),
-          days
+          days,
+          cutoffDate: cutoffDate.toISOString(),
+          daysCompleted,
+          daysRemaining
         },
-        currentRevenue: {
-          total: currentRevenueTotal,
-          transactionCount: currentTransactionCount,
-          averageTransaction
+        actualRevenue: {
+          total: actualRevenueTotal,
+          transactionCount: actualTransactionCount,
+          averageTransaction: averageActualTransaction,
+          dailyBreakdown: actualDailyBreakdown
         },
         projectedRevenue: {
           total: projectedTotal,
           contractCount: upcomingPayments.reduce((sum, day) => sum + day.count, 0),
           upcomingPayments
         },
+        monthlyTotal: {
+          expected: monthlyExpectedTotal,
+          actualPercentage,
+          projectedPercentage
+        },
         metrics: {
-          totalTransactions: transactionList.length,
-          approvedTransactions: approvedTransactions.length,
+          totalTransactions: actualTransactionList.length,
+          approvedTransactions: approvedActualTransactions.length,
           declinedTransactions: declinedTransactions.length,
           activeContracts: activeContracts.length,
           cancelledContracts: cancelledContracts.length,

@@ -1,9 +1,17 @@
 'use client';
 
-import { DollarSign, TrendingUp, Calendar, Users, XCircle, CheckCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, Calendar, Users, XCircle, CheckCircle, Target } from 'lucide-react';
 
 interface RevenueMetricsProps {
-  currentRevenue: {
+  dateRange: {
+    start: string;
+    end: string;
+    days: number;
+    cutoffDate: string;
+    daysCompleted: number;
+    daysRemaining: number;
+  };
+  actualRevenue: {
     total: number;
     transactionCount: number;
     averageTransaction: number;
@@ -11,6 +19,11 @@ interface RevenueMetricsProps {
   projectedRevenue: {
     total: number;
     contractCount: number;
+  };
+  monthlyTotal: {
+    expected: number;
+    actualPercentage: number;
+    projectedPercentage: number;
   };
   metrics: {
     totalTransactions: number;
@@ -21,18 +34,14 @@ interface RevenueMetricsProps {
     completedContracts: number;
     monthlyRecurringRevenue: number;
   };
-  dateRange: {
-    start: string;
-    end: string;
-    days: number;
-  };
 }
 
 export function RevenueMetrics({
-  currentRevenue,
+  dateRange,
+  actualRevenue,
   projectedRevenue,
-  metrics,
-  dateRange
+  monthlyTotal,
+  metrics
 }: RevenueMetricsProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -47,73 +56,134 @@ export function RevenueMetrics({
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'UTC'
     });
   };
 
   return (
     <div className="space-y-6">
-      {/* Date Range Info */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <div className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
-          <Calendar className="h-5 w-5" />
-          <p className="font-medium">
-            Projection Period: {formatDate(dateRange.start)} - {formatDate(dateRange.end)} ({dateRange.days} days)
-          </p>
+      {/* Date Range Info with Actual vs Projected Periods */}
+      <div className="bg-muted/50 border border-border rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-foreground" />
+            <h3 className="font-semibold text-foreground">
+              {formatDate(dateRange.start)} → {formatDate(dateRange.end)}
+            </h3>
+            <span className="text-sm text-muted-foreground">({dateRange.days} days)</span>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Today: {formatDate(dateRange.cutoffDate)}</p>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded p-3">
+            <p className="text-xs text-green-700 dark:text-green-300 font-medium">Actual Period</p>
+            <p className="text-sm font-semibold text-green-900 dark:text-green-100 mt-1">
+              {formatDate(dateRange.start)} - {formatDate(dateRange.cutoffDate)}
+            </p>
+            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+              {dateRange.daysCompleted} days completed
+            </p>
+          </div>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3">
+            <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">Projection Period</p>
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mt-1">
+              {formatDate(dateRange.cutoffDate)} - {formatDate(dateRange.end)}
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              {dateRange.daysRemaining} days remaining
+            </p>
+          </div>
+
+          <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded p-3">
+            <p className="text-xs text-purple-700 dark:text-purple-300 font-medium">Full Period</p>
+            <p className="text-sm font-semibold text-purple-900 dark:text-purple-100 mt-1">
+              {formatDate(dateRange.start)} - {formatDate(dateRange.end)}
+            </p>
+            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+              {dateRange.days} total days
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Primary Metrics */}
+      {/* Primary Revenue Metrics - Actual vs Projected */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Current Revenue */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">Current Revenue</h3>
-            <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+        {/* Actual Revenue (Past) */}
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-3 w-3 rounded-full bg-green-600"></div>
+            <h3 className="text-sm font-medium text-green-900 dark:text-green-100">
+              Actual Revenue
+            </h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            {formatCurrency(currentRevenue.total)}
+          <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+            {formatCurrency(actualRevenue.total)}
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {currentRevenue.transactionCount} transactions
-          </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Avg: {formatCurrency(currentRevenue.averageTransaction)}
-          </p>
+          <div className="mt-3 space-y-1">
+            <p className="text-sm text-green-700 dark:text-green-300">
+              {actualRevenue.transactionCount} transactions
+            </p>
+            <p className="text-xs text-green-600 dark:text-green-400">
+              Avg: {formatCurrency(actualRevenue.averageTransaction)}
+            </p>
+            <p className="text-xs font-semibold text-green-700 dark:text-green-300 mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+              {monthlyTotal.actualPercentage.toFixed(1)}% of total
+            </p>
+          </div>
         </div>
 
-        {/* Projected Revenue */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">Projected Revenue</h3>
-            <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        {/* Projected Revenue (Future) */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-3 w-3 rounded-full bg-blue-600"></div>
+            <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">
+              Projected Revenue
+            </h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">
+          <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
             {formatCurrency(projectedRevenue.total)}
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {projectedRevenue.contractCount} upcoming payments
-          </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Based on contract schedules
-          </p>
+          <div className="mt-3 space-y-1">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              {projectedRevenue.contractCount} expected payments
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              MRR: {formatCurrency(metrics.monthlyRecurringRevenue)}
+            </p>
+            <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+              {monthlyTotal.projectedPercentage.toFixed(1)}% of total
+            </p>
+          </div>
         </div>
 
-        {/* Monthly Recurring Revenue (MRR) */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">Monthly Recurring Revenue</h3>
-            <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+        {/* Total Expected */}
+        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-3 w-3 rounded-full bg-purple-600"></div>
+            <h3 className="text-sm font-medium text-purple-900 dark:text-purple-100">
+              Total Expected
+            </h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            {formatCurrency(metrics.monthlyRecurringRevenue)}
+          <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+            {formatCurrency(monthlyTotal.expected)}
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            MRR from active contracts
-          </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Normalized to 30 days
-          </p>
+          <div className="mt-3 space-y-1">
+            <p className="text-sm text-purple-700 dark:text-purple-300">
+              {metrics.activeContracts} active contracts
+            </p>
+            <p className="text-xs text-purple-600 dark:text-purple-400">
+              Actual + Projected
+            </p>
+            <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 mt-2 pt-2 border-t border-purple-200 dark:border-purple-800">
+              100% of period
+            </p>
+          </div>
         </div>
       </div>
 

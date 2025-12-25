@@ -28,17 +28,30 @@ export function UpcomingPayments({ payments, dateRange }: UpcomingPaymentsProps)
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Parse date in UTC to match database format (YYYY-MM-DD)
+    const dateParts = dateString.split(/[T\s]/)[0].split('-');
+    const date = new Date(Date.UTC(
+      parseInt(dateParts[0]),
+      parseInt(dateParts[1]) - 1,
+      parseInt(dateParts[2])
+    ));
 
-    const dayDiff = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    // Get today in UTC for consistent comparison
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate()
+    ));
+
+    const dayDiff = Math.floor((date.getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24));
 
     let label = date.toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'UTC'
     });
 
     if (dayDiff === 0) {

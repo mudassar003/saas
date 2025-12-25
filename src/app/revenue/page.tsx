@@ -7,7 +7,7 @@ import { ProjectionChart } from '@/components/revenue/projection-chart';
 import { UpcomingPayments } from '@/components/revenue/upcoming-payments';
 import { DailyProjection, ProjectionResponse } from '@/types/contract';
 
-type DatePreset = '7days' | '30days' | '90days' | 'custom';
+type DatePreset = 'thisMonth' | 'nextMonth' | 'next30days' | 'custom';
 
 interface FilterState {
   preset: DatePreset;
@@ -22,42 +22,36 @@ export default function RevenueProjectionPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastSyncMessage, setLastSyncMessage] = useState<string | null>(null);
 
-  // Get default date range (today + 30 days)
+  // Get default date range (today + 30 days) in UTC for consistency
   const getDefaultDates = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + 30);
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const endDateUTC = new Date(todayUTC);
+    endDateUTC.setUTCDate(endDateUTC.getUTCDate() + 30);
 
     return {
-      start: today.toISOString().split('T')[0],
-      end: endDate.toISOString().split('T')[0]
+      start: todayUTC.toISOString().split('T')[0],
+      end: endDateUTC.toISOString().split('T')[0]
     };
   };
 
   const defaultDates = getDefaultDates();
   const [filters, setFilters] = useState<FilterState>({
-    preset: '30days',
+    preset: 'thisMonth',
     startDate: defaultDates.start,
     endDate: defaultDates.end
   });
 
   /**
-   * Handle preset button clicks (7 days, 30 days, 90 days)
+   * Handle preset button clicks (This Month, Next Month, Next 30 Days)
    */
-  const handlePresetChange = (preset: '7days' | '30days' | '90days') => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const endDate = new Date(today);
-
-    const days = preset === '7days' ? 7 : preset === '30days' ? 30 : 90;
-    endDate.setDate(endDate.getDate() + days);
-
-    setFilters({
-      preset,
-      startDate: today.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0]
-    });
+  const handlePresetChange = (preset: 'thisMonth' | 'nextMonth' | 'next30days') => {
+    // Simply update the preset - getDefaultDates() will be called on next render
+    // The actual date calculation will happen in the API based on the preset
+    setFilters(prev => ({
+      ...prev,
+      preset
+    }));
   };
 
   /**
@@ -172,6 +166,29 @@ export default function RevenueProjectionPage() {
         onSyncData={handleSyncData}
       />
 
+      {/* User Guidance Banner */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 mt-0.5">
+            <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+              How Revenue Projection Works
+            </h3>
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <span className="font-medium">To get the latest data:</span> Click the <span className="font-semibold">&quot;Fetch New Data&quot;</span> button to sync contracts from MX Merchant.
+              <span className="mx-2">•</span>
+              <span className="font-medium">Actual Revenue:</span> Based on all completed transactions in the selected time period.
+              <span className="mx-2">•</span>
+              <span className="font-medium">Projected Revenue:</span> Based on active contracts with expected billing dates - this is an <span className="italic">approximate estimate</span>.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded">
           <p className="font-medium">Error</p>
@@ -182,10 +199,11 @@ export default function RevenueProjectionPage() {
       {projectionData && (
         <>
           <RevenueMetrics
-            currentRevenue={projectionData.currentRevenue}
-            projectedRevenue={projectionData.projectedRevenue}
-            metrics={projectionData.metrics}
             dateRange={projectionData.dateRange}
+            actualRevenue={projectionData.actualRevenue}
+            projectedRevenue={projectionData.projectedRevenue}
+            monthlyTotal={projectionData.monthlyTotal}
+            metrics={projectionData.metrics}
           />
 
           <ProjectionChart

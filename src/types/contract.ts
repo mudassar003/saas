@@ -78,9 +78,54 @@ export interface ProjectionRequest {
 }
 
 /**
- * Revenue projection response
+ * Revenue projection response with actual vs projected split
  */
 export interface ProjectionResponse {
+  success: boolean;
+  data: {
+    dateRange: {
+      start: string;
+      end: string;
+      days: number;
+      cutoffDate: string; // Today's date - splits actual from projected
+      daysCompleted: number; // Days from start to today
+      daysRemaining: number; // Days from today to end
+    };
+    actualRevenue: {
+      total: number;
+      transactionCount: number;
+      averageTransaction: number;
+      dailyBreakdown: DailyProjection[]; // Historical daily data
+    };
+    projectedRevenue: {
+      total: number;
+      contractCount: number;
+      upcomingPayments: DailyProjection[]; // Future daily projections
+    };
+    monthlyTotal: {
+      expected: number; // actualRevenue.total + projectedRevenue.total
+      actualPercentage: number; // Percentage of revenue that is actual
+      projectedPercentage: number; // Percentage of revenue that is projected
+    };
+    metrics: {
+      totalTransactions: number;
+      approvedTransactions: number;
+      declinedTransactions: number;
+      activeContracts: number;
+      cancelledContracts: number;
+      completedContracts: number;
+      monthlyRecurringRevenue: number;
+    };
+    lastSyncedAt: string | null;
+    dataSource: 'database';
+  };
+}
+
+/**
+ * Legacy response format (for backward compatibility)
+ * @deprecated Use ProjectionResponse instead
+ */
+export interface LegacyProjectionResponse {
   success: boolean;
   data: {
     dateRange: {
