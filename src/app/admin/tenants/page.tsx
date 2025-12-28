@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { TenantTable } from '@/components/admin/tenant-table';
 import { CreateTenantDialog } from '@/components/admin/create-tenant-dialog';
 import { ProductCategoriesDialog } from '@/components/admin/product-categories-dialog';
+import { WebhookManagementDialog } from '@/components/admin/webhook-management-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
@@ -36,7 +37,9 @@ export default function AdminTenantsPage(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [categoriesDialogOpen, setCategoriesDialogOpen] = useState(false);
+  const [webhooksDialogOpen, setWebhooksDialogOpen] = useState(false);
   const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
+  const [selectedTenantName, setSelectedTenantName] = useState<string | null>(null);
 
   const fetchTenants = async (): Promise<void> => {
     try {
@@ -73,6 +76,12 @@ export default function AdminTenantsPage(): React.JSX.Element {
     setCategoriesDialogOpen(true);
   };
 
+  const handleManageWebhooks = (merchantId: number, tenantName: string | null): void => {
+    setSelectedTenantId(merchantId);
+    setSelectedTenantName(tenantName);
+    setWebhooksDialogOpen(true);
+  };
+
   useEffect(() => {
     if (!auth.isLoading && auth.isAuthenticated) {
       fetchTenants();
@@ -88,7 +97,7 @@ export default function AdminTenantsPage(): React.JSX.Element {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="w-full py-6 px-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Tenant Management</h1>
@@ -111,7 +120,7 @@ export default function AdminTenantsPage(): React.JSX.Element {
         </Alert>
       )}
 
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
@@ -121,12 +130,13 @@ export default function AdminTenantsPage(): React.JSX.Element {
             Manage merchant configurations, API credentials, and product categories. Each tenant represents a separate medical practice.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-hidden">
           <TenantTable
             tenants={tenants}
             loading={loading}
             onRefresh={fetchTenants}
             onManageCategories={handleManageCategories}
+            onManageWebhooks={handleManageWebhooks}
           />
         </CardContent>
       </Card>
@@ -138,11 +148,20 @@ export default function AdminTenantsPage(): React.JSX.Element {
       />
 
       {selectedTenantId && (
-        <ProductCategoriesDialog
-          open={categoriesDialogOpen}
-          onOpenChange={setCategoriesDialogOpen}
-          merchantId={selectedTenantId}
-        />
+        <>
+          <ProductCategoriesDialog
+            open={categoriesDialogOpen}
+            onOpenChange={setCategoriesDialogOpen}
+            merchantId={selectedTenantId}
+          />
+
+          <WebhookManagementDialog
+            open={webhooksDialogOpen}
+            onOpenChange={setWebhooksDialogOpen}
+            merchantId={selectedTenantId}
+            tenantName={selectedTenantName}
+          />
+        </>
       )}
     </div>
   );

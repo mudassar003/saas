@@ -158,168 +158,216 @@ export function CreateTenantDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Add New Tenant</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="sm:max-w-[600px] p-0 gap-0 flex flex-col max-h-[85vh]">
+        {/* Fixed Header */}
+        <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
+          <DialogTitle className="text-2xl">Add New Tenant</DialogTitle>
+          <DialogDescription className="text-base mt-2">
             Add a new medical practice tenant with MX Merchant API credentials. This will create a new isolated environment for the practice.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              {error}
-            </Alert>
-          )}
-
-          {webhookSuccess && (
-            <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-400">
-              {webhookSuccess}
-            </Alert>
-          )}
-
-          <div className="space-y-2">
-            <label htmlFor="tenant_name" className="text-sm font-medium">
-              Tenant Name *
-            </label>
-            <Input
-              id="tenant_name"
-              placeholder="e.g., GameDay Men's Health - Austin"
-              {...register('tenant_name')}
-              disabled={isSubmitting}
-            />
-            {errors.tenant_name && (
-              <p className="text-sm text-red-600 dark:text-red-400">{errors.tenant_name.message}</p>
+        {/* Scrollable Form Content */}
+        <div className="overflow-y-auto flex-1 px-6 py-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" id="create-tenant-form">
+            {/* Alerts */}
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                {error}
+              </Alert>
             )}
-            <p className="text-xs text-muted-foreground">
-              A friendly display name for this tenant/medical practice
-            </p>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="merchant_id" className="text-sm font-medium">
-                Merchant ID *
-              </label>
-              <Input
-                id="merchant_id"
-                type="number"
-                placeholder="1000095245"
-                {...register('merchant_id')}
-                disabled={isSubmitting}
-              />
-              {errors.merchant_id && (
-                <p className="text-sm text-red-600 dark:text-red-400">{errors.merchant_id.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="environment" className="text-sm font-medium">
-                Environment *
-              </label>
-              <Select
-                value={selectedEnvironment}
-                onValueChange={(value: 'production' | 'sandbox') => setValue('environment', value)}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select environment" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="production">Production</SelectItem>
-                  <SelectItem value="sandbox">Sandbox</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.environment && (
-                <p className="text-sm text-red-600 dark:text-red-400">{errors.environment.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="consumer_key" className="text-sm font-medium">
-              Consumer Key *
-            </label>
-            <Input
-              id="consumer_key"
-              placeholder="Your MX Merchant consumer key"
-              {...register('consumer_key')}
-              disabled={isSubmitting}
-            />
-            {errors.consumer_key && (
-              <p className="text-sm text-red-600 dark:text-red-400">{errors.consumer_key.message}</p>
+            {webhookSuccess && (
+              <Alert className="mb-4 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-400">
+                {webhookSuccess}
+              </Alert>
             )}
-          </div>
 
-          <div className="space-y-2">
-            <label htmlFor="consumer_secret" className="text-sm font-medium">
-              Consumer Secret *
-            </label>
-            <Input
-              id="consumer_secret"
-              type="password"
-              placeholder="Your MX Merchant consumer secret"
-              {...register('consumer_secret')}
-              disabled={isSubmitting}
-            />
-            {errors.consumer_secret && (
-              <p className="text-sm text-red-600 dark:text-red-400">{errors.consumer_secret.message}</p>
-            )}
-          </div>
+            {/* Section 1: Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Basic Information
+              </h3>
 
-          <div className="space-y-2">
-            <label htmlFor="webhook_secret" className="text-sm font-medium">
-              Webhook Secret (Optional)
-            </label>
-            <Input
-              id="webhook_secret"
-              placeholder="Webhook signature validation secret"
-              {...register('webhook_secret')}
-              disabled={isSubmitting}
-            />
-            {errors.webhook_secret && (
-              <p className="text-sm text-red-600 dark:text-red-400">{errors.webhook_secret.message}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Used for webhook signature validation. Leave empty if not using webhooks.
-            </p>
-          </div>
+              <div className="space-y-4">
+                {/* Tenant Name */}
+                <div className="space-y-2">
+                  <label htmlFor="tenant_name" className="text-sm font-medium flex items-center gap-1">
+                    Tenant Name <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="tenant_name"
+                    placeholder="e.g., GameDay Men's Health - Austin"
+                    {...register('tenant_name')}
+                    disabled={isSubmitting}
+                    className="h-10"
+                  />
+                  {errors.tenant_name && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.tenant_name.message}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    A friendly display name for this tenant/medical practice
+                  </p>
+                </div>
 
-          <div className="space-y-2">
-            <div className="flex items-start space-x-3">
-              <Checkbox
-                id="setup_webhooks"
-                checked={setupWebhooks}
-                onCheckedChange={(checked) => setValue('setup_webhooks', checked as boolean)}
-                disabled={isSubmitting}
-              />
-              <div className="grid gap-1.5 leading-none">
-                <label
-                  htmlFor="setup_webhooks"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Setup Webhooks Automatically (Recommended)
-                </label>
-                <p className="text-xs text-muted-foreground">
-                  Configures 5 webhook subscriptions for real-time transaction processing:
-                  PaymentSuccess, PaymentFail, RefundCreated, Chargeback, and Deposit
-                </p>
+                {/* Merchant ID & Environment */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="merchant_id" className="text-sm font-medium flex items-center gap-1">
+                      Merchant ID <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      id="merchant_id"
+                      type="number"
+                      placeholder="1000095245"
+                      {...register('merchant_id')}
+                      disabled={isSubmitting}
+                      className="h-10"
+                    />
+                    {errors.merchant_id && (
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.merchant_id.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="environment" className="text-sm font-medium flex items-center gap-1">
+                      Environment <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={selectedEnvironment}
+                      onValueChange={(value: 'production' | 'sandbox') => setValue('environment', value)}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Select environment" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="production">Production</SelectItem>
+                        <SelectItem value="sandbox">Sandbox</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.environment && (
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.environment.message}</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2">Streamlined Onboarding:</h4>
-            <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
-              <li>✅ Tenant created with isolated data environment</li>
-              <li>✅ API credentials configured for data sync</li>
-              <li>✅ Webhooks setup for real-time transaction processing</li>
-              <li>💡 Next: Create admin user and configure product categories</li>
-            </ul>
-          </div>
+            {/* Section 2: API Credentials */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                API Credentials
+              </h3>
 
-          <div className="flex justify-end gap-3 pt-4">
+              <div className="space-y-4">
+                {/* Consumer Key */}
+                <div className="space-y-2">
+                  <label htmlFor="consumer_key" className="text-sm font-medium flex items-center gap-1">
+                    Consumer Key <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="consumer_key"
+                    placeholder="Your MX Merchant consumer key"
+                    {...register('consumer_key')}
+                    disabled={isSubmitting}
+                    className="h-10"
+                  />
+                  {errors.consumer_key && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.consumer_key.message}</p>
+                  )}
+                </div>
+
+                {/* Consumer Secret */}
+                <div className="space-y-2">
+                  <label htmlFor="consumer_secret" className="text-sm font-medium flex items-center gap-1">
+                    Consumer Secret <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="consumer_secret"
+                    type="password"
+                    placeholder="Your MX Merchant consumer secret"
+                    {...register('consumer_secret')}
+                    disabled={isSubmitting}
+                    className="h-10"
+                  />
+                  {errors.consumer_secret && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.consumer_secret.message}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Webhook Configuration */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Webhook Configuration
+              </h3>
+
+              <div className="space-y-4">
+                {/* Webhook Secret */}
+                <div className="space-y-2">
+                  <label htmlFor="webhook_secret" className="text-sm font-medium">
+                    Webhook Secret (Optional)
+                  </label>
+                  <Input
+                    id="webhook_secret"
+                    placeholder="Webhook signature validation secret"
+                    {...register('webhook_secret')}
+                    disabled={isSubmitting}
+                    className="h-10"
+                  />
+                  {errors.webhook_secret && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.webhook_secret.message}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Used for webhook signature validation. Leave empty if not using webhooks.
+                  </p>
+                </div>
+
+                {/* Setup Webhooks Checkbox */}
+                <div className="space-y-2">
+                  <div className="flex items-start space-x-3 p-4 rounded-lg border bg-muted/20">
+                    <Checkbox
+                      id="setup_webhooks"
+                      checked={setupWebhooks}
+                      onCheckedChange={(checked) => setValue('setup_webhooks', checked as boolean)}
+                      disabled={isSubmitting}
+                      className="mt-1"
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <label
+                        htmlFor="setup_webhooks"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Setup Webhooks Automatically (Recommended)
+                      </label>
+                      <p className="text-xs text-muted-foreground">
+                        Configures 5 webhook subscriptions for real-time transaction processing:
+                        PaymentSuccess, PaymentFail, RefundCreated, Chargeback, and Deposit
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Onboarding Info */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2">Streamlined Onboarding:</h4>
+              <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
+                <li>✅ Tenant created with isolated data environment</li>
+                <li>✅ API credentials configured for data sync</li>
+                <li>✅ Webhooks setup for real-time transaction processing</li>
+                <li>💡 Next: Create admin user and configure product categories</li>
+              </ul>
+            </div>
+          </form>
+        </div>
+
+        {/* Fixed Footer */}
+        <div className="px-6 py-4 border-t bg-muted/20 flex-shrink-0">
+          <div className="flex justify-end gap-3">
             <Button
               type="button"
               variant="outline"
@@ -328,11 +376,15 @@ export function CreateTenantDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              form="create-tenant-form"
+            >
               {isSubmitting ? 'Creating...' : 'Create Tenant'}
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

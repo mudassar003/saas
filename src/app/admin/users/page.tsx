@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react';
 import { UserTable } from '@/components/admin/user-table';
 import { CreateUserDialog } from '@/components/admin/create-user-dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 import { useRequireSuperAdmin } from '@/lib/auth';
 import { User, UserWithPassword } from '@/lib/auth/types';
-import { Plus, Users } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface UsersApiResponse {
   success: boolean;
@@ -74,8 +73,9 @@ export default function AdminUsersPage(): React.JSX.Element {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <>
+      {/* Header Section - Separate Div */}
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
           <p className="text-muted-foreground mt-2">
@@ -91,36 +91,30 @@ export default function AdminUsersPage(): React.JSX.Element {
         </Button>
       </div>
 
+      {/* Error Alert */}
       {error && (
-        <Alert variant="destructive">
-          {error}
-        </Alert>
+        <div className="mb-6">
+          <Alert variant="destructive">
+            {error}
+          </Alert>
+        </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            All Users
-          </CardTitle>
-          <CardDescription>
-            View and manage all system users. Super admins can access all tenants.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <UserTable
-            users={users}
-            loading={loading}
-            onRefresh={fetchUsers}
-          />
-        </CardContent>
-      </Card>
+      {/* Table Section - Separate Div */}
+      <div>
+        <UserTable
+          users={users}
+          loading={loading}
+          onRefresh={fetchUsers}
+        />
+      </div>
 
+      {/* Create User Dialog */}
       <CreateUserDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onUserCreated={handleUserCreated}
       />
-    </div>
+    </>
   );
 }

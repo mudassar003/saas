@@ -6,5 +6,9 @@
       "WebFetch(domain:developer.mxmerchant.com)"
     ],
     "deny": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ],
+  "enableAllProjectMcpServers": true
 }

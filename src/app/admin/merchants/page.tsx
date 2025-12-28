@@ -66,7 +66,7 @@ export default function AdminMerchantsPage(): React.JSX.Element {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="w-full py-6 px-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Merchant Management</h1>
@@ -82,7 +82,7 @@ export default function AdminMerchantsPage(): React.JSX.Element {
         </Alert>
       )}
 
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
@@ -92,7 +92,7 @@ export default function AdminMerchantsPage(): React.JSX.Element {
             View all merchant configurations. Each merchant represents a separate tenant.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-hidden">
           <MerchantTable
             merchants={merchants}
             loading={loading}

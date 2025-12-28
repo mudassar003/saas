@@ -15,7 +15,8 @@ import {
   Tag,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { CategoryManagementDialog } from '@/components/categories/category-management-dialog';
@@ -57,6 +58,7 @@ export function Sidebar() {
       { label: 'Users', href: '/admin/users', icon: User },
       { label: 'Merchants', href: '/admin/merchants', icon: Store },
       { label: 'Tenants', href: '/admin/tenants', icon: Building2 },
+      { label: 'Activity', href: '/admin/activity', icon: Activity },
     ],
   };
 

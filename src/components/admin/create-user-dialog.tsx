@@ -179,228 +179,270 @@ export function CreateUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Create New User</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="sm:max-w-[550px] p-0 gap-0 flex flex-col max-h-[85vh]">
+        {/* Fixed Header */}
+        <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
+          <DialogTitle className="text-2xl">Create New User</DialogTitle>
+          <DialogDescription className="text-base mt-2">
             Add a new user to the system. Super admins have access to all tenants.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              {error}
-            </Alert>
-          )}
+        {/* Scrollable Form Content */}
+        <div className="overflow-y-auto flex-1 px-6 py-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" id="create-user-form">
+            {/* Error Alert */}
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                {error}
+              </Alert>
+            )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email Address *
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="user@example.com"
-                {...register('email')}
-                disabled={isSubmitting}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-600">{errors.email.message}</p>
-              )}
-            </div>
+            {/* Section 1: Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Basic Information
+              </h3>
 
-            <div className="space-y-2">
-              <label htmlFor="role" className="text-sm font-medium">
-                Role *
-              </label>
-              <Select
-                value={selectedRole}
-                onValueChange={(value: 'super_admin' | 'tenant_user') => {
-                  setValue('role', value);
-                  clearErrors('merchantId');
-                }}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tenant_user">Tenant User</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.role && (
-                <p className="text-sm text-red-600">{errors.role.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="firstName" className="text-sm font-medium">
-                First Name
-              </label>
-              <Input
-                id="firstName"
-                placeholder="John"
-                {...register('firstName')}
-                disabled={isSubmitting}
-              />
-              {errors.firstName && (
-                <p className="text-sm text-red-600">{errors.firstName.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="lastName" className="text-sm font-medium">
-                Last Name
-              </label>
-              <Input
-                id="lastName"
-                placeholder="Doe"
-                {...register('lastName')}
-                disabled={isSubmitting}
-              />
-              {errors.lastName && (
-                <p className="text-sm text-red-600">{errors.lastName.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password *
-              </label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter password"
-                {...register('password')}
-                disabled={isSubmitting}
-              />
-              {errors.password && (
-                <p className="text-sm text-red-600">{errors.password.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="text-sm font-medium">
-                Confirm Password *
-              </label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm password"
-                {...register('confirmPassword')}
-                disabled={isSubmitting}
-              />
-              {errors.confirmPassword && (
-                <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>
-              )}
-            </div>
-          </div>
-
-          {selectedRole === 'tenant_user' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="merchantId" className="text-sm font-medium">
-                  Merchant *
-                </label>
-                <Select
-                  onValueChange={(value) => setValue('merchantId', parseInt(value))}
-                  disabled={isSubmitting || merchantsLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={merchantsLoading ? "Loading..." : "Select merchant"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {merchants.map((merchant) => (
-                      <SelectItem key={merchant.merchant_id} value={merchant.merchant_id.toString()}>
-                        {merchant.tenant_name || `Tenant ${merchant.merchant_id}`} - ID: {merchant.merchant_id} ({merchant.environment})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.merchantId && (
-                  <p className="text-sm text-red-600">{errors.merchantId.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="tenantRole" className="text-sm font-medium">
-                  Tenant Role *
-                </label>
-                <Select
-                  defaultValue="user"
-                  onValueChange={(value: 'admin' | 'user' | 'viewer') => setValue('tenantRole', value)}
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tenant role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="viewer">
-                      <div className="flex items-center gap-2">
-                        <span>{TENANT_ROLE_DESCRIPTIONS.viewer.icon}</span>
-                        <span>Viewer (Read-Only)</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="user">
-                      <div className="flex items-center gap-2">
-                        <span>{TENANT_ROLE_DESCRIPTIONS.user.icon}</span>
-                        <span>User (Standard Access)</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="admin">
-                      <div className="flex items-center gap-2">
-                        <span>{TENANT_ROLE_DESCRIPTIONS.admin.icon}</span>
-                        <span>Admin (Full Control)</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.tenantRole && (
-                  <p className="text-sm text-red-600">{errors.tenantRole.message}</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {selectedRole === 'tenant_user' && selectedTenantRole && (
-            <div className={`p-4 rounded-lg border ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].bgColor} ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].borderColor}`}>
-              <div className="flex items-start gap-3">
-                <Info className={`h-5 w-5 mt-0.5 flex-shrink-0 ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`} />
+              <div className="space-y-4">
+                {/* Email */}
                 <div className="space-y-2">
-                  <div>
-                    <p className={`font-semibold text-sm ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
-                      {TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].name}
+                  <label htmlFor="email" className="text-sm font-medium flex items-center gap-1">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="user@example.com"
+                    {...register('email')}
+                    disabled={isSubmitting}
+                    className="h-10"
+                  />
+                  {errors.email && (
+                    <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                      {errors.email.message}
                     </p>
-                    <p className={`text-sm mt-1 ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
-                      {TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].description}
+                  )}
+                </div>
+
+                {/* Role */}
+                <div className="space-y-2">
+                  <label htmlFor="role" className="text-sm font-medium flex items-center gap-1">
+                    Role <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    value={selectedRole}
+                    onValueChange={(value: 'super_admin' | 'tenant_user') => {
+                      setValue('role', value);
+                      clearErrors('merchantId');
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tenant_user">Tenant User</SelectItem>
+                      <SelectItem value="super_admin">Super Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.role && (
+                    <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                      {errors.role.message}
                     </p>
+                  )}
+                </div>
+
+                {/* Name Fields */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="firstName" className="text-sm font-medium">
+                      First Name
+                    </label>
+                    <Input
+                      id="firstName"
+                      placeholder="John"
+                      {...register('firstName')}
+                      disabled={isSubmitting}
+                      className="h-10"
+                    />
+                    {errors.firstName && (
+                      <p className="text-xs text-red-600 mt-1">{errors.firstName.message}</p>
+                    )}
                   </div>
-                  <div>
-                    <p className={`text-xs font-medium ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
-                      Permissions:
-                    </p>
-                    <ul className={`text-xs space-y-0.5 mt-1 ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
-                      {TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].permissions.map((permission, index) => (
-                        <li key={index}>• {permission}</li>
-                      ))}
-                    </ul>
+
+                  <div className="space-y-2">
+                    <label htmlFor="lastName" className="text-sm font-medium">
+                      Last Name
+                    </label>
+                    <Input
+                      id="lastName"
+                      placeholder="Doe"
+                      {...register('lastName')}
+                      disabled={isSubmitting}
+                      className="h-10"
+                    />
+                    {errors.lastName && (
+                      <p className="text-xs text-red-600 mt-1">{errors.lastName.message}</p>
+                    )}
                   </div>
-                  <p className={`text-xs italic ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
-                    {TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].useCase}
-                  </p>
                 </div>
               </div>
             </div>
-          )}
 
-          <div className="flex justify-end gap-3 pt-4">
+            {/* Section 2: Security */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Security
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-sm font-medium flex items-center gap-1">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Min. 8 characters"
+                    {...register('password')}
+                    disabled={isSubmitting}
+                    className="h-10"
+                  />
+                  {errors.password && (
+                    <p className="text-xs text-red-600 mt-1">{errors.password.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="confirmPassword" className="text-sm font-medium flex items-center gap-1">
+                    Confirm Password <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Re-enter password"
+                    {...register('confirmPassword')}
+                    disabled={isSubmitting}
+                    className="h-10"
+                  />
+                  {errors.confirmPassword && (
+                    <p className="text-xs text-red-600 mt-1">{errors.confirmPassword.message}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Tenant Assignment (only for tenant users) */}
+            {selectedRole === 'tenant_user' && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Tenant Assignment
+                </h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="merchantId" className="text-sm font-medium flex items-center gap-1">
+                      Merchant <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      onValueChange={(value) => setValue('merchantId', parseInt(value))}
+                      disabled={isSubmitting || merchantsLoading}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder={merchantsLoading ? "Loading..." : "Select merchant"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {merchants.map((merchant) => (
+                          <SelectItem key={merchant.merchant_id} value={merchant.merchant_id.toString()}>
+                            {merchant.tenant_name || `Tenant ${merchant.merchant_id}`} - ID: {merchant.merchant_id} ({merchant.environment})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.merchantId && (
+                      <p className="text-xs text-red-600 mt-1">{errors.merchantId.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="tenantRole" className="text-sm font-medium flex items-center gap-1">
+                      Tenant Role <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      defaultValue="user"
+                      onValueChange={(value: 'admin' | 'user' | 'viewer') => setValue('tenantRole', value)}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Select tenant role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="viewer">
+                          <div className="flex items-center gap-2">
+                            <span>{TENANT_ROLE_DESCRIPTIONS.viewer.icon}</span>
+                            <span>Viewer (Read-Only)</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="user">
+                          <div className="flex items-center gap-2">
+                            <span>{TENANT_ROLE_DESCRIPTIONS.user.icon}</span>
+                            <span>User (Standard Access)</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="admin">
+                          <div className="flex items-center gap-2">
+                            <span>{TENANT_ROLE_DESCRIPTIONS.admin.icon}</span>
+                            <span>Admin (Full Control)</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.tenantRole && (
+                      <p className="text-xs text-red-600 mt-1">{errors.tenantRole.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Role Description */}
+                {selectedTenantRole && (
+                  <div className={`p-4 rounded-lg border ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].bgColor} ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].borderColor}`}>
+                    <div className="flex items-start gap-3">
+                      <Info className={`h-5 w-5 mt-0.5 flex-shrink-0 ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`} />
+                      <div className="space-y-2">
+                        <div>
+                          <p className={`font-semibold text-sm ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
+                            {TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].name}
+                          </p>
+                          <p className={`text-sm mt-1 ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
+                            {TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].description}
+                          </p>
+                        </div>
+                        <div>
+                          <p className={`text-xs font-medium ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
+                            Permissions:
+                          </p>
+                          <ul className={`text-xs space-y-0.5 mt-1 ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
+                            {TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].permissions.map((permission, index) => (
+                              <li key={index}>• {permission}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <p className={`text-xs italic ${TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].color}`}>
+                          {TENANT_ROLE_DESCRIPTIONS[selectedTenantRole].useCase}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* Fixed Footer */}
+        <div className="px-6 py-4 border-t bg-muted/20 flex-shrink-0">
+          <div className="flex justify-end gap-3">
             <Button
               type="button"
               variant="outline"
@@ -409,11 +451,15 @@ export function CreateUserDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              form="create-user-form"
+            >
               {isSubmitting ? 'Creating...' : 'Create User'}
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -150,7 +150,7 @@ export function MerchantTable({ merchants, loading, onRefresh }: MerchantTablePr
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full">
       {/* Header Controls */}
       <TableHeaderControls
         table={table}
@@ -165,7 +165,7 @@ export function MerchantTable({ merchants, loading, onRefresh }: MerchantTablePr
       </TableHeaderControls>
 
       {/* Table Container */}
-      <div className="relative border rounded-lg overflow-hidden">
+      <div className="relative border rounded-lg overflow-hidden w-full">
         {/* Scroll Shadows */}
         {showLeftShadow && (
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background/80 to-transparent z-10 pointer-events-none" />

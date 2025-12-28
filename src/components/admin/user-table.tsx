@@ -345,7 +345,7 @@ export function UserTable({ users, loading, onRefresh }: UserTableProps): React.
       </TableHeaderControls>
 
       {/* Table Container */}
-      <div className="relative border rounded-lg overflow-hidden">
+      <div className="relative overflow-hidden">
         {/* Scroll Shadows */}
         {showLeftShadow && (
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background/80 to-transparent z-10 pointer-events-none" />
@@ -366,7 +366,7 @@ export function UserTable({ users, loading, onRefresh }: UserTableProps): React.
             willChange: 'scroll-position',
           }}
         >
-          <table className="w-full border-collapse">
+          <table className="min-w-full border-collapse">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>

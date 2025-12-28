@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { ColumnDef, flexRender } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Settings } from 'lucide-react';
+import { RefreshCw, Settings, Webhook } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 import { useAdminTable } from '@/hooks/use-admin-table';
 import { TableHeaderControls } from './table-header-controls';
@@ -31,6 +31,7 @@ interface TenantTableProps {
   loading: boolean;
   onRefresh: () => void;
   onManageCategories: (merchantId: number) => void;
+  onManageWebhooks: (merchantId: number, tenantName: string | null) => void;
 }
 
 const STORAGE_KEY = 'admin-tenant-table-preferences';
@@ -44,7 +45,8 @@ export function TenantTable({
   tenants,
   loading,
   onRefresh,
-  onManageCategories
+  onManageCategories,
+  onManageWebhooks
 }: TenantTableProps): React.JSX.Element {
   // Define columns
   const columns = useMemo<ColumnDef<TenantData>[]>(
@@ -189,8 +191,27 @@ export function TenantTable({
           </Button>
         ),
       },
+      {
+        id: 'webhooks',
+        header: 'Webhooks',
+        size: 140,
+        minSize: 120,
+        maxSize: 180,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onManageWebhooks(row.original.merchant_id, row.original.tenant_name)}
+            className="flex items-center gap-1"
+          >
+            <Webhook className="h-3 w-3" />
+            Webhooks
+          </Button>
+        ),
+      },
     ],
-    [onManageCategories]
+    [onManageCategories, onManageWebhooks]
   );
 
   // Use admin table hook
@@ -245,7 +266,7 @@ export function TenantTable({
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full">
       {/* Header Controls */}
       <TableHeaderControls
         table={table}
@@ -256,7 +277,7 @@ export function TenantTable({
       </TableHeaderControls>
 
       {/* Table Container */}
-      <div className="relative border rounded-lg overflow-hidden">
+      <div className="relative border rounded-lg overflow-hidden w-full">
         {/* Scroll Shadows */}
         {showLeftShadow && (
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background/80 to-transparent z-10 pointer-events-none" />
