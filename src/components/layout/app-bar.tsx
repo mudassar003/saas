@@ -30,6 +30,35 @@ export function AppBar() {
     return email.substring(0, 2).toUpperCase();
   };
 
+  // Get user role display name
+  const getUserRole = () => {
+    if (user.user.role === 'super_admin') {
+      return 'Super Admin';
+    }
+
+    // For tenant users, get their role from tenantAccess
+    if (user.user.role === 'tenant_user' && user.currentMerchantId) {
+      const currentTenant = user.tenantAccess.find(
+        (access) => access.merchantId === user.currentMerchantId
+      );
+
+      if (currentTenant) {
+        switch (currentTenant.tenantRole) {
+          case 'admin':
+            return 'Admin (Full Control)';
+          case 'user':
+            return 'User (Standard Access)';
+          case 'viewer':
+            return 'Viewer (Read Only)';
+          default:
+            return 'Tenant User';
+        }
+      }
+    }
+
+    return 'Tenant User';
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
       {/* Breadcrumbs - Left side */}
@@ -57,9 +86,7 @@ export function AppBar() {
               {/* User info - hidden on mobile */}
               <div className="hidden md:flex flex-col items-start text-sm">
                 <span className="font-medium">{user.user.email.split('@')[0]}</span>
-                {isSuperAdmin && (
-                  <span className="text-xs text-muted-foreground">Admin</span>
-                )}
+                <span className="text-xs text-muted-foreground">{getUserRole()}</span>
               </div>
             </Button>
           </DropdownMenuTrigger>
@@ -70,6 +97,9 @@ export function AppBar() {
                 <p className="text-sm font-medium leading-none">{user.user.email.split('@')[0]}</p>
                 <p className="text-xs leading-none text-muted-foreground">
                   {user.user.email}
+                </p>
+                <p className="text-xs leading-none text-muted-foreground font-medium mt-1">
+                  {getUserRole()}
                 </p>
               </div>
             </DropdownMenuLabel>
