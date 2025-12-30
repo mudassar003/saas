@@ -90,9 +90,10 @@ export async function GET(request: NextRequest) {
 
     // Calculate statistics from ENTIRE database (not just current page)
     // Fetch total counts for each status (ignoring pagination/filters)
+    // IMPORTANT: Select all columns (or at least status + merchant_id) so the merchant filter works properly
     let totalStatsQuery = supabaseAdmin
       .from('contracts')
-      .select('status', { count: 'exact' });
+      .select('*', { count: 'exact' });
 
     // Apply merchant filtering only (no pagination, no status filter, no search)
     totalStatsQuery = applyMerchantFilter(totalStatsQuery, merchantId);
