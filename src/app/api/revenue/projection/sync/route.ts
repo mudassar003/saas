@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { getCurrentMerchantId } from '@/lib/auth/api-utils';
+import { getCurrentMerchantId, requirePermission } from '@/lib/auth/api-utils';
+import { Permission } from '@/lib/auth/permissions';
 import { createMXClientForMerchant } from '@/lib/mx-merchant-client';
 import { transformMXContractToContract } from '@/lib/mx-merchant-client';
 import { ContractSyncResponse } from '@/types/contract';
@@ -14,13 +15,17 @@ import { ContractSyncResponse } from '@/types/contract';
  * 2. Saves/updates contracts in database (upsert)
  * 3. Returns sync statistics
  *
- * @security Requires authentication - uses getCurrentMerchantId for tenant isolation
+ * @security Requires authentication and TRIGGER_REVENUE_SYNC permission (admin only)
  */
 export async function POST(request: NextRequest) {
   const syncStartTime = Date.now();
 
   try {
-    // CRITICAL SECURITY: Get current user's merchant access
+    // CRITICAL SECURITY: Check permission first (also validates authentication)
+    // Only admins can trigger revenue sync
+    await requirePermission(request, Permission.TRIGGER_REVENUE_SYNC);
+
+    // Get current user's merchant access for tenant isolation
     const merchantId = await getCurrentMerchantId(request);
 
     if (!merchantId) {

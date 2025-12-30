@@ -17,6 +17,8 @@ interface RevenueProjectionHeaderProps {
   loading: boolean;
   syncing: boolean;
   lastSyncMessage: string | null;
+  canGenerateReport: boolean;
+  canSyncRevenue: boolean;
   onPresetChange: (preset: 'thisMonth' | 'nextMonth' | 'next30days') => void;
   onDateChange: (field: 'startDate' | 'endDate', value: string) => void;
   onGenerateReport: () => void;
@@ -28,6 +30,8 @@ export function RevenueProjectionHeader({
   loading,
   syncing,
   lastSyncMessage,
+  canGenerateReport,
+  canSyncRevenue,
   onPresetChange,
   onDateChange,
   onGenerateReport,
@@ -112,26 +116,42 @@ export function RevenueProjectionHeader({
         {/* Action Buttons */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex gap-3">
-            <Button
-              onClick={onGenerateReport}
-              disabled={loading || syncing}
-              className="flex items-center gap-2"
-            >
-              {loading && <RefreshCw className="h-4 w-4 animate-spin" />}
-              <TrendingUp className="h-4 w-4" />
-              {loading ? 'Generating...' : 'Generate Report'}
-            </Button>
+            <div className="relative group">
+              <Button
+                onClick={onGenerateReport}
+                disabled={!canGenerateReport || loading || syncing}
+                className="flex items-center gap-2"
+                title={!canGenerateReport ? 'You do not have permission to generate reports' : ''}
+              >
+                {loading && <RefreshCw className="h-4 w-4 animate-spin" />}
+                <TrendingUp className="h-4 w-4" />
+                {loading ? 'Generating...' : 'Generate Report'}
+              </Button>
+              {!canGenerateReport && (
+                <div className="absolute -bottom-8 left-0 text-xs text-red-600 dark:text-red-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                  Admin/User role required
+                </div>
+              )}
+            </div>
 
-            <Button
-              variant="outline"
-              onClick={onSyncData}
-              disabled={loading || syncing}
-              className="flex items-center gap-2"
-            >
-              {syncing && <RefreshCw className="h-4 w-4 animate-spin" />}
-              <Download className="h-4 w-4" />
-              {syncing ? 'Syncing...' : 'Fetch New Data'}
-            </Button>
+            <div className="relative group">
+              <Button
+                variant="outline"
+                onClick={onSyncData}
+                disabled={!canSyncRevenue || loading || syncing}
+                className="flex items-center gap-2"
+                title={!canSyncRevenue ? 'You do not have permission to sync revenue data (admin only)' : ''}
+              >
+                {syncing && <RefreshCw className="h-4 w-4 animate-spin" />}
+                <Download className="h-4 w-4" />
+                {syncing ? 'Syncing...' : 'Fetch New Data'}
+              </Button>
+              {!canSyncRevenue && (
+                <div className="absolute -bottom-8 left-0 text-xs text-red-600 dark:text-red-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                  Admin role required
+                </div>
+              )}
+            </div>
           </div>
 
           {lastSyncMessage && (

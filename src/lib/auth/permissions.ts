@@ -44,6 +44,11 @@ export enum Permission {
   // Settings permissions
   VIEW_MERCHANT_SETTINGS = 'view_merchant_settings',
   UPDATE_MERCHANT_SETTINGS = 'update_merchant_settings',
+
+  // Revenue permissions
+  VIEW_REVENUE = 'view_revenue',
+  GENERATE_REVENUE_REPORT = 'generate_revenue_report',
+  TRIGGER_REVENUE_SYNC = 'trigger_revenue_sync',
 }
 
 // Permission map defining what each role can do
@@ -70,6 +75,9 @@ const ROLE_PERMISSIONS: Record<'admin' | 'user' | 'viewer', Permission[]> = {
 
     // Settings permissions (read-only)
     Permission.VIEW_MERCHANT_SETTINGS,
+
+    // Revenue permissions (read-only)
+    Permission.VIEW_REVENUE,
   ],
 
   // User: Initialize empty, will be populated after viewer is defined
@@ -86,6 +94,7 @@ ROLE_PERMISSIONS.user = [
   Permission.UPDATE_TRANSACTION_STATUS,
   Permission.UPDATE_MEMBERSHIP_STATUS,
   Permission.UPDATE_PRODUCT_CATEGORY,
+  Permission.GENERATE_REVENUE_REPORT,
 ];
 
 // Initialize admin permissions after user is defined
@@ -97,6 +106,7 @@ ROLE_PERMISSIONS.admin = [
   Permission.DELETE_CATEGORY,
   Permission.TRIGGER_MANUAL_SYNC,
   Permission.UPDATE_MERCHANT_SETTINGS,
+  Permission.TRIGGER_REVENUE_SYNC,
 ];
 
 /**
@@ -182,6 +192,7 @@ export const TENANT_ROLE_DESCRIPTIONS = {
       'Export reports and data',
       'View sync logs and history',
       'View product categories',
+      'View revenue projections and financial data',
       'No modification permissions'
     ],
     useCase: 'Perfect for: Accountants, auditors, reporting staff',
@@ -199,6 +210,7 @@ export const TENANT_ROLE_DESCRIPTIONS = {
       'Mark invoices as "Ordered by Provider"',
       'Update transaction and membership statuses',
       'Categorize products and manage fulfillment',
+      'Generate revenue projections and reports',
       'Cannot manage categories or trigger syncs'
     ],
     useCase: 'Perfect for: Nurses, front desk staff, operational team',
@@ -215,6 +227,7 @@ export const TENANT_ROLE_DESCRIPTIONS = {
       'All User permissions',
       'Create, edit, and delete product categories',
       'Trigger manual data synchronization',
+      'Trigger revenue data synchronization',
       'Manage merchant settings and configurations',
       'Full administrative control within merchant scope'
     ],

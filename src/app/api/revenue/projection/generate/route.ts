@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { getCurrentMerchantId, applyMerchantFilter } from '@/lib/auth/api-utils';
+import { getCurrentMerchantId, applyMerchantFilter, requirePermission } from '@/lib/auth/api-utils';
+import { Permission } from '@/lib/auth/permissions';
 import { Contract } from '@/types/contract';
 import { ProjectionResponse } from '@/types/contract';
 import {
@@ -22,13 +23,16 @@ import { differenceInDays } from 'date-fns';
  * 3. Splits data based on cutoff date (today)
  * 4. Returns comprehensive ProjectionResponse with actual and projected breakdown
  *
- * @security Requires authentication - uses getCurrentMerchantId for tenant isolation
+ * @security Requires authentication and GENERATE_REVENUE_REPORT permission
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // CRITICAL SECURITY: Get current user's merchant access
+    // CRITICAL SECURITY: Check permission first (also validates authentication)
+    await requirePermission(request, Permission.GENERATE_REVENUE_REPORT);
+
+    // Get current user's merchant access for tenant isolation
     const merchantId = await getCurrentMerchantId(request);
 
     if (!merchantId) {

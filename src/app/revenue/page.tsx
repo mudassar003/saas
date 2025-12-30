@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePermission } from '@/hooks/use-permission';
+import { Permission } from '@/lib/auth/permissions';
 import { RevenueProjectionHeader } from '@/components/revenue/revenue-projection-header';
 import { RevenueMetrics } from '@/components/revenue/revenue-metrics';
 import { ProjectionChart } from '@/components/revenue/projection-chart';
@@ -16,6 +18,12 @@ interface FilterState {
 }
 
 export default function RevenueProjectionPage() {
+  // Permission checks
+  const { hasPermission, isTenantAdmin } = usePermission();
+  const canViewRevenue = hasPermission(Permission.VIEW_REVENUE);
+  const canGenerateReport = hasPermission(Permission.GENERATE_REVENUE_REPORT);
+  const canSyncRevenue = hasPermission(Permission.TRIGGER_REVENUE_SYNC);
+
   const [loading, setLoading] = useState(true); // Start with loading=true for auto-load
   const [syncing, setSyncing] = useState(false);
   const [projectionData, setProjectionData] = useState<ProjectionResponse['data'] | null>(null);
@@ -153,6 +161,29 @@ export default function RevenueProjectionPage() {
     handleGenerateReport();
   }, []); // Empty dependency array = run only on mount
 
+  // Access control: Must have VIEW_REVENUE permission
+  if (!canViewRevenue) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-8 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="rounded-full bg-red-100 dark:bg-red-900/40 p-3">
+              <svg className="h-8 w-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-red-900 dark:text-red-100 mb-2">Access Denied</h2>
+              <p className="text-red-700 dark:text-red-300">
+                You do not have permission to view revenue data. Please contact your administrator.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <RevenueProjectionHeader
@@ -160,6 +191,8 @@ export default function RevenueProjectionPage() {
         loading={loading}
         syncing={syncing}
         lastSyncMessage={lastSyncMessage}
+        canGenerateReport={canGenerateReport}
+        canSyncRevenue={canSyncRevenue}
         onPresetChange={handlePresetChange}
         onDateChange={handleDateChange}
         onGenerateReport={handleGenerateReport}
