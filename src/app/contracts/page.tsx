@@ -27,6 +27,7 @@ interface ApiResponse {
       completed: number;
       cancelled: number;
       inactive: number;
+      deleted: number;
     };
   };
 }

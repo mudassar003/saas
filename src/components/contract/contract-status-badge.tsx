@@ -6,6 +6,7 @@
  * - Completed (Blue): Historical revenue - actual earned
  * - Cancelled (Red): Churn tracking - retention analysis
  * - Inactive (Gray): Paused/suspended - potential reactivation
+ * - Deleted (Slate): Permanently removed contracts
  *
  * @module components/contract/contract-status-badge
  */
@@ -64,6 +65,14 @@ const STATUS_CONFIG: Record<
     borderColor: 'border-gray-200 dark:border-gray-800',
     icon: '○',
     description: 'Paused/suspended',
+  },
+  Deleted: {
+    label: 'Deleted',
+    bgColor: 'bg-slate-50 dark:bg-slate-900/20',
+    textColor: 'text-slate-700 dark:text-slate-400',
+    borderColor: 'border-slate-200 dark:border-slate-800',
+    icon: '⊗',
+    description: 'Permanently removed',
   },
 };
 

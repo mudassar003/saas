@@ -7,8 +7,9 @@
  * - Completed: Historical revenue (actual earned)
  * - Cancelled: Churn tracking (retention analysis)
  * - Inactive: Paused/suspended (potential reactivation)
+ * - Deleted: Permanently removed contracts (33 in database)
  */
-export type ContractStatus = 'Active' | 'Completed' | 'Cancelled' | 'Inactive';
+export type ContractStatus = 'Active' | 'Completed' | 'Cancelled' | 'Inactive' | 'Deleted';
 
 /**
  * Contract database record (stored in our database)
