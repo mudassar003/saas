@@ -1,6 +1,16 @@
 // Contract types matching MX Merchant Contract API structure
 
 /**
+ * Contract status types - strict typing for business logic
+ * BUSINESS RULES:
+ * - Active: Future revenue (used in projections)
+ * - Completed: Historical revenue (actual earned)
+ * - Cancelled: Churn tracking (retention analysis)
+ * - Inactive: Paused/suspended (potential reactivation)
+ */
+export type ContractStatus = 'Active' | 'Completed' | 'Cancelled' | 'Inactive';
+
+/**
  * Contract database record (stored in our database)
  */
 export interface Contract {
@@ -20,7 +30,7 @@ export interface Contract {
   billing_frequency: string | null; // "1 Week", "4 Weeks", "10 Weeks", "Once"
   billing_day: string | null; // "Monday", "Saturday", or specific date
   amount: number;
-  status: 'Active' | 'Completed' | 'Cancelled' | 'Inactive' | string;
+  status: ContractStatus;
   type: string | null; // "Recurring"
   start_date: string | null;
   next_bill_date: string | null;
@@ -45,7 +55,7 @@ export interface MXContract {
   on: string; // Day of week or specific date
   amount: string;
   type: string;
-  status: 'Active' | 'Completed' | 'Cancelled' | 'Inactive' | string;
+  status: ContractStatus;
   startDate: string;
   nextBillDate: string;
   lastInvoiceDate?: string;
@@ -183,7 +193,7 @@ export interface DailyProjection {
  */
 export interface ContractSyncRequest {
   merchantId?: number; // Optional - will be determined from auth
-  status?: 'Active' | 'Completed' | 'Cancelled'; // Optional filter
+  status?: ContractStatus; // Optional filter - defaults to undefined (all statuses)
 }
 
 /**

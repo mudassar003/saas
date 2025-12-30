@@ -3,12 +3,13 @@
     "allow": [
       "Bash(git restore:*)",
       "Bash(rm:*)",
-      "WebFetch(domain:developer.mxmerchant.com)"
+      "WebFetch(domain:developer.mxmerchant.com)",
+      "mcp__postman__getWorkspaces"
     ],
     "deny": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "supabase"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

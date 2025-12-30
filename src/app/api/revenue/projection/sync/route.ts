@@ -41,6 +41,10 @@ export async function POST(request: NextRequest) {
     console.log('[Contract Sync] Starting sync for merchant:', merchantId);
 
     // Parse request body (optional status filter)
+    // SMART DEFAULT: Fetch ALL statuses for complete business intelligence
+    // - Active: For revenue projections
+    // - Completed: For historical actuals and trend analysis
+    // - Cancelled: For churn tracking and retention insights
     const body = await request.json().catch(() => ({}));
     const statusFilter = body.status as 'Active' | 'Completed' | 'Cancelled' | undefined;
 
@@ -48,10 +52,14 @@ export async function POST(request: NextRequest) {
     const mxClient = await createMXClientForMerchant(merchantId.toString());
 
     // Fetch ALL contracts from API (with pagination handled automatically)
-    console.log('[Contract Sync] Fetching contracts from MX Merchant API...');
+    // Default: undefined = fetch ALL statuses (not just Active)
+    const syncStatus = statusFilter || undefined; // undefined = all statuses
+    console.log('[Contract Sync] Fetching contracts from MX Merchant API...',
+      syncStatus ? `Status: ${syncStatus}` : 'All Statuses');
+
     const contractsResponse = await mxClient.getAllContracts(
       merchantId.toString(),
-      statusFilter || 'Active' // Default: fetch only Active contracts
+      syncStatus
     );
 
     const { records: mxContracts, recordCount } = contractsResponse;

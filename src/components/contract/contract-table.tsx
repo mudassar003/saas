@@ -11,6 +11,8 @@ import {
   VisibilityState,
   SortingState,
 } from '@tanstack/react-table';
+import { type ContractStatus } from '@/types/contract';
+import { ContractStatusBadge } from './contract-status-badge';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -110,22 +112,6 @@ export function ContractTable({
     }
   };
 
-  // Status color helper
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return 'bg-success/10 text-success border-success/20';
-      case 'completed':
-        return 'bg-info/10 text-info border-info/20';
-      case 'cancelled':
-        return 'bg-error/10 text-error border-error/20';
-      case 'inactive':
-        return 'bg-warning/10 text-warning border-warning/20';
-      default:
-        return 'bg-muted text-muted-foreground border-border';
-    }
-  };
-
   // Column definitions
   const columns = useMemo<ColumnDef<Contract>[]>(
     () => [
@@ -188,12 +174,8 @@ export function ContractTable({
         minSize: 100,
         maxSize: 150,
         cell: ({ getValue }) => {
-          const status = getValue() as string;
-          return (
-            <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(status)}`}>
-              {status}
-            </span>
-          );
+          const status = getValue() as ContractStatus;
+          return <ContractStatusBadge status={status} />;
         },
       },
       {
