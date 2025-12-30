@@ -127,7 +127,7 @@ export default function RevenueProjectionPage() {
       const response = await fetch('/api/revenue/projection/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Active' }) // Only sync active contracts
+        body: JSON.stringify({}) // Smart default: sync ALL statuses for complete business intelligence
       });
 
       if (!response.ok) {
