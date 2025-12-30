@@ -87,6 +87,9 @@ export function AppBar() {
               <div className="hidden md:flex flex-col items-start text-sm">
                 <span className="font-medium">{user.user.email.split('@')[0]}</span>
                 <span className="text-xs text-muted-foreground">{getUserRole()}</span>
+                {user.currentMerchantId && user.user.role === 'tenant_user' && (
+                  <span className="text-xs text-muted-foreground font-mono">ID: {user.currentMerchantId}</span>
+                )}
               </div>
             </Button>
           </DropdownMenuTrigger>
@@ -101,6 +104,11 @@ export function AppBar() {
                 <p className="text-xs leading-none text-muted-foreground font-medium mt-1">
                   {getUserRole()}
                 </p>
+                {user.currentMerchantId && user.user.role === 'tenant_user' && (
+                  <p className="text-xs leading-none text-muted-foreground font-mono mt-1">
+                    Merchant ID: {user.currentMerchantId}
+                  </p>
+                )}
               </div>
             </DropdownMenuLabel>
 
