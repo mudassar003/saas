@@ -177,6 +177,23 @@ export function ContractTable({
           const status = getValue() as ContractStatus;
           return <ContractStatusBadge status={status} />;
         },
+        sortingFn: (rowA, rowB, columnId) => {
+          // Custom sort order: Active → Completed → Cancelled → Inactive
+          const statusOrder: Record<string, number> = {
+            'Active': 1,
+            'Completed': 2,
+            'Cancelled': 3,
+            'Inactive': 4
+          };
+
+          const statusA = rowA.getValue(columnId) as string;
+          const statusB = rowB.getValue(columnId) as string;
+
+          const orderA = statusOrder[statusA] || 999;
+          const orderB = statusOrder[statusB] || 999;
+
+          return orderA - orderB;
+        },
       },
       {
         id: 'frequency',

@@ -88,16 +88,32 @@ export async function GET(request: NextRequest) {
 
     const contracts = (data || []) as Contract[];
 
-    // Calculate statistics
+    // Calculate statistics from ENTIRE database (not just current page)
+    // Fetch total counts for each status (ignoring pagination/filters)
+    let totalStatsQuery = supabaseAdmin
+      .from('contracts')
+      .select('status', { count: 'exact' });
+
+    // Apply merchant filtering only (no pagination, no status filter, no search)
+    totalStatsQuery = applyMerchantFilter(totalStatsQuery, merchantId);
+
+    const { data: allContracts, error: statsError } = await totalStatsQuery;
+
+    if (statsError) {
+      console.error('[Contracts API] Error fetching statistics:', statsError);
+    }
+
+    const allContractsData = (allContracts || []) as Contract[];
+
     const statistics = {
-      total: count || 0,
-      active: contracts.filter(c => c.status === 'Active').length,
-      completed: contracts.filter(c => c.status === 'Completed').length,
-      cancelled: contracts.filter(c => c.status === 'Cancelled').length,
-      inactive: contracts.filter(c => c.status === 'Inactive').length
+      total: allContractsData.length,
+      active: allContractsData.filter(c => c.status === 'Active').length,
+      completed: allContractsData.filter(c => c.status === 'Completed').length,
+      cancelled: allContractsData.filter(c => c.status === 'Cancelled').length,
+      inactive: allContractsData.filter(c => c.status === 'Inactive').length
     };
 
-    console.log('[Contracts API] Returning', contracts.length, 'contracts (total:', count, ')');
+    console.log('[Contracts API] Returning', contracts.length, 'contracts (total:', count, '), Stats:', statistics);
 
     return NextResponse.json({
       success: true,
