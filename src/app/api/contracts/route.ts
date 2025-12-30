@@ -41,12 +41,12 @@ export async function GET(request: NextRequest) {
     const dateStart = searchParams.get('dateStart') || undefined;
     const dateEnd = searchParams.get('dateEnd') || undefined;
 
-    // Build query
+    // Build query - fetch ALL filtered contracts (no pagination yet)
+    // We'll sort and paginate in JavaScript for proper "Active-first" behavior across pages
     let query = supabaseAdmin
       .from('contracts')
       .select('*', { count: 'exact' })
-      .order('next_bill_date', { ascending: true, nullsFirst: false })
-      .order('created_at', { ascending: false });
+      .range(0, 999999); // Fetch all filtered records (up to 1M)
 
     // Apply merchant filtering (CRITICAL for multi-tenancy)
     query = applyMerchantFilter(query, merchantId);
@@ -70,9 +70,6 @@ export async function GET(request: NextRequest) {
       query = query.lte('next_bill_date::date', dateEnd);
     }
 
-    // Apply pagination
-    query = query.range(offset, offset + limit - 1);
-
     const { data, error, count } = await query;
 
     if (error) {
@@ -86,7 +83,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const contracts = (data || []) as Contract[];
+    let allFilteredContracts = (data || []) as Contract[];
+
+    // Custom sort: Active contracts first (newest to oldest), then others (newest to oldest)
+    // This ensures ALL Active contracts appear before any other status across ALL pages
+    allFilteredContracts.sort((a, b) => {
+      // Priority: Active = 0, others = 1
+      const priorityA = a.status === 'Active' ? 0 : 1;
+      const priorityB = b.status === 'Active' ? 0 : 1;
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB; // Active (0) comes before others (1)
+      }
+
+      // Within same priority, sort by created_at DESC (newest first)
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateB - dateA; // DESC (newest first)
+    });
+
+    // Apply pagination manually after sorting
+    const contracts = allFilteredContracts.slice(offset, offset + limit);
+    const totalFilteredCount = allFilteredContracts.length;
 
     // Calculate statistics from ENTIRE database (not just current page)
     // Fetch total counts for each status (ignoring pagination/filters)
@@ -118,13 +136,13 @@ export async function GET(request: NextRequest) {
       deleted: allContractsData.filter(c => c.status === 'Deleted').length
     };
 
-    console.log('[Contracts API] Returning', contracts.length, 'contracts (total:', count, '), Stats:', statistics);
+    console.log('[Contracts API] Returning', contracts.length, 'contracts (filtered total:', totalFilteredCount, '), Stats:', statistics);
 
     return NextResponse.json({
       success: true,
       data: {
         records: contracts,
-        recordCount: count || 0,
+        recordCount: totalFilteredCount,
         statistics
       }
     });
