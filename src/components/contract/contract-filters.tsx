@@ -73,6 +73,7 @@ export function ContractFilters({
           <SelectItem value="Completed">Completed</SelectItem>
           <SelectItem value="Cancelled">Cancelled</SelectItem>
           <SelectItem value="Inactive">Inactive</SelectItem>
+          <SelectItem value="Deleted">Deleted</SelectItem>
         </SelectContent>
       </Select>
 

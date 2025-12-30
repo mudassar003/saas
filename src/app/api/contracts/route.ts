@@ -110,7 +110,8 @@ export async function GET(request: NextRequest) {
       active: allContractsData.filter(c => c.status === 'Active').length,
       completed: allContractsData.filter(c => c.status === 'Completed').length,
       cancelled: allContractsData.filter(c => c.status === 'Cancelled').length,
-      inactive: allContractsData.filter(c => c.status === 'Inactive').length
+      inactive: allContractsData.filter(c => c.status === 'Inactive').length,
+      deleted: allContractsData.filter(c => c.status === 'Deleted').length
     };
 
     console.log('[Contracts API] Returning', contracts.length, 'contracts (total:', count, '), Stats:', statistics);

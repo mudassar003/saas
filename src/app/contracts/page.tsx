@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileText, CheckCircle, XCircle, Loader, Clock } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, Loader, Clock, Trash2 } from 'lucide-react';
 import { ContractTable } from '@/components/contract/contract-table';
 import { ContractFilters } from '@/components/contract/contract-filters';
 import { Pagination } from '@/components/ui/pagination';
@@ -65,7 +65,8 @@ export default function ContractsPage() {
     active: 0,
     completed: 0,
     cancelled: 0,
-    inactive: 0
+    inactive: 0,
+    deleted: 0
   });
 
   // Load contracts from API
@@ -237,6 +238,12 @@ export default function ContractsPage() {
           value={statistics.inactive.toLocaleString()}
           icon={Loader}
           variant="warning"
+        />
+        <MetricCard
+          label="Deleted"
+          value={statistics.deleted.toLocaleString()}
+          icon={Trash2}
+          variant="error"
         />
       </MetricsGrid>
 

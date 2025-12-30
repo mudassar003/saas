@@ -178,12 +178,13 @@ export function ContractTable({
           return <ContractStatusBadge status={status} />;
         },
         sortingFn: (rowA, rowB, columnId) => {
-          // Custom sort order: Active → Completed → Cancelled → Inactive
+          // Custom sort order: Active → Completed → Cancelled → Inactive → Deleted
           const statusOrder: Record<string, number> = {
             'Active': 1,
             'Completed': 2,
             'Cancelled': 3,
-            'Inactive': 4
+            'Inactive': 4,
+            'Deleted': 5
           };
 
           const statusA = rowA.getValue(columnId) as string;
