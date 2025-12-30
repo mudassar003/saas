@@ -105,7 +105,8 @@ export default function ContractsPage() {
 
         if (result.success) {
           setContracts(result.data.records);
-          setTotalCount(result.data.recordCount);
+          // Use statistics.total for actual total count (not filtered recordCount)
+          setTotalCount(result.data.statistics.total);
           setTotalPages(Math.ceil(result.data.recordCount / pageSize));
           setStatistics(result.data.statistics);
         } else {
@@ -176,7 +177,8 @@ export default function ContractsPage() {
           const refreshResult: ApiResponse = await refreshResponse.json();
           if (refreshResult.success) {
             setContracts(refreshResult.data.records);
-            setTotalCount(refreshResult.data.recordCount);
+            // Use statistics.total for actual total count (not filtered recordCount)
+            setTotalCount(refreshResult.data.statistics.total);
             setTotalPages(Math.ceil(refreshResult.data.recordCount / pageSize));
             setStatistics(refreshResult.data.statistics);
           }
