@@ -136,7 +136,7 @@ export default function ContractsPage() {
       const response = await fetch('/api/revenue/projection/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Active' })
+        body: JSON.stringify({}) // Sync ALL contract statuses (Active, Completed, Cancelled)
       });
 
       if (!response.ok) {
