@@ -69,16 +69,18 @@ export async function GET(request: NextRequest) {
     let invoiceQuery = supabaseAdmin
       .from('invoices')
       .select('id', { count: 'exact', head: true })
+      .range(0, 999999) // Bypass Supabase's default 1000 row limit
 
     // Apply merchant filtering
     invoiceQuery = applyMerchantFilter(invoiceQuery, merchantId)
 
     const { count: totalInvoices } = await invoiceQuery
-      
+
     // Get transaction counts from database for user's merchant only
     let transactionQuery = supabaseAdmin
       .from('transactions')
       .select('id, status, mx_invoice_number', { count: 'exact' })
+      .range(0, 999999) // Bypass Supabase's default 1000 row limit
 
     // Apply merchant filtering
     transactionQuery = applyMerchantFilter(transactionQuery, merchantId)

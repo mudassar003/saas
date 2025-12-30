@@ -286,6 +286,7 @@ export async function GET(request: NextRequest) {
       let statsQuery = supabaseAdmin
         .from('transactions')
         .select('mx_invoice_number, status, amount, product_category, membership_status, source', { count: 'exact' })
+        .range(0, 999999) // Bypass Supabase's default 1000 row limit
 
       // CRITICAL FIX: Apply SAME FILTERS as main query to get accurate filtered statistics
       statsQuery = applyFilters(statsQuery)

@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
     let statsQuery = supabaseAdmin
       .from('invoices')
       .select('data_sent_status, total_amount', { count: 'exact' })
+      .range(0, 999999) // Bypass Supabase's default 1000 row limit
 
     // Apply merchant filtering to stats query
     statsQuery = applyMerchantFilter(statsQuery, merchantId)

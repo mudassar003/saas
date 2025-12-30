@@ -91,9 +91,12 @@ export async function GET(request: NextRequest) {
     // Calculate statistics from ENTIRE database (not just current page)
     // Fetch total counts for each status (ignoring pagination/filters)
     // IMPORTANT: Select all columns (or at least status + merchant_id) so the merchant filter works properly
+    // CRITICAL: Supabase defaults to 1000 row limit - use .range() to bypass this limit
+    // Using range(0, 999999) fetches up to 1 million rows, bypassing the default 1000 row limit
     let totalStatsQuery = supabaseAdmin
       .from('contracts')
-      .select('*', { count: 'exact' });
+      .select('*', { count: 'exact' })
+      .range(0, 999999); // Fetch all rows (bypasses Supabase's default 1000 row limit)
 
     // Apply merchant filtering only (no pagination, no status filter, no search)
     totalStatsQuery = applyMerchantFilter(totalStatsQuery, merchantId);
