@@ -59,8 +59,9 @@ supabase_complete_setup.sql
 temp_query.sql
 transactions_table_migration.sql
 
-# project instruction files
-CLAUDE.md
+# documentation and markdown files
+*.md
+docs/
 
 # development and test files
 test-*
