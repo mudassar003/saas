@@ -1,82 +1,204 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { InvoiceTable } from '@/components/invoice/invoice-table';
-import { InvoiceFilters } from '@/components/invoice/invoice-filters';
+import { CreditCard, Users, CheckCircle, XCircle } from 'lucide-react';
+import { TransactionTable } from '@/components/transaction/transaction-table';
+import { TransactionFilters } from '@/components/transaction/transaction-filters';
 import { SyncDialog } from '@/components/sync/sync-dialog';
 import { Pagination } from '@/components/ui/pagination';
-import { Invoice, DataSentUpdate } from '@/types/invoice';
+import { PageHeader } from '@/components/ui/page-header';
+import { MetricCard, MetricsGrid } from '@/components/ui/metric-card';
+import { DataSentUpdate } from '@/types/invoice';
 import { getDateRange } from '@/lib/date-filters';
+
+type TabKey = 'all' | 'recurring' | 'trt' | 'weight_loss' | 'peptides' | 'ed' | 'cancellations';
+
+interface TabConfig {
+  key: TabKey;
+  label: string;
+  description: string;
+}
+
+interface Transaction {
+  id: string;
+  mx_payment_id: number;
+  amount: number;
+  transaction_date: string;
+  status: string;
+  mx_invoice_number?: number;
+  customer_name?: string;
+  auth_code?: string;
+  reference_number?: string;
+  card_type?: string;
+  card_last4?: string;
+  transaction_type?: string;
+  source?: string;
+  product_name?: string;
+  product_category?: string;
+  membership_status?: string;
+  fulfillment_type?: string;
+  google_review_submitted?: boolean;
+  referral_source?: string;
+  created_at: string;
+  ordered_by_provider?: boolean;
+  ordered_by_provider_at?: string;
+  invoices?: {
+    id: string;
+    invoice_number: number;
+    customer_name?: string;
+    total_amount: number;
+    invoice_date?: string;
+    data_sent_status?: string;
+    ordered_by_provider_at?: string;
+  } | null;
+}
+
 interface FilterState {
   search: string;
   status: string;
-  dataSent: string;
+  showType: string;
+  category: string;
+  membershipStatus: string;
+  googleReview: string;
+  referralSource: string;
+  fulfillmentType: string;
   dateRange: string;
+  activeTab: TabKey;
 }
 
 interface ApiResponse {
   success: boolean;
   data: {
-    records: Invoice[];
+    records: Transaction[];
     recordCount: number;
     totals: {
       grandTotalAmount: string;
     };
     statistics: {
       total: number;
-      dataSent: number;
-      dataNotSent: number;
-      pending: number;
+      withInvoices: number;
+      standalone: number;
+      approved: number;
+      settled: number;
+      declined: number;
+      categories: {
+        TRT: number;
+        'Weight Loss': number;
+        Peptides: number;
+        ED: number;
+        Other: number;
+        Uncategorized: number;
+      };
+      tabCounts: Record<TabKey, number>;
+      membershipStatus: {
+        active: number;
+        canceled: number;
+        paused: number;
+      };
     };
   };
 }
 
 export default function DashboardPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-  const [, setGrandTotal] = useState('0');
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     status: 'all',
-    dataSent: 'all',
-    dateRange: 'all'
+    showType: 'all',
+    category: 'all',
+    membershipStatus: 'all',
+    googleReview: 'all',
+    referralSource: 'all',
+    fulfillmentType: 'all',
+    dateRange: 'all',
+    activeTab: 'all'
   });
-  
+
+  // Tab configuration
+  const tabs: TabConfig[] = [
+    { key: 'all', label: 'All', description: 'All transactions (no filters)' },
+    { key: 'recurring', label: 'Recurring', description: 'Active recurring patients' },
+    { key: 'trt', label: 'TRT', description: 'Testosterone therapy patients' },
+    { key: 'weight_loss', label: 'Weight Loss', description: 'Weight management patients' },
+    { key: 'peptides', label: 'Peptides', description: 'Peptide therapy patients' },
+    { key: 'ed', label: 'ED', description: 'Erectile dysfunction patients' },
+    { key: 'cancellations', label: 'Cancellations', description: 'Canceled or paused memberships' }
+  ];
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [totalPages, setTotalPages] = useState(0);
-  
-  // Statistics state
+
+  // Statistics state for transactions
   const [statistics, setStatistics] = useState({
     total: 0,
-    dataSent: 0,
-    dataNotSent: 0,
-    pending: 0
+    withInvoices: 0,
+    standalone: 0,
+    approved: 0,
+    settled: 0,
+    declined: 0,
+    categories: {
+      TRT: 0,
+      'Weight Loss': 0,
+      Peptides: 0,
+      ED: 0,
+      Other: 0,
+      Uncategorized: 0
+    },
+    tabCounts: {
+      all: 0,
+      recurring: 0,
+      trt: 0,
+      weight_loss: 0,
+      peptides: 0,
+      ed: 0,
+      cancellations: 0
+    } as Record<TabKey, number>,
+    membershipStatus: {
+      active: 0,
+      canceled: 0,
+      paused: 0
+    }
   });
 
-
-  // Load invoices from API
+  // Load transactions from API
   useEffect(() => {
-    const loadInvoices = async () => {
+    const loadTransactions = async () => {
       setLoading(true);
       try {
         // Build query parameters
         const params = new URLSearchParams();
         params.append('limit', pageSize.toString());
         params.append('offset', ((currentPage - 1) * pageSize).toString());
-        
+
         if (filters.search) {
           params.append('search', filters.search);
         }
         if (filters.status !== 'all') {
           params.append('status', filters.status);
         }
-        if (filters.dataSent !== 'all') {
-          params.append('dataSentStatus', filters.dataSent);
+        if (filters.showType !== 'all') {
+          params.append('showType', filters.showType);
         }
-        
+        if (filters.category !== 'all') {
+          params.append('category', filters.category);
+        }
+        if (filters.membershipStatus !== 'all') {
+          params.append('membershipStatus', filters.membershipStatus);
+        }
+        if (filters.googleReview !== 'all') {
+          params.append('googleReview', filters.googleReview);
+        }
+        if (filters.referralSource !== 'all') {
+          params.append('referralSource', filters.referralSource);
+        }
+        if (filters.fulfillmentType !== 'all') {
+          params.append('fulfillmentType', filters.fulfillmentType);
+        }
+
         // Add date range filtering
         const dateRange = getDateRange(filters.dateRange);
         if (dateRange.start) {
@@ -85,175 +207,177 @@ export default function DashboardPage() {
         if (dateRange.end) {
           params.append('dateEnd', dateRange.end);
         }
-        
-        // Make API call
-        const response = await fetch(`/api/invoices?${params.toString()}`);
-        
+
+        // Add active tab filtering
+        params.append('activeTab', filters.activeTab);
+
+        // Make API call to transactions endpoint
+        const response = await fetch(`/api/transactions?${params.toString()}`);
+
         if (!response.ok) {
-          throw new Error('Failed to fetch invoices');
+          throw new Error('Failed to fetch transactions');
         }
-        
+
         const result: ApiResponse = await response.json();
-        
+
         if (result.success) {
-          setInvoices(result.data.records);
+          setTransactions(result.data.records);
           setTotalCount(result.data.recordCount);
           setTotalPages(Math.ceil(result.data.recordCount / pageSize));
-          setGrandTotal(result.data.totals.grandTotalAmount);
           setStatistics(result.data.statistics);
         } else {
           console.error('API returned error:', result);
         }
       } catch (error) {
-        console.error('Error loading invoices:', error);
-        // Fallback to empty array on error
-        setInvoices([]);
+        console.error('Error loading transactions:', error);
+        setTransactions([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadInvoices();
-  }, [filters, currentPage, pageSize]); // Reload when filters or pagination change
+    loadTransactions();
+  }, [filters, currentPage, pageSize]);
 
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filters]);
 
-  // Redirect to transactions page as new default
-  if (typeof window !== 'undefined') {
-    window.location.href = '/transactions';
-    return null;
-  }
-
-  // Since we're filtering on the server, just use the invoices directly
-  const filteredInvoices = invoices;
-
   const handleUpdateDataSent = async (update: DataSentUpdate) => {
     try {
-      // Make API call to update data sent status
-      const response = await fetch(`/api/invoices/${update.invoice_id}/data-sent`, {
-        method: 'PATCH',
+      const response = await fetch('/api/data-sent', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          status: update.status,
-          notes: update.notes
-        })
+        body: JSON.stringify(update),
       });
 
       if (!response.ok) {
         throw new Error('Failed to update data sent status');
       }
 
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log('Dashboard - API response data:', result.data);
-        console.log('Dashboard - ordered_by_provider_at from API:', result.data.ordered_by_provider_at);
-        
-        // Update local state with the response data
-        setInvoices(prev => prev.map(invoice => 
-          invoice.id === update.invoice_id 
-            ? { 
-                ...invoice, 
-                data_sent_status: result.data.data_sent_status,
-                data_sent_at: result.data.data_sent_at,
-                data_sent_by: result.data.data_sent_by,
-                data_sent_notes: result.data.data_sent_notes,
-                ordered_by_provider_at: result.data.ordered_by_provider_at
-              }
-            : invoice
-        ));
-      } else {
-        console.error('API returned error:', result);
-      }
+      // Refresh the transaction data to show updated status
+      const currentFilters = filters;
+      setFilters({ ...currentFilters });
     } catch (error) {
       console.error('Error updating data sent status:', error);
-      // Could add toast notification here
-    }
-  };
-
-  const handleViewInvoice = (invoiceId: string) => {
-    // Find the invoice to get mx_invoice_id
-    const invoice = invoices.find(inv => inv.id === invoiceId);
-    if (invoice) {
-      // Navigate to invoice detail page using mx_invoice_id
-      window.location.href = `/dashboard/invoices/${invoice.mx_invoice_id}`;
+      throw error;
     }
   };
 
   const handleSyncComplete = () => {
-    // Refresh the invoice data after sync
+    // Refresh the transaction data after sync
     const currentFilters = filters;
-    setFilters({ ...currentFilters }); // This will trigger the useEffect to reload data
+    setFilters({ ...currentFilters });
+  };
+
+  const handleTabChange = (tabKey: TabKey) => {
+    setFilters(prevFilters => ({
+      ...prevFilters,
+      activeTab: tabKey,
+      // Let the backend API handle filtering based on activeTab
+      category: 'all',
+      membershipStatus: 'all'
+    }));
   };
 
   return (
-    <div className="container mx-auto py-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-8">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Invoice Management</h1>
-          </div>
-          <div className="flex items-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Total:</span>
-              <span className="font-semibold">{totalCount}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Not Selected:</span>
-              <span className="font-semibold text-gray-600 dark:text-gray-400">
-                {statistics.pending}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Data Sent:</span>
-              <span className="font-semibold text-green-600 dark:text-green-400">
-                {statistics.dataSent}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Not Sent:</span>
-              <span className="font-semibold text-red-600 dark:text-red-400">
-                {statistics.dataNotSent}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <SyncDialog onSyncComplete={handleSyncComplete} />
-          </div>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        title="Patient Census Dashboard"
+        description="Monitor patient transactions and treatment categories across all payment channels"
+        actions={<SyncDialog onSyncComplete={handleSyncComplete} />}
+      />
+
+      {/* KPI Metrics */}
+      <MetricsGrid>
+        <MetricCard
+          label="Total Transactions"
+          value={statistics.total.toLocaleString()}
+          icon={CreditCard}
+          variant="default"
+        />
+        <MetricCard
+          label="With Invoices"
+          value={statistics.withInvoices.toLocaleString()}
+          icon={Users}
+          variant="info"
+        />
+        <MetricCard
+          label="Approved"
+          value={statistics.approved.toLocaleString()}
+          icon={CheckCircle}
+          variant="success"
+        />
+        <MetricCard
+          label="Declined"
+          value={statistics.declined.toLocaleString()}
+          icon={XCircle}
+          variant="error"
+        />
+      </MetricsGrid>
+
+      {/* Tab Navigation */}
+      <div className="bg-card dark:bg-card border border-border rounded-lg p-1 shadow-sm">
+        <div className="flex items-center gap-1 overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => handleTabChange(tab.key)}
+              className={`
+                flex-shrink-0 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200
+                ${filters.activeTab === tab.key
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:hover:bg-muted/20'
+                }
+              `}
+              title={tab.description}
+            >
+              {tab.label}
+              {statistics.tabCounts[tab.key] > 0 && (
+                <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                  filters.activeTab === tab.key
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-muted/80 dark:bg-muted/40 text-muted-foreground'
+                }`}>
+                  {statistics.tabCounts[tab.key]}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="space-y-3">
-        <InvoiceFilters
-          onFiltersChange={setFilters}
-          resultsCount={invoices.length}
-          totalCount={totalCount}
-        />
+      {/* Filters */}
+      <TransactionFilters
+        onFiltersChange={setFilters}
+        resultsCount={transactions.length}
+        totalCount={totalCount}
+        statistics={statistics}
+        activeTab={filters.activeTab}
+      />
 
-        <InvoiceTable
-          invoices={filteredInvoices}
+      {/* Transaction Table */}
+      <div className="bg-card border rounded-lg shadow-sm">
+        <TransactionTable
+          transactions={transactions}
           onUpdateDataSent={handleUpdateDataSent}
-          onViewInvoice={handleViewInvoice}
           loading={loading}
         />
-
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          pageSize={pageSize}
-          totalCount={totalCount}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={setPageSize}
-          className="mt-4"
-        />
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   );
 }

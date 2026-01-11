@@ -174,7 +174,7 @@ export function TransactionTable({
   };
 
   const handleViewTransaction = (transactionId: string) => {
-    window.location.href = `/transactions/${transactionId}`;
+    window.location.href = `/dashboard/${transactionId}`;
   };
 
   const handleMembershipUpdate = async (transactionId: string, newStatus: string) => {

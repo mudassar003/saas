@@ -62,10 +62,10 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard">
+          <Link href="/invoices">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              Back to Invoices
             </Button>
           </Link>
           <div className="text-sm text-muted-foreground">

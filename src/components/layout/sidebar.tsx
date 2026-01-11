@@ -13,7 +13,6 @@ import {
   Store,
   Building2,
   Tag,
-  Settings,
   ChevronLeft,
   ChevronRight,
   Activity
@@ -44,7 +43,6 @@ export function Sidebar() {
     title: 'Main',
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: Home },
-      { label: 'Transactions', href: '/transactions', icon: CreditCard },
       { label: 'Contracts', href: '/contracts', icon: FileText },
       { label: 'Revenue', href: '/revenue', icon: TrendingUp },
       { label: 'Census', href: '/census', icon: Users },
@@ -61,11 +59,6 @@ export function Sidebar() {
       { label: 'Activity', href: '/admin/activity', icon: Activity },
     ],
   };
-
-  // Settings navigation (no Categories here, it's a dialog button)
-  const settingsNavigation: NavItem[] = [
-    { label: 'Settings', href: '/settings', icon: Settings },
-  ];
 
   const isActiveLink = (href: string) => {
     if (href === '/dashboard') {
@@ -137,16 +130,6 @@ export function Sidebar() {
               <Tag className={cn('h-5 w-5 flex-shrink-0', collapsed && 'h-6 w-6')} />
               {!collapsed && <span>Categories</span>}
             </button>
-
-            {/* Settings Link */}
-            {settingsNavigation.map((item) => (
-              <NavLink
-                key={item.href}
-                item={item}
-                collapsed={collapsed}
-                isActive={isActiveLink(item.href)}
-              />
-            ))}
           </div>
 
           {/* Collapse Toggle Button */}
