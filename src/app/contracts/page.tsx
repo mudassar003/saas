@@ -14,6 +14,8 @@ interface FilterState {
   search: string;
   status: string;
   dateRange: string;
+  startDate: string;
+  endDate: string;
 }
 
 interface ApiResponse {
@@ -52,7 +54,9 @@ export default function ContractsPage() {
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     status: 'all',
-    dateRange: 'all'
+    dateRange: 'all',
+    startDate: '',
+    endDate: ''
   });
 
   // Pagination state
@@ -88,12 +92,23 @@ export default function ContractsPage() {
         }
 
         // Add date range filtering
-        const dateRange = getDateRange(filters.dateRange);
-        if (dateRange.start) {
-          params.append('dateStart', dateRange.start);
-        }
-        if (dateRange.end) {
-          params.append('dateEnd', dateRange.end);
+        if (filters.dateRange === 'custom' && (filters.startDate || filters.endDate)) {
+          // Use custom date range
+          if (filters.startDate) {
+            params.append('dateStart', new Date(filters.startDate + 'T00:00:00').toISOString());
+          }
+          if (filters.endDate) {
+            params.append('dateEnd', new Date(filters.endDate + 'T23:59:59').toISOString());
+          }
+        } else if (filters.dateRange !== 'all') {
+          // Use preset date range
+          const dateRange = getDateRange(filters.dateRange);
+          if (dateRange.start) {
+            params.append('dateStart', dateRange.start);
+          }
+          if (dateRange.end) {
+            params.append('dateEnd', dateRange.end);
+          }
         }
 
         // Make API call
@@ -166,12 +181,21 @@ export default function ContractsPage() {
           params.append('status', filters.status);
         }
 
-        const dateRange = getDateRange(filters.dateRange);
-        if (dateRange.start) {
-          params.append('dateStart', dateRange.start);
-        }
-        if (dateRange.end) {
-          params.append('dateEnd', dateRange.end);
+        if (filters.dateRange === 'custom' && (filters.startDate || filters.endDate)) {
+          if (filters.startDate) {
+            params.append('dateStart', new Date(filters.startDate + 'T00:00:00').toISOString());
+          }
+          if (filters.endDate) {
+            params.append('dateEnd', new Date(filters.endDate + 'T23:59:59').toISOString());
+          }
+        } else if (filters.dateRange !== 'all') {
+          const dateRange = getDateRange(filters.dateRange);
+          if (dateRange.start) {
+            params.append('dateStart', dateRange.start);
+          }
+          if (dateRange.end) {
+            params.append('dateEnd', dateRange.end);
+          }
         }
 
         const refreshResponse = await fetch(`/api/contracts?${params.toString()}`);

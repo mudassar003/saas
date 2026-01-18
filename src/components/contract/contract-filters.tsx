@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw, Calendar, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,8 +12,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+interface FilterState {
+  search: string;
+  status: string;
+  dateRange: string;
+  startDate: string;
+  endDate: string;
+}
+
 interface ContractFiltersProps {
-  onFiltersChange: (filters: { search: string; status: string; dateRange: string }) => void;
+  onFiltersChange: (filters: FilterState) => void;
   resultsCount: number;
   totalCount: number;
   syncing: boolean;
@@ -32,20 +40,46 @@ export function ContractFilters({
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [dateRange, setDateRange] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
-    onFiltersChange({ search: value, status, dateRange });
+    onFiltersChange({ search: value, status, dateRange, startDate, endDate });
   };
 
   const handleStatusChange = (value: string) => {
     setStatus(value);
-    onFiltersChange({ search, status: value, dateRange });
+    onFiltersChange({ search, status: value, dateRange, startDate, endDate });
   };
 
   const handleDateRangeChange = (value: string) => {
     setDateRange(value);
-    onFiltersChange({ search, status, dateRange: value });
+    // Clear custom dates when switching to a preset
+    if (value !== 'custom') {
+      setStartDate('');
+      setEndDate('');
+      onFiltersChange({ search, status, dateRange: value, startDate: '', endDate: '' });
+    } else {
+      onFiltersChange({ search, status, dateRange: value, startDate, endDate });
+    }
+  };
+
+  const handleStartDateChange = (value: string) => {
+    setStartDate(value);
+    onFiltersChange({ search, status, dateRange, startDate: value, endDate });
+  };
+
+  const handleEndDateChange = (value: string) => {
+    setEndDate(value);
+    onFiltersChange({ search, status, dateRange, startDate, endDate: value });
+  };
+
+  const handleClearDates = () => {
+    setStartDate('');
+    setEndDate('');
+    setDateRange('all');
+    onFiltersChange({ search, status, dateRange: 'all', startDate: '', endDate: '' });
   };
 
   return (
@@ -88,8 +122,44 @@ export function ContractFilters({
           <SelectItem value="week">This Week</SelectItem>
           <SelectItem value="month">This Month</SelectItem>
           <SelectItem value="year">This Year</SelectItem>
+          <SelectItem value="custom">Custom Range</SelectItem>
         </SelectContent>
       </Select>
+
+      {/* Custom Date Range Inputs */}
+      {dateRange === 'custom' && (
+        <>
+          <div className="relative">
+            <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => handleStartDateChange(e.target.value)}
+              className="pl-8 h-9 w-[150px]"
+              placeholder="Start Date"
+            />
+          </div>
+          <div className="relative">
+            <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => handleEndDateChange(e.target.value)}
+              className="pl-8 h-9 w-[150px]"
+              placeholder="End Date"
+            />
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearDates}
+            className="h-9 px-2"
+            title="Clear date range"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </>
+      )}
 
         {/* Results Count */}
         <div className="text-sm text-muted-foreground whitespace-nowrap">
