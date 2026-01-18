@@ -54,6 +54,7 @@ export function TableHeaderControls<TData>({
                     key={column.id}
                     checked={column.getIsVisible()}
                     onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                    onSelect={(e) => e.preventDefault()}
                   >
                     {columnName}
                   </DropdownMenuCheckboxItem>

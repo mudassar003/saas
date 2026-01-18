@@ -590,6 +590,7 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
                     key={column.id}
                     checked={column.getIsVisible()}
                     onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                    onSelect={(e) => e.preventDefault()}
                   >
                     {column.columnDef.header as string}
                   </DropdownMenuCheckboxItem>
