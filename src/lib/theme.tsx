@@ -43,10 +43,16 @@ export function ThemeProvider({
       }
 
       setActualTheme(resolvedTheme);
-      
+
       const root = window.document.documentElement;
-      root.classList.remove('light', 'dark');
-      root.classList.add(resolvedTheme);
+      // Always explicitly set both classes to ensure proper override
+      if (resolvedTheme === 'dark') {
+        root.classList.remove('light');
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+        root.classList.add('light');
+      }
 
       // Save to localStorage
       localStorage.setItem('theme', theme);

@@ -33,11 +33,11 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, RefreshCw, Pencil, Trash2, Check, X } from 'lucide-react';
 
 // Validation schema matching API and database constraints
+// Allows dots, slashes, spaces (including trailing spaces) to match MX Merchant product names exactly
 const categorySchema = z.object({
   product_name: z.string()
     .min(1, 'Product name is required')
-    .max(500, 'Product name must be 500 characters or less')
-    .trim(),
+    .max(500, 'Product name must be 500 characters or less'),
   category: z.enum(['TRT', 'Weight Loss', 'Peptides', 'ED', 'Other', 'Uncategorized']),
 });
 

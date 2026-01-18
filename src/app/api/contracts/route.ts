@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let allFilteredContracts = (data || []) as Contract[];
+    const allFilteredContracts = (data || []) as Contract[];
 
     // Custom sort: Active contracts first (newest to oldest), then others (newest to oldest)
     // This ensures ALL Active contracts appear before any other status across ALL pages

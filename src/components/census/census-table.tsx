@@ -654,7 +654,7 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
                     <th
                       key={header.id}
                       style={{
-                        width: header.getSize(),
+                        minWidth: header.getSize(),
                         position: 'relative',
                       }}
                       className="px-4 py-3 text-left text-xs font-semibold text-foreground border-r border-border/50 last:border-r-0"
@@ -718,7 +718,7 @@ export function CensusTable({ patients, loading }: CensusTableProps) {
                     <td
                       key={cell.id}
                       style={{
-                        width: cell.column.getSize(),
+                        minWidth: cell.column.getSize(),
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                       }}

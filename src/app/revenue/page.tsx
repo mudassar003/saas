@@ -33,20 +33,45 @@ export default function RevenueProjectionPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastSyncMessage, setLastSyncMessage] = useState<string | null>(null);
 
-  // Get default date range (today + 30 days) in UTC for consistency
-  const getDefaultDates = () => {
+  /**
+   * Calculate date range for a given preset
+   */
+  const getPresetDates = (preset: 'thisMonth' | 'nextMonth' | 'next30days') => {
     const now = new Date();
     const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const endDateUTC = new Date(todayUTC);
-    endDateUTC.setUTCDate(endDateUTC.getUTCDate() + 30);
 
-    return {
-      start: todayUTC.toISOString().split('T')[0],
-      end: endDateUTC.toISOString().split('T')[0]
-    };
+    switch (preset) {
+      case 'thisMonth': {
+        // First day of current month to last day of current month
+        const firstDay = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), 1));
+        const lastDay = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth() + 1, 0));
+        return {
+          start: firstDay.toISOString().split('T')[0],
+          end: lastDay.toISOString().split('T')[0]
+        };
+      }
+      case 'nextMonth': {
+        // First day of next month to last day of next month
+        const firstDay = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth() + 1, 1));
+        const lastDay = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth() + 2, 0));
+        return {
+          start: firstDay.toISOString().split('T')[0],
+          end: lastDay.toISOString().split('T')[0]
+        };
+      }
+      case 'next30days': {
+        // Today + 30 days
+        const endDateUTC = new Date(todayUTC);
+        endDateUTC.setUTCDate(endDateUTC.getUTCDate() + 30);
+        return {
+          start: todayUTC.toISOString().split('T')[0],
+          end: endDateUTC.toISOString().split('T')[0]
+        };
+      }
+    }
   };
 
-  const defaultDates = getDefaultDates();
+  const defaultDates = getPresetDates('thisMonth');
   const [filters, setFilters] = useState<FilterState>({
     preset: 'thisMonth',
     startDate: defaultDates.start,
@@ -55,14 +80,15 @@ export default function RevenueProjectionPage() {
 
   /**
    * Handle preset button clicks (This Month, Next Month, Next 30 Days)
+   * Updates both the preset and the date picker values for consistency
    */
   const handlePresetChange = (preset: 'thisMonth' | 'nextMonth' | 'next30days') => {
-    // Simply update the preset - getDefaultDates() will be called on next render
-    // The actual date calculation will happen in the API based on the preset
-    setFilters(prev => ({
-      ...prev,
-      preset
-    }));
+    const dates = getPresetDates(preset);
+    setFilters({
+      preset,
+      startDate: dates.start,
+      endDate: dates.end
+    });
   };
 
   /**

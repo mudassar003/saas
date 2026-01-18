@@ -101,6 +101,7 @@ export interface ProjectionResponse {
       cutoffDate: string; // Today's date - splits actual from projected
       daysCompleted: number; // Days from start to today
       daysRemaining: number; // Days from today to end
+      isHistoricalRange: boolean; // True if viewing past data (endDate < today)
     };
     actualRevenue: {
       total: number;

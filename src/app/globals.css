@@ -4,6 +4,7 @@
    Tailwind CSS v4 Dark Mode Configuration
    ================================================ */
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant light (&:where(.light, .light *));
 
 /* ================================================
    Modern Design System - Light Mode
@@ -98,52 +99,55 @@
 }
 
 /* ================================================
-   Modern Design System - Dark Mode
+   Modern Design System - Light Mode (explicit)
    ================================================ */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: 222 47% 4%;
-    --foreground: 210 40% 98%;
-    --surface: 222 47% 8%;
-    --surface-hover: 222 47% 12%;
+.light {
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --surface: 220 14% 96%;
+  --surface-hover: 220 14% 94%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
 
-    --primary: 221 83% 53%;
-    --primary-hover: 221 83% 60%;
-    --primary-foreground: 0 0% 100%;
+  --primary: 221 83% 53%;
+  --primary-hover: 221 83% 45%;
+  --primary-foreground: 0 0% 100%;
 
-    --secondary: 142 76% 36%;
-    --secondary-foreground: 0 0% 100%;
+  --secondary: 142 76% 36%;
+  --secondary-hover: 142 76% 30%;
+  --secondary-foreground: 0 0% 100%;
 
-    --accent: 271 91% 65%;
-    --accent-foreground: 0 0% 100%;
+  --accent: 271 91% 65%;
+  --accent-hover: 271 91% 55%;
+  --accent-foreground: 0 0% 100%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 215 16% 47%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 221 83% 53%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 221 83% 53%;
 
-    --success: 142 76% 36%;
-    --warning: 38 92% 50%;
-    --error: 0 84% 60%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --info: 199 89% 48%;
+  --success: 142 76% 36%;
+  --warning: 38 92% 50%;
+  --error: 0 84% 60%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --info: 199 89% 48%;
 
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-accent: 221 83% 53%;
-    --sidebar-muted: 215 20% 65%;
-  }
+  --sidebar-background: 222 47% 11%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-accent: 221 83% 53%;
+  --sidebar-muted: 215 20% 65%;
 }
 
+/* ================================================
+   Modern Design System - Dark Mode
+   ================================================ */
 .dark {
   --background: 222 47% 4%;
   --foreground: 210 40% 98%;

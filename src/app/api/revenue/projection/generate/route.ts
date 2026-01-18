@@ -56,14 +56,30 @@ export async function POST(request: NextRequest) {
     // Parse date range (defaults to thisMonth if not specified)
     const { startDate, endDate, days } = parseDateRange(preset, customStart, customEnd);
 
-    // Calculate cutoff date (today) for splitting actual vs projected
+    // Calculate cutoff date for splitting actual vs projected
+    // For past date ranges, cutoff = endDate + 1 day (to include last day in .lt() query)
+    // For current/future ranges, cutoff = today (split between actual and projected)
     const now = new Date();
     const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const cutoffDate = todayUTC;
+    const isHistoricalRange = endDate < todayUTC;
+
+    let cutoffDate: Date;
+    if (isHistoricalRange) {
+      // For past ranges, add 1 day to include the endDate in actual transactions query
+      cutoffDate = new Date(endDate);
+      cutoffDate.setUTCDate(cutoffDate.getUTCDate() + 1);
+    } else {
+      cutoffDate = todayUTC;
+    }
 
     // Calculate days completed and days remaining
-    const daysCompleted = Math.max(0, differenceInDays(cutoffDate, startDate));
-    const daysRemaining = Math.max(0, differenceInDays(endDate, cutoffDate));
+    // For historical ranges, all days are "completed" (no remaining)
+    const daysCompleted = isHistoricalRange
+      ? days  // All days are completed for historical data
+      : Math.max(0, differenceInDays(todayUTC, startDate));
+    const daysRemaining = isHistoricalRange
+      ? 0  // No remaining days for historical data
+      : Math.max(0, differenceInDays(endDate, todayUTC));
 
     console.log('[Revenue Projection] Date range:', {
       start: startDate.toISOString(),
@@ -71,7 +87,8 @@ export async function POST(request: NextRequest) {
       cutoff: cutoffDate.toISOString(),
       days,
       daysCompleted,
-      daysRemaining
+      daysRemaining,
+      isHistoricalRange
     });
 
     // ============================================
@@ -335,7 +352,8 @@ export async function POST(request: NextRequest) {
           days,
           cutoffDate: cutoffDate.toISOString(),
           daysCompleted,
-          daysRemaining
+          daysRemaining,
+          isHistoricalRange
         },
         actualRevenue: {
           total: actualRevenueTotal,

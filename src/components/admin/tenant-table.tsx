@@ -307,7 +307,7 @@ export function TenantTable({
                       key={header.id}
                       className="sticky top-0 z-20 bg-muted shadow-sm border-r border-border/50 last:border-r-0 px-4 py-3 text-left text-sm font-semibold text-muted-foreground"
                       style={{
-                        width: header.getSize(),
+                        minWidth: header.getSize(),
                         position: 'relative',
                         willChange: 'transform',
                         transform: 'translateZ(0)',
@@ -341,7 +341,7 @@ export function TenantTable({
                       key={cell.id}
                       className="border-r border-border/30 last:border-r-0 px-4 py-3 text-sm"
                       style={{
-                        width: cell.column.getSize(),
+                        minWidth: cell.column.getSize(),
                       }}
                     >
                       {flexRender(

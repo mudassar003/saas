@@ -63,6 +63,8 @@ interface FilterState {
   referralSource: string;
   fulfillmentType: string;
   dateRange: string;
+  startDate: string;
+  endDate: string;
   activeTab: TabKey;
 }
 
@@ -113,6 +115,8 @@ export default function DashboardPage() {
     referralSource: 'all',
     fulfillmentType: 'all',
     dateRange: 'all',
+    startDate: '',
+    endDate: '',
     activeTab: 'all'
   });
 
@@ -200,12 +204,23 @@ export default function DashboardPage() {
         }
 
         // Add date range filtering
-        const dateRange = getDateRange(filters.dateRange);
-        if (dateRange.start) {
-          params.append('dateStart', dateRange.start);
-        }
-        if (dateRange.end) {
-          params.append('dateEnd', dateRange.end);
+        if (filters.dateRange === 'custom' && (filters.startDate || filters.endDate)) {
+          // Use custom date range
+          if (filters.startDate) {
+            params.append('dateStart', new Date(filters.startDate + 'T00:00:00').toISOString());
+          }
+          if (filters.endDate) {
+            params.append('dateEnd', new Date(filters.endDate + 'T23:59:59').toISOString());
+          }
+        } else {
+          // Use preset date range
+          const dateRange = getDateRange(filters.dateRange);
+          if (dateRange.start) {
+            params.append('dateStart', dateRange.start);
+          }
+          if (dateRange.end) {
+            params.append('dateEnd', dateRange.end);
+          }
         }
 
         // Add active tab filtering
@@ -280,6 +295,7 @@ export default function DashboardPage() {
       // Let the backend API handle filtering based on activeTab
       category: 'all',
       membershipStatus: 'all'
+      // Keep date range and custom dates intact when switching tabs
     }));
   };
 

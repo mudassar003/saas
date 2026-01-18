@@ -409,7 +409,7 @@ export function ContractTable({
                     <th
                       key={header.id}
                       style={{
-                        width: header.getSize(),
+                        minWidth: header.getSize(),
                         position: 'relative',
                       }}
                       className="px-4 py-3 text-left text-xs font-semibold text-foreground border-r border-border/50 last:border-r-0"
@@ -474,7 +474,7 @@ export function ContractTable({
                       key={cell.id}
                       className="px-4 py-3 text-sm border-r border-border/30 last:border-r-0"
                       style={{
-                        width: cell.column.getSize(),
+                        minWidth: cell.column.getSize(),
                       }}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

@@ -37,6 +37,32 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  var resolvedTheme;
+
+                  if (theme === 'dark') {
+                    resolvedTheme = 'dark';
+                  } else if (theme === 'light') {
+                    resolvedTheme = 'light';
+                  } else {
+                    // system or no preference
+                    resolvedTheme = systemDark ? 'dark' : 'light';
+                  }
+
+                  document.documentElement.classList.add(resolvedTheme);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

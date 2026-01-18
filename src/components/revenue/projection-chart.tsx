@@ -65,7 +65,8 @@ export function ProjectionChart({ upcomingPayments, dateRange }: ProjectionChart
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'UTC'
     });
   };
 

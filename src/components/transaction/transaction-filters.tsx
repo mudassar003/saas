@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Calendar } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,8 @@ interface FilterState {
   referralSource: string;
   fulfillmentType: string;
   dateRange: string;
+  startDate: string;
+  endDate: string;
   activeTab: TabKey;
 }
 
@@ -74,6 +76,8 @@ export function TransactionFilters({
     referralSource: 'all',
     fulfillmentType: 'all',
     dateRange: 'all',
+    startDate: '',
+    endDate: '',
     activeTab: 'all'
   });
 
@@ -111,6 +115,8 @@ export function TransactionFilters({
       referralSource: 'all',
       fulfillmentType: 'all',
       dateRange: 'all',
+      startDate: '',
+      endDate: '',
       activeTab: activeTab // Keep the current tab
     };
     setSearchInput('');
@@ -118,15 +124,27 @@ export function TransactionFilters({
     onFiltersChange(emptyFilters);
   };
 
-  const hasActiveFilters = filters.search || 
-    filters.status !== 'all' || 
-    filters.showType !== 'all' || 
-    filters.category !== 'all' || 
-    filters.membershipStatus !== 'all' || 
-    filters.googleReview !== 'all' || 
-    filters.referralSource !== 'all' || 
-    filters.fulfillmentType !== 'all' || 
-    filters.dateRange !== 'all';
+  const handleDateInputChange = (field: 'startDate' | 'endDate', value: string) => {
+    const newFilters = {
+      ...filters,
+      [field]: value,
+      dateRange: 'custom' // Switch to custom when user picks dates
+    };
+    setFilters(newFilters);
+    onFiltersChange(newFilters);
+  };
+
+  const hasActiveFilters = filters.search ||
+    filters.status !== 'all' ||
+    filters.showType !== 'all' ||
+    filters.category !== 'all' ||
+    filters.membershipStatus !== 'all' ||
+    filters.googleReview !== 'all' ||
+    filters.referralSource !== 'all' ||
+    filters.fulfillmentType !== 'all' ||
+    filters.dateRange !== 'all' ||
+    filters.startDate ||
+    filters.endDate;
 
   return (
     <div className="space-y-2">
@@ -279,20 +297,36 @@ export function TransactionFilters({
             </SelectContent>
           </Select>
 
-          <Select value={filters.dateRange} onValueChange={(value) => handleFilterChange('dateRange', value)}>
+          <Select
+            value={filters.dateRange}
+            onValueChange={(value) => {
+              if (value !== 'custom') {
+                // Clear custom dates when selecting a preset
+                const newFilters = { ...filters, dateRange: value, startDate: '', endDate: '' };
+                setFilters(newFilters);
+                onFiltersChange(newFilters);
+              } else {
+                handleFilterChange('dateRange', value);
+              }
+            }}
+          >
             <SelectTrigger className="w-full h-8 text-xs">
               <SelectValue>
-                {filters.dateRange === 'all' ? 'Date: All Time' : 
+                {filters.dateRange === 'all' ? 'Date: All Time' :
                  filters.dateRange === 'today' ? 'Date: Today' :
                  filters.dateRange === 'week' ? 'Date: Week' :
-                 filters.dateRange === 'month' ? 'Date: Month' : 'Date'}
+                 filters.dateRange === 'month' ? 'Date: Month' :
+                 filters.dateRange === 'year' ? 'Date: Year' :
+                 filters.dateRange === 'custom' ? 'Date: Custom' : 'Date'}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Time</SelectItem>
               <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">Week</SelectItem>
-              <SelectItem value="month">Month</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="year">This Year</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
             </SelectContent>
           </Select>
 
@@ -318,6 +352,49 @@ export function TransactionFilters({
             </Select>
           )}
         </div>
+
+        {/* Custom Date Range Inputs - shown when custom is selected */}
+        {filters.dateRange === 'custom' && (
+          <div className="col-span-full mt-2 pt-2 border-t border-border/50">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">From:</label>
+                <Input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) => handleDateInputChange('startDate', e.target.value)}
+                  className="h-8 w-[140px] text-xs"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">To:</label>
+                <Input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) => handleDateInputChange('endDate', e.target.value)}
+                  min={filters.startDate}
+                  className="h-8 w-[140px] text-xs"
+                />
+              </div>
+              {(filters.startDate || filters.endDate) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newFilters = { ...filters, startDate: '', endDate: '', dateRange: 'all' };
+                    setFilters(newFilters);
+                    onFiltersChange(newFilters);
+                  }}
+                  className="h-7 px-2 text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear Dates
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Results Summary */}
