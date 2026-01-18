@@ -65,7 +65,7 @@ docs/
 
 # development and test files
 test-*
-temp-*
+tmpclaude-*
 setup-*
 
 

@@ -394,7 +394,7 @@ export function ContractTable({
           aria-label="Contract table"
           onKeyDown={handleKeyDown}
         >
-          <table className="w-full" style={{ tableLayout: 'fixed', width: table.getTotalSize() }}>
+          <table className="w-full" style={{ tableLayout: 'auto' }}>
             <thead
               className="sticky top-0 z-20 bg-muted shadow-sm"
               style={{
