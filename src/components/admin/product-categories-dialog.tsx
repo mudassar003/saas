@@ -293,7 +293,7 @@ export function ProductCategoriesDialog({
                 <TableBody>
                   {categories.map((category) => (
                     <TableRow key={category.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium whitespace-pre">
                         {category.product_name}
                       </TableCell>
                       <TableCell>

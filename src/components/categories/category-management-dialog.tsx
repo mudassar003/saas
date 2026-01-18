@@ -489,7 +489,7 @@ export function CategoryManagementDialog({
                         ) : (
                           // View Mode
                           <>
-                            <TableCell className="font-medium">
+                            <TableCell className="font-medium whitespace-pre">
                               {category.product_name}
                             </TableCell>
                             <TableCell>
